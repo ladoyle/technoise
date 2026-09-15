@@ -154,16 +154,16 @@ PR ──▶ gatekeeper ──▶ review comments  ──▶  human merges (or d
   or run configuration changed. Runs last, and only when something durable changed. Opens
   the PR.
 - **gatekeeper** — reviews the open PR on GitHub for production issues, bugs, warnings, and
-  code smells. Comments on every finding; files a GitHub Issue for each MAJOR one. Submits
-  `REQUEST_CHANGES` when anything is MAJOR, `COMMENT` otherwise.
+  code smells. Comments on every finding; files a GitHub Issue for each MAJOR one. Always
+  submits as `COMMENT` — never `REQUEST_CHANGES`, never `APPROVE`.
 
 `qa` runs before the PR exists and gates the handoff. `gatekeeper` runs on the PR itself and
 asks the different question: *if this merges and deploys, what goes wrong?* It treats the QA
 report as a claim to test, not a result to trust.
 
-**A human decides what merges.** No agent approves, and no agent merges. A `REQUEST_CHANGES`
-from the gatekeeper is advisory — if the human merges over it, that is final, and the Issue
-already filed carries any real finding forward.
+**A human decides what merges.** No agent approves, and no agent merges. The gatekeeper's
+review is advisory — if the human merges over it, that is final, and the Issue already filed
+carries any real finding forward.
 
 ### Bugfix loop
 
@@ -233,7 +233,7 @@ These are hard limits on every agent.
   force-push a branch an agent did not create, never rewrite published history.
 - **Raise a PR to `master` for human review.** The documenter (or whichever stage finishes the
   cycle) opens it. No agent approves or merges its own work — or anyone else's. That includes
-  the gatekeeper, whose `REQUEST_CHANGES` is a signal, not a veto.
+  the gatekeeper, whose review is a signal, not a veto.
 - **Every GitHub comment, review, and issue ends with the attribution footer**, so reviewers
   know it was agent-authored:
 

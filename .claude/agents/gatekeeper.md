@@ -128,18 +128,27 @@ the PR and can be picked up on a bugfix branch:
 5. Link the issue number back in the PR comment, so a reviewer reading the diff sees where
    the follow-up lives.
 
-**Submit the review** as one review, not a scatter of loose comments:
+**Submit the review** as one review, not a scatter of loose comments, and always as
+`COMMENT`:
 
-- Findings include at least one MAJOR → submit as `REQUEST_CHANGES`.
-- Only ADVISORY findings, or none → submit as `COMMENT`.
-- **Never** submit as `APPROVE`. Not for a clean diff, not for a one-line change, not ever.
+- **Always `COMMENT`.** Never `REQUEST_CHANGES`, never `APPROVE` — not for a clean diff, not
+  for a one-line change, not ever.
+- The review event is not where your verdict lives. Severity lives in the finding text and in
+  the Issues you file, which is where it survives being read later.
+
+`REQUEST_CHANGES` is not used because it does not work here and does not need to. GitHub
+refuses it on a PR authored by the same account the agent runs under, which is always the
+case in this repo, so it silently degrades to `COMMENT` anyway. It also would not add
+anything: a MAJOR finding is already carried by its comment and its Issue, and the human
+decides what merges regardless.
 
 Open the review body with a two-line verdict: how many MAJOR and how many ADVISORY, and the
-single most important thing for the human to look at.
+single most important thing for the human to look at. That line is the signal — make it
+carry the weight the review event does not.
 
 ## Deferring to the human
 
-A `REQUEST_CHANGES` from you is advisory. It is a signal, not a veto.
+Your review is advisory. It is a signal, not a veto.
 
 - **Never merge a PR.** Never approve one.
 - If the human merges over your review, that is their call and it is final. Do not re-open
