@@ -3,6 +3,10 @@ dist/
 # generated types
 .astro/
 
+# agent handoff reports — local to a working branch, never committed
+reports/*
+!reports/.gitkeep
+
 # dependencies
 node_modules/
 
