@@ -23,9 +23,17 @@
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/*
+  local() is an exact family-name lookup and does not follow fontconfig aliasing, so
+  on a Linux box with no Arial installed this face simply fails to load and the swap
+  reflows — measured at CLS 0.0988 on a 1440px viewport with the woff2 held back.
+  Liberation Sans is Arial's metric-compatible twin (identical advance widths and
+  unitsPerEm), so naming it as a second candidate fixes those visitors while leaving
+  every override below exactly as computed against Arial.
+*/
 @font-face {
   font-family: "Inter Fallback";
-  src: local("Arial");
+  src: local("Arial"), local("Liberation Sans");
   size-adjust: 107.12%;
   ascent-override: 90.44%;
   descent-override: 22.52%;
