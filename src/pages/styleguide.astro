@@ -11,6 +11,15 @@
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Prose from "../components/Prose.astro";
+import TagPill from "../components/TagPill.astro";
+import PostCard from "../components/PostCard.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import Pagination from "../components/Pagination.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+
+// Literal props, never a collection query: the specimen sheet has to keep building
+// when src/content/ is empty.
+const specimenDate = new Date("2026-09-15T00:00:00Z");
 
 const colors = [
   { token: "--surface", role: "Page", light: "cream #FDF9F3", dark: "ink #0C3242", ratio: "—" },
@@ -125,6 +134,99 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
         sunken surface.
       </p>
     </Prose>
+
+    <h2 class="sg-h2" id="components">Components</h2>
+
+    <h3 class="sg-h3">TagPill</h3>
+    <p class="sg-row">
+      <TagPill label="astro" href="#components" />
+      <TagPill label="design-systems" href="#components" count={4} />
+      <TagPill label="accessibility" href="#components" current />
+      <TagPill label="TypeScript" />
+      <TagPill label="Markdown" />
+    </p>
+    <p class="sg-meta">
+      Link, link with count, <code>aria-current="page"</code>, then two static chips.
+      Hover and tab each. Both forms share one box, so a stack badge and a tag link
+      never differ in size. The count is announced as "design-systems 4 posts".
+    </p>
+
+    <h3 class="sg-h3">PostCard</h3>
+    <div class="sg-narrow sg-cards">
+      <PostCard
+        title="A post with tags"
+        href="#components"
+        description="The card is an editorial entry, not a box: one hairline above it and nothing else."
+        pubDate={specimenDate}
+        minutes={6}
+        tags={["astro", "meta"]}
+        headingLevel={3}
+      />
+      <PostCard
+        title="A post with no tags at all"
+        href="#components"
+        description="The tag row is omitted rather than rendering an empty list."
+        pubDate={specimenDate}
+        minutes={1}
+        tags={[]}
+        headingLevel={3}
+      />
+    </div>
+
+    <h3 class="sg-h3">ProjectCard</h3>
+    <div class="sg-grid">
+      <ProjectCard
+        title="An in-progress project"
+        href="#components"
+        description="Status, title, one-line pitch, stack badges. Only the title is interactive."
+        stack={["Astro", "TypeScript", "CSS"]}
+        status="in-progress"
+        headingLevel={3}
+      />
+      <ProjectCard
+        title="A shipped project"
+        href="#components"
+        description="A longer pitch, here to show that the badges still land on the same baseline as the card beside it."
+        stack={["Markdown"]}
+        status="shipped"
+        headingLevel={3}
+      />
+      <ProjectCard
+        title="An archived project"
+        href="#components"
+        description="Archived is the third and last status value."
+        stack={["GitHub Actions", "CSS"]}
+        status="archived"
+        headingLevel={3}
+      />
+    </div>
+
+    <h3 class="sg-h3">Pagination</h3>
+    <div class="sg-narrow">
+      <Pagination currentPage={1} lastPage={3} nextUrl="#components" label="First page example" />
+      <Pagination
+        currentPage={2}
+        lastPage={3}
+        prevUrl="#components"
+        nextUrl="#components"
+        label="Middle page example"
+      />
+      <Pagination currentPage={3} lastPage={3} prevUrl="#components" label="Last page example" />
+    </div>
+    <p class="sg-meta">
+      A missing neighbour omits its cell rather than greying out a link. At one page
+      the component renders nothing at all, which is why there is no fourth example.
+    </p>
+
+    <h3 class="sg-h3">Breadcrumb</h3>
+    <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Blog" }]} />
+    <Breadcrumb
+      items={[
+        { label: "Home", href: "/" },
+        { label: "Blog", href: "/blog/" },
+        { label: "A post title long enough to wrap the trail onto a second line" },
+      ]}
+    />
 
     <h2 class="sg-h2" id="prose">Prose</h2>
     <div class="sg-narrow">
@@ -255,6 +357,25 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
 
   .sg-narrow {
     max-width: var(--content);
+  }
+
+  /* Each card draws its own top rule, so the run needs closing at the bottom the
+     same way the blog listing closes it. */
+  .sg-cards {
+    border-block-end: var(--hairline) solid var(--border);
+  }
+
+  .sg-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: var(--space-32);
+  }
+
+  @media (min-width: 48em) {
+    .sg-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
   /* Scoped to the specimen chrome so it never competes with prose.css's
