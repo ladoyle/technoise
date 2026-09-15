@@ -1,0 +1,231 @@
+/*
+  Reset, page base, layout wrappers, link and focus behaviour, button styles.
+  Every value here is a token. If something needs a value not in tokens.css,
+  the design is wrong — not the scale.
+*/
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--lh-body);
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--select-bg);
+  color: var(--select-fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Layout ---------- */
+
+/*
+  .wrap adds the gutter on top of the column width, so the readable column is exactly
+  --content wide at large viewports rather than --content minus two gutters.
+*/
+.wrap {
+  width: 100%;
+  max-width: calc(var(--content) + var(--gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.wrap--wide {
+  max-width: calc(var(--content-wide) + var(--gutter) * 2);
+}
+
+main {
+  display: block;
+  padding-block: var(--space-48) var(--space-96);
+}
+
+/* ---------- Skip link ---------- */
+
+.skip-link {
+  position: absolute;
+  z-index: 10;
+  inset-block-start: var(--space-8);
+  inset-inline-start: var(--space-8);
+  padding: var(--space-8) var(--space-16);
+  border: 2px solid var(--focus);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--link);
+  font-size: var(--size-16);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* ---------- Buttons ---------- */
+
+/*
+  A button is a style, not a component: it is applied to a real <a> or <button>.
+  Adding it does not open a thirteenth slot in the inventory.
+
+  THE FONT SIZE IS AN ACCESSIBILITY CONSTRAINT, NOT A STYLING CHOICE. The label is
+  ink on raw pulse at 4.24:1, which clears WCAG's 3:1 large-text floor and fails its
+  4.5:1 normal-text floor, so the label has to qualify as large text. WCAG gives two
+  ways in: 18.66px when bold, or 24px at any weight. The bold route cannot be
+  guaranteed — "Inter Fallback" is built from whatever bold face the reader's machine
+  happens to have, global.css forbids synthesis, and a machine with no Arial and no
+  Liberation renders the label at regular weight with nothing this stylesheet can do
+  about it. The 24px route is guaranteed, because it is arithmetic.
+
+  max() supplies it. --size-25 is 1.5625rem, which is 25px at the usual 16px default
+  and drops to 18.75px on a browser set to 12px — Chrome's "Small" — so the literal
+  pins the floor at the scale's 25px while the rem stays free to scale upward for a
+  reader who enlarges their default. Both halves are scale values. Do not reduce
+  either one, and do not drop the max(): 20px would put the label back on the bold
+  route and hand its AA compliance to a font file.
+
+  The alternative is to buy the contrast instead of the size — --accent-fill:
+  var(--pulse-700) with --accent-on-fill: var(--cream) measures 5.07:1 and passes at
+  any size and weight. It costs the brand's raw pulse and needs a new hover state,
+  so it is a design decision rather than a developer one. See the dev report.
+*/
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-24);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent-fill);
+  color: var(--accent-on-fill);
+  font-size: max(var(--size-25), 25px);
+  font-weight: var(--weight-bold);
+  line-height: var(--lh-tight);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.button:hover {
+  background: var(--accent-fill-hover);
+  color: var(--accent-on-fill-hover);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button[aria-disabled="true"],
+.button:disabled {
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--link);
+  border-color: var(--link);
+  font-weight: var(--weight-semibold);
+}
+
+.button--ghost:hover {
+  background: var(--surface-sunken);
+  color: var(--link);
+}
+
+/*
+  A button placed inside <Prose> is still an <a>, and prose.css styles every link at
+  (0,1,0) — the same weight as the rules above, but bundled later, so a tie breaks
+  prose's way and the label would take --link plus an underline. The element name
+  makes these (0,1,1), which wins outright and does not depend on bundle order.
+  Only the two declarations prose competes for are repeated; :hover, [aria-disabled]
+  and :disabled are already (0,2,0) and need nothing.
+*/
+a.button {
+  color: var(--accent-on-fill);
+  text-decoration: none;
+}
+
+a.button--ghost {
+  color: var(--link);
+}
+
+/* ---------- Utilities ---------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}

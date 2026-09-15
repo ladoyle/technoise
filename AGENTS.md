@@ -146,7 +146,11 @@ PR ──▶ gatekeeper ──▶ review comments  ──▶  human merges (or d
             └── MAJOR finding ──▶ GitHub Issue ──▶ developer on bugfix/<slug> ──▶ qa ──▶ PR
 ```
 
-- **designer** — produces design templates and a numbered checklist of changes to make.
+- **designer** — produces a numbered checklist of changes to make, plus whatever prose,
+  measurements and markup *excerpts* the report needs to be unambiguous. The report is the
+  whole deliverable: the designer never commits `.astro` or `.css` files. A committed
+  template reads as source, drifts away from `src/` the moment the developer implements it,
+  and the next cycle picks up the stale copy.
 - **developer** — implements every checklist item, one commit per coherent unit.
 - **qa** — reviews for vulnerabilities, writes unit tests, judges production readiness.
   A blocking verdict sends the work back to developer with the same report as input.

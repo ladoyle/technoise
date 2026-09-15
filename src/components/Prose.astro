@@ -1,0 +1,17 @@
+---
+// The "Prose block" from the AGENTS.md component inventory. A wrapper, nothing more:
+// the typography lives in src/styles/prose.css because Astro's scoped styles do not
+// reach children arriving through a <slot>, which is how Markdown content gets here.
+
+import "../styles/prose.css";
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class:list={["prose", className]}>
+  <slot />
+</div>

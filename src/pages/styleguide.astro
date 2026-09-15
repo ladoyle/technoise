@@ -1,0 +1,267 @@
+---
+// The permanent specimen sheet. Every token, every scale step and every interactive
+// state on one surface, so a change to the design system can be eyeballed in one
+// place instead of hunted for across pages.
+//
+// noindex, and excluded from the sitemap in Phase 4 — the SEO score is 100 or it is
+// a defect, and an indexed swatch grid is not a page anyone searched for.
+//
+// This page shows orange more than once. The "orange appears once per screen" rule
+// governs composed pages, not a specimen sheet whose subject is the palette.
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Prose from "../components/Prose.astro";
+
+const colors = [
+  { token: "--surface", role: "Page", light: "cream #FDF9F3", dark: "ink #0C3242", ratio: "—" },
+  { token: "--surface-sunken", role: "Code, callouts", light: "#EFEDE8", dark: "#1F4250", ratio: "1.12:1 / 1.26:1 vs page" },
+  { token: "--text", role: "Body text", light: "ink #0C3242", dark: "cream #FDF9F3", ratio: "12.9:1" },
+  { token: "--text-muted", role: "Meta, captions", light: "#48646E", dark: "#CDD1D0", ratio: "6.0:1 / 8.8:1" },
+  { token: "--link", role: "Body links", light: "#0A6F94", dark: "#6EC9E8", ratio: "5.4:1 / 7.2:1" },
+  { token: "--accent-text", role: "Orange as text", light: "#B94614", dark: "#FF9F6B", ratio: "5.1:1 / 6.7:1" },
+  { token: "--accent-fill", role: "Primary button fill", light: "#F75E1A", dark: "#F75E1A", ratio: "3.1:1 / 4.2:1 vs page" },
+  { token: "--border", role: "Rules, hairlines", light: "#C2D1D8", dark: "#55727E", ratio: "1.5:1 / 2.6:1" },
+  { token: "--focus", role: "Focus ring", light: "#0C83AE", dark: "#6EC9E8", ratio: "4.1:1 / 7.2:1" },
+  { token: "--rule", role: "Quote rule", light: "#0C83AE", dark: "#6EC9E8", ratio: "4.1:1 / 7.2:1" },
+];
+
+const typeSteps = [
+  { token: "--size-49", px: 49, use: "Home hero, desktop" },
+  { token: "--size-39", px: 39, use: "H1 desktop / hero mobile" },
+  { token: "--size-31", px: 31, use: "H1 mobile / H2 desktop" },
+  { token: "--size-25", px: 25, use: "H2 mobile / H3 desktop" },
+  { token: "--size-20", px: 20, use: "Body desktop, H3 mobile" },
+  { token: "--size-18", px: 18, use: "Body mobile" },
+  { token: "--size-16", px: 16, use: "Nav, code, tables" },
+  { token: "--size-14", px: 14, use: "Meta, captions" },
+];
+
+const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
+---
+
+<BaseLayout
+  title="Styleguide — TechNoise"
+  description="Every colour token, type scale step, spacing step and interactive state in the TechNoise design system."
+  noindex
+>
+  <div class="wrap wrap--wide">
+    <p class="eyebrow">Reference</p>
+    <h1 class="sg-title">Styleguide</h1>
+    <p class="sg-lede">
+      Contrast ratios are measured against the page colour of the scheme they belong
+      to, light first. Nothing here should ever need a value outside the scales.
+    </p>
+
+    <h2 class="sg-h2" id="colour">Colour</h2>
+    <ul class="sg-swatches">
+      {
+        colors.map((c) => (
+          <li class="sg-swatch">
+            <span class="sg-chip" style={`background: var(${c.token})`} aria-hidden="true" />
+            <code>{c.token}</code>
+            <span class="sg-role">{c.role}</span>
+            <span class="sg-meta">
+              {c.light} / {c.dark}
+            </span>
+            <span class="sg-meta">{c.ratio}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h2 class="sg-h2" id="type">Type scale</h2>
+    <ul class="sg-type">
+      {
+        typeSteps.map((t) => (
+          <li>
+            <span class="sg-specimen" style={`font-size: var(${t.token})`}>
+              Hear the future
+            </span>
+            <span class="sg-meta">
+              <code>{t.token}</code> · {t.px}px · {t.use}
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h2 class="sg-h2" id="space">Spacing scale</h2>
+    <ul class="sg-space">
+      {
+        spaceSteps.map((s) => (
+          <li>
+            <span class="sg-bar" style={`inline-size: var(--space-${s})`} aria-hidden="true" />
+            <span class="sg-meta">
+              <code>--space-{s}</code>
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h2 class="sg-h2" id="states">States</h2>
+
+    <h3 class="sg-h3">Buttons</h3>
+    <p class="sg-row">
+      <a class="button" href="#states">Primary</a>
+      <a class="button button--ghost" href="#states">Ghost</a>
+      <button class="button" type="button" disabled>Disabled</button>
+    </p>
+    <p class="sg-meta">
+      Tab to each. Hover each. The primary label is ink on raw pulse at 4.2:1, which
+      holds because it is never smaller than 25px — large text at any weight, 3:1
+      floor. Weight is not part of the guarantee: before the webfont arrives the
+      label renders in whatever bold face the reader's machine has, or in none.
+      Hover darkens the fill to <code>--pulse-700</code> and flips the label to
+      cream at 5.1:1.
+    </p>
+
+    <h3 class="sg-h3">Links</h3>
+    <Prose class="sg-prose">
+      <p>
+        A <a href="#states">default link</a>, and the same link after you hover it.
+        Tab through this paragraph to see the focus ring: 2px solid <code>--focus</code>
+        at 2px offset, which clears the 3:1 non-text floor on both the page and the
+        sunken surface.
+      </p>
+    </Prose>
+
+    <h2 class="sg-h2" id="prose">Prose</h2>
+    <div class="sg-narrow">
+      <Prose>
+        <h2>A second-level heading</h2>
+        <p>
+          Body copy at the current breakpoint's size, 1.65 line height, capped at the
+          720px column so the measure stays readable.
+        </p>
+        <h3>A third-level heading</h3>
+        <ul>
+          <li>List item with a <code>--token</code> in it.</li>
+          <li>A second item, 8px below the first.</li>
+        </ul>
+        <blockquote>
+          <p>A quote, marked by a 3px rule in the signal blue.</p>
+        </blockquote>
+        <pre tabindex="0"><code>--space-24: 1.5rem;</code></pre>
+      </Prose>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .sg-title {
+    margin: var(--space-8) 0 0;
+    font-size: var(--text-h1);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .sg-lede {
+    max-width: var(--content);
+    margin-block: var(--space-16) 0;
+    color: var(--text-muted);
+    font-size: var(--text-h3);
+  }
+
+  .sg-h2 {
+    margin-block: var(--space-96) var(--space-24);
+    padding-block-end: var(--space-8);
+    border-block-end: var(--hairline) solid var(--border);
+    font-size: var(--text-h2);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .sg-h3 {
+    margin-block: var(--space-48) var(--space-16);
+    font-size: var(--text-h3);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+  }
+
+  .sg-meta {
+    color: var(--text-muted);
+    font-size: var(--text-meta);
+  }
+
+  .sg-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16);
+    margin: 0 0 var(--space-16);
+  }
+
+  .sg-swatches,
+  .sg-type,
+  .sg-space {
+    display: grid;
+    gap: var(--space-24);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .sg-swatches {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  .sg-swatch {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-16);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .sg-chip {
+    display: block;
+    block-size: var(--space-48);
+    margin-block-end: var(--space-8);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+
+  .sg-role {
+    font-size: var(--size-16);
+    font-weight: var(--weight-semibold);
+  }
+
+  .sg-type li,
+  .sg-space li {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .sg-specimen {
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    overflow-wrap: break-word;
+  }
+
+  .sg-space li {
+    grid-template-columns: 6rem 1fr;
+    align-items: center;
+    gap: var(--space-16);
+  }
+
+  .sg-bar {
+    display: block;
+    block-size: var(--space-16);
+    border-radius: var(--radius-sm);
+    background: var(--rule);
+  }
+
+  .sg-narrow {
+    max-width: var(--content);
+  }
+
+  /* Scoped to the specimen chrome so it never competes with prose.css's
+     inline-code rule inside the <Prose> samples below. */
+  .sg-meta code,
+  .sg-swatch code {
+    font-family: var(--font-mono);
+    font-size: var(--size-14);
+  }
+</style>
