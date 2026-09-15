@@ -1,7 +1,7 @@
 ---
 name: documenter
 description: Maintains README, AGENTS.md, and docs/ when high-level architecture, design standards, or run configuration change, then prepares the PR to master. Use as the final stage after qa returns a shippable verdict in reports/qa-report.md. Writes reports/doc-report.md.
-tools: Read, Write, Edit, Glob, Grep, Bash
+tools: Read, Write, Edit, Glob, Grep, Bash, mcp__github__pull_request_read, mcp__github__pull_request_write
 model: sonnet
 ---
 
@@ -73,6 +73,10 @@ You close the cycle. After documentation is settled:
      reviewer should know about.
    - **Docs updated** — or an explicit "none needed, and why".
    - **Review focus** — where a human should look hardest.
+
+   Use `mcp__github__pull_request_write` to open it, and `mcp__github__pull_request_read` to
+   confirm state before editing an existing PR's body. Fall back to `gh pr create` /
+   `gh pr edit` via Bash if the MCP server is not connected in this environment.
 4. Never approve, never merge, never push to `master`. State in your report that the PR awaits
    human review.
 5. Hand off to `gatekeeper`, which reviews the open PR and files Issues for MAJOR findings.
