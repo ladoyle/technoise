@@ -1,0 +1,131 @@
+---
+// DESIGN TEMPLATE — destination: src/components/Footer.astro  (checklist D8)
+//
+// Three blocks on the wide column: wordmark, navigation, colophon. Stacked below the
+// breakpoint, side by side above it.
+//
+// TODO(D8): "Elsewhere" links (GitHub, LinkedIn, RSS, contact) are deliberately not
+// here. Those URLs come from the human, per setup-guide Part 5, and RSS does not
+// exist until Phase 4. Do not invent them.
+
+const year = new Date().getFullYear();
+
+const nav = [
+  { href: "/blog/", label: "Blog" },
+  { href: "/projects/", label: "Projects" },
+  { href: "/resume/", label: "Resume" },
+  { href: "/about/", label: "About" },
+];
+---
+
+<footer class="site-footer">
+  <div class="wrap wrap--wide site-footer__inner">
+    <div class="site-footer__brand">
+      <span class="site-footer__wordmark">TechNoise</span>
+      <p class="site-footer__tagline">Hear the future</p>
+    </div>
+
+    <nav aria-label="Footer">
+      <ul class="site-footer__list">
+        {
+          nav.map((item) => (
+            <li>
+              <a class="site-footer__link" href={item.href}>
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="site-footer__colophon">
+      <p>&copy; {year} TechNoise</p>
+      <p>Built with Astro. Hosted on GitHub Pages.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-block-start: var(--space-96);
+    border-block-start: var(--hairline) solid var(--border);
+    color: var(--text-muted);
+    font-size: var(--size-16);
+  }
+
+  .site-footer__inner {
+    display: grid;
+    gap: var(--space-32);
+    padding-block: var(--space-48) var(--space-64);
+  }
+
+  .site-footer__brand {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .site-footer__wordmark {
+    color: var(--text);
+    font-size: var(--size-20);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--lh-tight);
+  }
+
+  /*
+    The logo sets this tagline in raw signal. Raw signal is 4.1:1 on cream, so at
+    14px it would fail the 4.5:1 body floor. Muted ink carries it at 6.0:1.
+  */
+  .site-footer__tagline {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--text-meta);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .site-footer__list {
+    display: grid;
+    gap: var(--space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-footer__link {
+    display: inline-block;
+    padding-block: var(--space-4);
+    color: var(--link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .site-footer__link:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .site-footer__colophon {
+    display: grid;
+    gap: var(--space-4);
+    font-size: var(--text-meta);
+  }
+
+  .site-footer__colophon p {
+    margin: 0;
+  }
+
+  @media (min-width: 48em) {
+    .site-footer__inner {
+      grid-template-columns: 1fr auto auto;
+      gap: var(--space-48);
+      align-items: start;
+    }
+
+    .site-footer__colophon {
+      text-align: end;
+    }
+  }
+</style>

@@ -1,0 +1,166 @@
+/*
+  DESIGN TEMPLATE — destination: src/styles/tokens.css  (checklist D3)
+
+  Token names carry their default pixel value (--space-24, --size-20) while the value
+  itself is in rem. The name describes the default rendering; the unit lets a reader's
+  browser font-size preference scale the whole system. An off-scale value is therefore
+  impossible to write without inventing a token name that does not exist.
+*/
+
+:root {
+  color-scheme: light dark;
+
+  /* Brand bases — never referenced directly by a component. */
+  --cream: #fdf9f3;
+  --ink: #0c3242;
+  --signal: #0c83ae;
+  --signal-700: #0a6f94;
+  --pulse: #f75e1a;
+  --pulse-700: #b94614;
+  --slate: #c2d1d8;
+
+  /* Derived tints — sRGB blends of the bases above, no new hues. */
+  --signal-300: #6ec9e8;
+  --pulse-300: #ff9f6b;
+  --ink-muted: #48646e;
+  --ink-sunken: #1f4250;
+  --ink-border: #55727e;
+  --cream-muted: #cdd1d0;
+  --cream-sunken: #efede8;
+
+  /* Semantic roles — the only color names a component may use. */
+  --surface: var(--cream);
+  --surface-sunken: var(--cream-sunken);
+  --text: var(--ink);
+  --text-muted: var(--ink-muted);
+  --link: var(--signal-700);
+  --rule: var(--signal);
+  --border: var(--slate);
+  --focus: var(--signal);
+  --accent-fill: var(--pulse);
+  --accent-on-fill: var(--ink);
+  --accent-fill-hover: var(--pulse-700);
+  --accent-on-fill-hover: var(--cream);
+  --accent-text: var(--pulse-700);
+  --select-bg: var(--slate);
+  --select-fg: var(--ink);
+
+  /* Type */
+  --font-sans: "Inter", "Inter Fallback", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --size-14: 0.875rem;
+  --size-16: 1rem;
+  --size-18: 1.125rem;
+  --size-20: 1.25rem;
+  --size-25: 1.5625rem;
+  --size-31: 1.9375rem;
+  --size-39: 2.4375rem;
+  --size-49: 3.0625rem;
+
+  --text-body: var(--size-18);
+  --text-meta: var(--size-14);
+  --text-h4: var(--size-18);
+  --text-h3: var(--size-20);
+  --text-h2: var(--size-25);
+  --text-h1: var(--size-31);
+  --text-hero: var(--size-39);
+
+  --lh-body: 1.65;
+  --lh-tight: 1.2;
+  --lh-code: 1.5;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --tracking-tight: -0.011em;
+  --tracking-caps: 0.08em;
+
+  /* Space */
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-24: 1.5rem;
+  --space-32: 2rem;
+  --space-48: 3rem;
+  --space-64: 4rem;
+  --space-96: 6rem;
+
+  /* Layout */
+  --content: 720px;
+  --content-wide: 1100px;
+  --gutter: var(--space-24);
+
+  /* Shape */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-full: 999px;
+  --hairline: 1px;
+}
+
+/*
+  One breakpoint. Declared in em so it answers to the browser's default font size
+  rather than to :root, which keeps it correct under page zoom.
+*/
+@media (min-width: 48em) {
+  :root {
+    --gutter: var(--space-48);
+    --text-body: var(--size-20);
+    --text-h4: var(--size-20);
+    --text-h3: var(--size-25);
+    --text-h2: var(--size-31);
+    --text-h1: var(--size-39);
+    --text-hero: var(--size-49);
+  }
+}
+
+/*
+  Dark scheme. The two blocks below carry identical declarations: the media block is
+  what ships, the [data-theme="dark"] block exists so the scheme can be inspected at
+  any width without changing an OS setting, and so a later ThemeToggle is a pure
+  addition rather than a token rewrite. Keep them in sync.
+*/
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: var(--ink);
+    --surface-sunken: var(--ink-sunken);
+    --text: var(--cream);
+    --text-muted: var(--cream-muted);
+    --link: var(--signal-300);
+    --rule: var(--signal-300);
+    --border: var(--ink-border);
+    --focus: var(--signal-300);
+    --accent-fill-hover: var(--pulse-300);
+    --accent-on-fill-hover: var(--ink);
+    --accent-text: var(--pulse-300);
+    --select-bg: var(--ink-border);
+    --select-fg: var(--cream);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: var(--ink);
+  --surface-sunken: var(--ink-sunken);
+  --text: var(--cream);
+  --text-muted: var(--cream-muted);
+  --link: var(--signal-300);
+  --rule: var(--signal-300);
+  --border: var(--ink-border);
+  --focus: var(--signal-300);
+  --accent-fill-hover: var(--pulse-300);
+  --accent-on-fill-hover: var(--ink);
+  --accent-text: var(--pulse-300);
+  --select-bg: var(--ink-border);
+  --select-fg: var(--cream);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
