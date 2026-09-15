@@ -121,15 +121,26 @@ main {
   A button is a style, not a component: it is applied to a real <a> or <button>.
   Adding it does not open a thirteenth slot in the inventory.
 
-  The label is ink on raw pulse (4.24:1). That clears the 3:1 large-text floor but
-  not the 4.5:1 normal-text floor, so the rendered size and weight are accessibility
-  constraints, not styling choices: WCAG large text starts at 18.66px when bold.
-  --size-20 is 1.25rem, which renders below that on any browser whose default font
-  size is under 16px — Chrome's "Small" setting is 12px, giving a 15px label and a
-  real AA failure that axe, Lighthouse and the build never see because they all test
-  at 16px. max() pins the floor at the scale's 20px while leaving the rem free to
-  scale upward for readers who enlarge their default. Do not reduce either value,
-  and do not drop the max().
+  THE FONT SIZE IS AN ACCESSIBILITY CONSTRAINT, NOT A STYLING CHOICE. The label is
+  ink on raw pulse at 4.24:1, which clears WCAG's 3:1 large-text floor and fails its
+  4.5:1 normal-text floor, so the label has to qualify as large text. WCAG gives two
+  ways in: 18.66px when bold, or 24px at any weight. The bold route cannot be
+  guaranteed — "Inter Fallback" is built from whatever bold face the reader's machine
+  happens to have, global.css forbids synthesis, and a machine with no Arial and no
+  Liberation renders the label at regular weight with nothing this stylesheet can do
+  about it. The 24px route is guaranteed, because it is arithmetic.
+
+  max() supplies it. --size-25 is 1.5625rem, which is 25px at the usual 16px default
+  and drops to 18.75px on a browser set to 12px — Chrome's "Small" — so the literal
+  pins the floor at the scale's 25px while the rem stays free to scale upward for a
+  reader who enlarges their default. Both halves are scale values. Do not reduce
+  either one, and do not drop the max(): 20px would put the label back on the bold
+  route and hand its AA compliance to a font file.
+
+  The alternative is to buy the contrast instead of the size — --accent-fill:
+  var(--pulse-700) with --accent-on-fill: var(--cream) measures 5.07:1 and passes at
+  any size and weight. It costs the brand's raw pulse and needs a new hover state,
+  so it is a design decision rather than a developer one. See the dev report.
 */
 .button {
   display: inline-flex;
@@ -141,9 +152,10 @@ main {
   border-radius: var(--radius-sm);
   background: var(--accent-fill);
   color: var(--accent-on-fill);
-  font-size: max(var(--size-20), 20px);
+  font-size: max(var(--size-25), 25px);
   font-weight: var(--weight-bold);
   line-height: var(--lh-tight);
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
   transition: background-color 120ms ease-out, color 120ms ease-out;

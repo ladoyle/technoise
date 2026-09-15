@@ -2,14 +2,6 @@
   One webfont: Inter, latin subset, weight axis only, normal style. 48 KB.
   The italic face is deliberately absent — see the design report. <em> renders as a
   synthetic oblique.
-
-  "Inter Fallback" is Arial re-metricked to Inter's proportions so the swap from
-  fallback to webfont does not reflow the page. The numbers are computed from Inter's
-  own metrics (unitsPerEm 2048, ascent 1984, descent 494, lineGap 0, xWidthAvg 978)
-  against Arial's (unitsPerEm 2048, xWidthAvg 913):
-    size-adjust      = 978 / 913                    = 107.12%
-    ascent-override  = 1984 / (2048 * 1.0712)       = 90.44%
-    descent-override = 494  / (2048 * 1.0712)       = 22.52%
 */
 
 @font-face {
@@ -24,18 +16,67 @@
 }
 
 /*
-  local() is an exact family-name lookup and does not follow fontconfig aliasing, so
-  on a Linux box with no Arial installed this face simply fails to load and the swap
-  reflows — measured at CLS 0.0988 on a 1440px viewport with the woff2 held back.
-  Liberation Sans is Arial's metric-compatible twin (identical advance widths and
-  unitsPerEm), so naming it as a second candidate fixes those visitors while leaving
-  every override below exactly as computed against Arial.
+  "Inter Fallback" is Arial re-metricked to Inter's proportions so the swap from
+  fallback to webfont does not reflow the page.
+
+  THREE FACES, ONE PER WEIGHT THE SITE USES. An @font-face with no font-weight
+  descriptor covers weight 400 and nothing else, and global.css sets
+  font-synthesis-weight: none, so a single face meant every heading, every <strong>
+  and the CTA label rendered at regular weight for the whole font-display: swap
+  window — and permanently whenever the woff2 404s. Chromium will not synthesise for
+  a local()-backed face even with synthesis re-enabled, so the only fix is to name a
+  real bold face. Arial and Liberation Sans are the same metrics; Liberation is
+  Arial's twin and covers Linux boxes that have no Arial at all.
+
+  Each face carries its own size-adjust, because Inter gets wider as it gets heavier
+  and so does Arial, but not by the same amount — reusing the regular figure for bold
+  would reintroduce the reflow these overrides exist to prevent.
+
+  Derivation. xWidthAvg is the advance width of a–z and space averaged at English
+  letter frequency (the capsize definition), measured with fontTools against the
+  shipped woff2 and against Liberation Sans, whose advance widths are identical to
+  Arial's glyph for glyph. Every font here is unitsPerEm 2048, and Inter's ascent
+  (1984) and descent (494) do not vary with weight.
+
+    face                       Inter     Arial    size-adjust  ascent   descent
+    400  Arial                 969.97   903.67      107.34%    90.25%   22.47%
+    600  Arial Bold            987.72   976.95      101.10%    95.82%   23.86%
+    700  Arial Bold            996.49   976.95      102.00%    94.98%   23.65%
+
+    size-adjust      = xWidthAvg(Inter) / xWidthAvg(Arial)
+    ascent-override  = 1984 / (2048 * size-adjust)
+    descent-override = 494  / (2048 * size-adjust)
+
+  600 and 700 share a source face because no system ships an Arial Semibold; they
+  differ only in how far that one face is scaled to match Inter at each weight.
 */
+
 @font-face {
   font-family: "Inter Fallback";
+  font-weight: 400;
   src: local("Arial"), local("Liberation Sans");
-  size-adjust: 107.12%;
-  ascent-override: 90.44%;
-  descent-override: 22.52%;
+  size-adjust: 107.34%;
+  ascent-override: 90.25%;
+  descent-override: 22.47%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Inter Fallback";
+  font-weight: 600;
+  src: local("Arial Bold"), local("Liberation Sans Bold");
+  size-adjust: 101.1%;
+  ascent-override: 95.82%;
+  descent-override: 23.86%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Inter Fallback";
+  font-weight: 700;
+  src: local("Arial Bold"), local("Liberation Sans Bold");
+  size-adjust: 102%;
+  ascent-override: 94.98%;
+  descent-override: 23.65%;
   line-gap-override: 0%;
 }

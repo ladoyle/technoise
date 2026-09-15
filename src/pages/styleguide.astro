@@ -109,8 +109,11 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
     </p>
     <p class="sg-meta">
       Tab to each. Hover each. The primary label is ink on raw pulse at 4.2:1, which
-      holds because it is 20px at weight 700 — large text, 3:1 floor. Hover darkens the
-      fill to <code>--pulse-700</code> and flips the label to cream at 5.1:1.
+      holds because it is never smaller than 25px — large text at any weight, 3:1
+      floor. Weight is not part of the guarantee: before the webfont arrives the
+      label renders in whatever bold face the reader's machine has, or in none.
+      Hover darkens the fill to <code>--pulse-700</code> and flips the label to
+      cream at 5.1:1.
     </p>
 
     <h3 class="sg-h3">Links</h3>
