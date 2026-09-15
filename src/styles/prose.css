@@ -27,14 +27,6 @@
   line-height: var(--lh-body);
 }
 
-.prose > * + * {
-  margin-block-start: var(--space-24);
-}
-
-.prose > :first-child {
-  margin-block-start: 0;
-}
-
 /* ---------- Headings ---------- */
 
 .prose :where(h1, h2, h3, h4) {
@@ -59,22 +51,6 @@
 }
 .prose :where(h4) {
   font-size: var(--text-h4);
-}
-
-.prose > :where(h2, h3, h4) + * {
-  margin-block-start: var(--space-16);
-}
-
-.prose > * + :where(h2) {
-  margin-block-start: var(--space-64);
-}
-
-.prose > * + :where(h3) {
-  margin-block-start: var(--space-48);
-}
-
-.prose > * + :where(h4) {
-  margin-block-start: var(--space-32);
 }
 
 /* ---------- Body ---------- */
@@ -161,7 +137,7 @@
 
 .prose :where(hr) {
   height: var(--hairline);
-  margin-block: var(--space-48);
+  margin-block-end: var(--space-48);
   border: 0;
   background: var(--border);
 }
@@ -252,4 +228,47 @@
   margin-block-start: var(--space-8);
   color: var(--text-muted);
   font-size: var(--text-meta);
+}
+
+/* ---------- Flow ---------- */
+
+/*
+  LAST IN THE FILE, ON PURPOSE. Every element reset above writes the `margin`
+  shorthand, which sets margin-block-start to 0, and each of those rules weighs the
+  same (0,1,0) as the flow rules here. A tie is broken by source order, so the flow
+  has to be declared after the resets it competes with or it is silently erased —
+  which is what happened while this section sat at the top of the file.
+
+  Only the top margin is set, and only between siblings, so the rhythm is the space
+  *between* two blocks and nothing owns trailing space. `<hr>` is the exception: it
+  carries its own margin-block-end because the gap after a rule is the rule's, not
+  the next block's.
+*/
+
+.prose > * + * {
+  margin-block-start: var(--space-24);
+}
+
+.prose > :where(h2, h3, h4) + * {
+  margin-block-start: var(--space-16);
+}
+
+.prose > * + :where(h2) {
+  margin-block-start: var(--space-64);
+}
+
+.prose > * + :where(h3) {
+  margin-block-start: var(--space-48);
+}
+
+.prose > * + :where(h4) {
+  margin-block-start: var(--space-32);
+}
+
+.prose > * + :where(hr) {
+  margin-block-start: var(--space-48);
+}
+
+.prose > :first-child {
+  margin-block-start: 0;
 }
