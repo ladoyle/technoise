@@ -2,6 +2,24 @@
   Typographic styles for Markdown output. Imported by src/components/Prose.astro,
   which renders <div class="prose">. Not scoped by Astro, because the content it
   styles arrives through a <slot> and scoped styles do not reach slotted children.
+
+  THE CASCADE BOUNDARY. Every element-name selector below is wrapped in :where(), so
+  each rule weighs (0,1,0) — the weight of `.prose` alone. That is deliberate and
+  load-bearing. <Prose> hosts components as well as Markdown (TagPill, CodeBlock and
+  Callout all land inside it in Phase 3), and a bare `.prose p` is (0,1,1), which
+  outranks a component's own `.callout p` and every unscoped component class. Written
+  that way, prose typography silently repaints anything placed inside it and the only
+  remedy is to keep adding classes to a :not() list. With :where() the rules become a
+  defaults layer instead: a component class wins, and an Astro-scoped component rule —
+  (0,2,0) once the compiler adds its data-astro-cid attribute — wins outright.
+
+  The rule for component authors: style your component from its own .astro <style>
+  block. That is (0,2,0) and beats everything here regardless of bundle order. A rule
+  in a plain global stylesheet is (0,1,0) and only ties, so it wins only while that
+  sheet is emitted after this one — which Astro's import graph decides, not you.
+
+  Prose's own opt-in classes (.lede, .meta, .table-scroll, .rule--accent) keep their
+  natural weight. They are authored for prose content, not applied by components.
 */
 
 .prose {
@@ -19,10 +37,7 @@
 
 /* ---------- Headings ---------- */
 
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4 {
+.prose :where(h1, h2, h3, h4) {
   margin-block-end: 0;
   color: var(--text);
   font-weight: var(--weight-semibold);
@@ -33,40 +48,38 @@
   scroll-margin-block-start: var(--space-48);
 }
 
-.prose h1 {
+.prose :where(h1) {
   font-size: var(--text-h1);
 }
-.prose h2 {
+.prose :where(h2) {
   font-size: var(--text-h2);
 }
-.prose h3 {
+.prose :where(h3) {
   font-size: var(--text-h3);
 }
-.prose h4 {
+.prose :where(h4) {
   font-size: var(--text-h4);
 }
 
-.prose > h2 + *,
-.prose > h3 + *,
-.prose > h4 + * {
+.prose > :where(h2, h3, h4) + * {
   margin-block-start: var(--space-16);
 }
 
-.prose > * + h2 {
+.prose > * + :where(h2) {
   margin-block-start: var(--space-64);
 }
 
-.prose > * + h3 {
+.prose > * + :where(h3) {
   margin-block-start: var(--space-48);
 }
 
-.prose > * + h4 {
+.prose > * + :where(h4) {
   margin-block-start: var(--space-32);
 }
 
 /* ---------- Body ---------- */
 
-.prose p {
+.prose :where(p) {
   margin: 0;
   text-wrap: pretty;
 }
@@ -77,11 +90,11 @@
   line-height: var(--lh-body);
 }
 
-.prose strong {
+.prose :where(strong) {
   font-weight: var(--weight-semibold);
 }
 
-.prose small,
+.prose :where(small),
 .prose .meta {
   color: var(--text-muted);
   font-size: var(--text-meta);
@@ -92,61 +105,61 @@
 /*
   Underlined always. Colour alone never carries the fact that something is a link.
 
-  `:not(.button)` is load-bearing, not tidiness. A plain `.prose a` is specificity
-  (0,1,1) and `.button` is (0,1,0), so inside <Prose> these declarations outrank
-  every .button rule in global.css: the label took --link instead of
-  --accent-on-fill, which is signal blue on raw pulse at 1.76:1, and it picked up an
-  underline over the `text-decoration: none` the button declares. Excluding buttons
-  from the selector rather than overriding them afterwards means global.css keeps
-  ownership of the whole button — base, :hover and [disabled] — with no duplicated
-  tokens here and no dependence on stylesheet import order.
+  `:not([class])` is load-bearing, not tidiness, and it is a rule rather than an
+  allowlist. A link written in Markdown never carries a class; a link that carries one
+  is a component (.button today, TagPill and Callout in Phase 3) and owns its own
+  colour and decoration. Excluding classed links outright is the only form of this that
+  does not depend on stylesheet order: :where() alone would leave this rule tied with
+  .button at (0,1,0), and prose.css is bundled after global.css, so the tie would break
+  prose's way — the label would take --link instead of --accent-on-fill (signal blue on
+  raw pulse, 1.76:1) and pick up an underline over the button's `text-decoration: none`.
+  Excluding rather than overriding also keeps global.css owning the whole button — base,
+  :hover and [disabled] — with no duplicated tokens here.
 */
-.prose a:not(.button) {
+.prose :where(a:not([class])) {
   color: var(--link);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
 }
 
-.prose a:not(.button):hover {
+.prose :where(a:not([class]):hover) {
   text-decoration-thickness: 2px;
 }
 
 /* ---------- Lists ---------- */
 
-.prose ul,
-.prose ol {
+.prose :where(ul, ol) {
   margin: 0;
   padding-inline-start: var(--space-24);
 }
 
-.prose li + li {
+.prose :where(li + li) {
   margin-block-start: var(--space-8);
 }
 
-.prose li::marker {
+.prose :where(li)::marker {
   color: var(--text-muted);
 }
 
-.prose li > ul,
-.prose li > ol {
+.prose :where(li > ul, li > ol) {
   margin-block-start: var(--space-8);
 }
 
 /* ---------- Quote and rule ---------- */
 
-.prose blockquote {
+.prose :where(blockquote) {
   margin: 0;
   padding-inline-start: var(--space-24);
   border-inline-start: 3px solid var(--rule);
   color: var(--text-muted);
 }
 
-.prose blockquote > * + * {
+.prose :where(blockquote) > * + * {
   margin-block-start: var(--space-16);
 }
 
-.prose hr {
+.prose :where(hr) {
   height: var(--hairline);
   margin-block: var(--space-48);
   border: 0;
@@ -161,7 +174,7 @@
 
 /* ---------- Code ---------- */
 
-.prose code {
+.prose :where(code) {
   padding: var(--space-4) var(--space-8);
   border-radius: var(--radius-sm);
   background: var(--surface-sunken);
@@ -170,7 +183,7 @@
   font-size: var(--size-16);
 }
 
-.prose pre {
+.prose :where(pre) {
   margin: 0;
   padding: var(--space-24);
   overflow-x: auto;
@@ -184,7 +197,7 @@
   tab-size: 2;
 }
 
-.prose pre code {
+.prose :where(pre code) {
   padding: 0;
   border-radius: 0;
   background: none;
@@ -194,7 +207,7 @@
 /* Below the breakpoint a code block runs to the gutter edges rather than
    squeezing an already narrow column further. */
 @media (max-width: 47.99em) {
-  .prose pre {
+  .prose :where(pre) {
     margin-inline: calc(var(--gutter) * -1);
     border-inline: 0;
     border-radius: 0;
@@ -207,36 +220,35 @@
   overflow-x: auto;
 }
 
-.prose table {
+.prose :where(table) {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--size-16);
 }
 
-.prose th,
-.prose td {
+.prose :where(th, td) {
   padding: var(--space-8) var(--space-12);
   border-block-end: var(--hairline) solid var(--border);
   text-align: start;
   vertical-align: top;
 }
 
-.prose th {
+.prose :where(th) {
   border-block-end-width: 2px;
   font-weight: var(--weight-semibold);
 }
 
 /* ---------- Media ---------- */
 
-.prose img {
+.prose :where(img) {
   border-radius: var(--radius-md);
 }
 
-.prose figure {
+.prose :where(figure) {
   margin: 0;
 }
 
-.prose figcaption {
+.prose :where(figcaption) {
   margin-block-start: var(--space-8);
   color: var(--text-muted);
   font-size: var(--text-meta);
