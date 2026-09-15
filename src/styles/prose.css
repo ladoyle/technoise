@@ -91,15 +91,24 @@
 
 /*
   Underlined always. Colour alone never carries the fact that something is a link.
+
+  `:not(.button)` is load-bearing, not tidiness. A plain `.prose a` is specificity
+  (0,1,1) and `.button` is (0,1,0), so inside <Prose> these declarations outrank
+  every .button rule in global.css: the label took --link instead of
+  --accent-on-fill, which is signal blue on raw pulse at 1.76:1, and it picked up an
+  underline over the `text-decoration: none` the button declares. Excluding buttons
+  from the selector rather than overriding them afterwards means global.css keeps
+  ownership of the whole button — base, :hover and [disabled] — with no duplicated
+  tokens here and no dependence on stylesheet import order.
 */
-.prose a {
+.prose a:not(.button) {
   color: var(--link);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
 }
 
-.prose a:hover {
+.prose a:not(.button):hover {
   text-decoration-thickness: 2px;
 }
 
