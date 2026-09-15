@@ -121,9 +121,15 @@ main {
   A button is a style, not a component: it is applied to a real <a> or <button>.
   Adding it does not open a thirteenth slot in the inventory.
 
-  The label is ink on raw pulse (4.24:1). That clears the 3:1 large-text floor at
-  20px/700 but not the 4.5:1 normal-text floor, which is why the size and weight
-  below are load-bearing. Do not reduce either.
+  The label is ink on raw pulse (4.24:1). That clears the 3:1 large-text floor but
+  not the 4.5:1 normal-text floor, so the rendered size and weight are accessibility
+  constraints, not styling choices: WCAG large text starts at 18.66px when bold.
+  --size-20 is 1.25rem, which renders below that on any browser whose default font
+  size is under 16px — Chrome's "Small" setting is 12px, giving a 15px label and a
+  real AA failure that axe, Lighthouse and the build never see because they all test
+  at 16px. max() pins the floor at the scale's 20px while leaving the rem free to
+  scale upward for readers who enlarge their default. Do not reduce either value,
+  and do not drop the max().
 */
 .button {
   display: inline-flex;
@@ -135,7 +141,7 @@ main {
   border-radius: var(--radius-sm);
   background: var(--accent-fill);
   color: var(--accent-on-fill);
-  font-size: var(--size-20);
+  font-size: max(var(--size-20), 20px);
   font-weight: var(--weight-bold);
   line-height: var(--lh-tight);
   text-decoration: none;
