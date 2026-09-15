@@ -1,0 +1,133 @@
+---
+// The wordmark is live text, not an image. It is sharp at every DPR, recolours for
+// dark mode for free, is selectable, sits in the accessibility tree, and costs zero
+// bytes on a header that appears on every page. The mascot is deliberately absent
+// here: AGENTS.md posture rule 3 confines it to the home hero, About and 404.
+//
+// The four routes below do not exist until Phase 3 and 404 on this branch. That is
+// expected and deliberate — the nav is built once, against the final route shape,
+// rather than being rewritten when the pages land. Do not stub pages to silence it.
+
+const nav = [
+  { href: "/blog/", label: "Blog" },
+  { href: "/projects/", label: "Projects" },
+  { href: "/resume/", label: "Resume" },
+  { href: "/about/", label: "About" },
+];
+
+const here = Astro.url.pathname;
+const isCurrent = (href: string) =>
+  href === "/" ? here === "/" : here.startsWith(href);
+---
+
+<header class="site-header">
+  <div class="wrap wrap--wide site-header__inner">
+    <a
+      class="site-header__brand"
+      href="/"
+      aria-current={here === "/" ? "page" : undefined}>TechNoise</a
+    >
+
+    <nav aria-label="Primary">
+      <ul class="site-header__list">
+        {
+          nav.map((item) => (
+            <li>
+              <a
+                class="site-header__link"
+                href={item.href}
+                aria-current={isCurrent(item.href) ? "page" : undefined}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-block-end: var(--hairline) solid var(--border);
+  }
+
+  /*
+    Below the breakpoint the brand and the nav stack onto two rows: the four nav
+    items fit the 272px column at 320px on their own, but not alongside the brand.
+    No hamburger, no disclosure widget, no client JS — the whole nav stays visible
+    at every width. A fifth item wraps rather than overflowing.
+  */
+  .site-header__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-8) var(--space-32);
+    padding-block: var(--space-16);
+  }
+
+  .site-header__brand {
+    flex: 1 0 100%;
+    color: var(--text);
+    font-size: var(--size-20);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--lh-tight);
+    text-decoration: none;
+  }
+
+  .site-header__brand:hover {
+    color: var(--link);
+  }
+
+  .site-header__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-16);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /*
+    padding-block lifts each link to a ~35px target box, clearing the 24px minimum
+    in WCAG 2.2 SC 2.5.8 without a layout change.
+  */
+  .site-header__link {
+    display: inline-block;
+    padding-block: var(--space-8);
+    color: var(--text);
+    font-size: var(--size-16);
+    line-height: var(--lh-tight);
+    text-decoration: none;
+  }
+
+  .site-header__link:hover {
+    color: var(--link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  .site-header__link[aria-current="page"] {
+    color: var(--link);
+    font-weight: var(--weight-semibold);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  @media (min-width: 48em) {
+    .site-header__inner {
+      flex-wrap: nowrap;
+      justify-content: space-between;
+      align-items: center;
+      padding-block: var(--space-24);
+    }
+
+    .site-header__brand {
+      flex: 0 0 auto;
+    }
+  }
+</style>
