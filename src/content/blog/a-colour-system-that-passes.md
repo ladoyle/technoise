@@ -22,6 +22,8 @@ Darkening it to `#0A6F94` gives 5.4:1 and reads as the same blue. That darker va
 signal is not banned outright — it is still correct for a focus ring, an icon, or a
 border, all of which answer to the 3:1 non-text floor instead.
 
+<div class="table-scroll" tabindex="0">
+
 | Role | Value | On cream | Floor |
 |---|---|---|---|
 | Body text | `#0C3242` | 12.9:1 | 4.5 |
@@ -31,6 +33,8 @@ border, all of which answer to the 3:1 non-text floor instead.
 | Orange as text | `#B94614` | 5.1:1 | 4.5 |
 | Raw pulse | `#F75E1A` | 3.1:1 | fills only |
 | Borders | `#C2D1D8` | 1.5:1 | decorative |
+
+</div>
 
 ## Semantic tokens over brand names
 
