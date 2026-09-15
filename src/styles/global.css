@@ -179,6 +179,23 @@ main {
   color: var(--link);
 }
 
+/*
+  A button placed inside <Prose> is still an <a>, and prose.css styles every link at
+  (0,1,0) — the same weight as the rules above, but bundled later, so a tie breaks
+  prose's way and the label would take --link plus an underline. The element name
+  makes these (0,1,1), which wins outright and does not depend on bundle order.
+  Only the two declarations prose competes for are repeated; :hover, [aria-disabled]
+  and :disabled are already (0,2,0) and need nothing.
+*/
+a.button {
+  color: var(--accent-on-fill);
+  text-decoration: none;
+}
+
+a.button--ghost {
+  color: var(--link);
+}
+
 /* ---------- Utilities ---------- */
 
 .visually-hidden {

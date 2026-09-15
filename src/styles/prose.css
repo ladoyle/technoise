@@ -81,25 +81,23 @@
 /*
   Underlined always. Colour alone never carries the fact that something is a link.
 
-  `:not([class])` is load-bearing, not tidiness, and it is a rule rather than an
-  allowlist. A link written in Markdown never carries a class; a link that carries one
-  is a component (.button today, TagPill and Callout in Phase 3) and owns its own
-  colour and decoration. Excluding classed links outright is the only form of this that
-  does not depend on stylesheet order: :where() alone would leave this rule tied with
-  .button at (0,1,0), and prose.css is bundled after global.css, so the tie would break
-  prose's way — the label would take --link instead of --accent-on-fill (signal blue on
-  raw pulse, 1.76:1) and pick up an underline over the button's `text-decoration: none`.
-  Excluding rather than overriding also keeps global.css owning the whole button — base,
-  :hover and [disabled] — with no duplicated tokens here.
+  Every link, classed or not. An earlier `:not([class])` here made "carries a class
+  attribute" the boundary, which fails open: a link that has a class but no rules of
+  its own — `rehype-autolink-headings` and external-link plugins both add one — got no
+  colour and no underline and fell to the UA's #0000EE, which is 1.44:1 on the ink page
+  in dark mode. Styling every link and letting the exceptions outrank this fails closed
+  instead. The one exception today is `a.button`, given (0,1,1) in global.css so it wins
+  outright rather than by bundle order; Phase 3's components are Astro-scoped at (0,2,0)
+  and win the same way.
 */
-.prose :where(a:not([class])) {
+.prose :where(a) {
   color: var(--link);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
 }
 
-.prose :where(a:not([class]):hover) {
+.prose :where(a:hover) {
   text-decoration-thickness: 2px;
 }
 
