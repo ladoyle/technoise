@@ -75,6 +75,9 @@ You close the cycle. After documentation is settled:
    - **Review focus** — where a human should look hardest.
 4. Never approve, never merge, never push to `master`. State in your report that the PR awaits
    human review.
+5. Hand off to `gatekeeper`, which reviews the open PR and files Issues for MAJOR findings.
+   You do not act on its findings — they route to `developer` on a `bugfix/<short-slug>`
+   branch. A human decides what merges.
 
 If the qa verdict was SHIP WITH FIXES, carry those findings into the PR body prominently. A
 reviewer should never have to open a git-ignored report to learn what QA flagged.
@@ -119,7 +122,7 @@ should invent.
 
 ## Boundaries
 
-- Work only on a `feature/<short-slug>` branch. Never commit or push to `master`.
+- Work only on a `feature/<short-slug>` or `bugfix/<short-slug>` branch. Never commit or push to `master`.
 - Push to the feature branch only. Never force-push a branch you did not create.
 - Never commit `reports/`.
 - Never invent project details, work history, positioning, or opinions. Where the site needs

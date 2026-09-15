@@ -36,7 +36,7 @@ foreground dev server blocking a turn.
 
 ```
 technoise/
-├─ .claude/agents/      designer, developer, qa, documenter
+├─ .claude/agents/      designer, developer, qa, documenter, gatekeeper
 ├─ docs/                setup-guide.md — design plan and phase roadmap
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
@@ -136,10 +136,14 @@ The production cycle is a one-way pipeline. Each stage reads the report from the
 before it and writes exactly one report for the stage after it.
 
 ```
-designer ──design-report──▶ developer ──dev-report──▶ qa ──qa-report──▶ documenter ──doc-report──▶ human review
+designer ──design-report──▶ developer ──dev-report──▶ qa ──qa-report──▶ documenter ──▶ PR
                                  ▲                      │
                                  └──── blocking ────────┘
                                        findings
+
+PR ──▶ gatekeeper ──▶ review comments  ──▶  human merges (or doesn't)
+            │
+            └── MAJOR finding ──▶ GitHub Issue ──▶ developer on bugfix/<slug> ──▶ qa ──▶ PR
 ```
 
 - **designer** — produces design templates and a numbered checklist of changes to make.
@@ -147,9 +151,32 @@ designer ──design-report──▶ developer ──dev-report──▶ qa ─
 - **qa** — reviews for vulnerabilities, writes unit tests, judges production readiness.
   A blocking verdict sends the work back to developer with the same report as input.
 - **documenter** — updates README, AGENTS.md, and docs when architecture, design standards,
-  or run configuration changed. Runs last, and only when something durable changed.
+  or run configuration changed. Runs last, and only when something durable changed. Opens
+  the PR.
+- **gatekeeper** — reviews the open PR on GitHub for production issues, bugs, warnings, and
+  code smells. Comments on every finding; files a GitHub Issue for each MAJOR one. Submits
+  `REQUEST_CHANGES` when anything is MAJOR, `COMMENT` otherwise.
 
-A human reviews the PR. No agent merges.
+`qa` runs before the PR exists and gates the handoff. `gatekeeper` runs on the PR itself and
+asks the different question: *if this merges and deploys, what goes wrong?* It treats the QA
+report as a claim to test, not a result to trust.
+
+**A human decides what merges.** No agent approves, and no agent merges. A `REQUEST_CHANGES`
+from the gatekeeper is advisory — if the human merges over it, that is final, and the Issue
+already filed carries any real finding forward.
+
+### Bugfix loop
+
+A MAJOR gatekeeper finding becomes a GitHub Issue, not a blocked PR. The issue is picked up
+independently:
+
+1. Branch `bugfix/<short-slug>` from an up-to-date `master`.
+2. `developer` implements against the issue's acceptance criteria, referencing the issue
+   number in the commit.
+3. `qa` verifies as normal and writes `reports/qa-report.md`.
+4. A new PR to `master`, reviewed by `gatekeeper`, merged by a human.
+
+This keeps a follow-up fix from silently widening the PR that surfaced it.
 
 ---
 
@@ -165,6 +192,7 @@ A human reviews the PR. No agent merges.
   | developer | `reports/dev-report.md` | `reports/design-report.md` |
   | qa | `reports/qa-report.md` | `reports/dev-report.md` (+ design report for intent) |
   | documenter | `reports/doc-report.md` | `reports/qa-report.md` |
+  | gatekeeper | `reports/gatekeeper-report.md` | the PR diff (+ qa report as a claim to test) |
 
 - **Only the latest report counts.** Before overwriting, move the existing file to
   `reports/archive/<name>-<YYYYMMDD-HHMMSS>.md`. Archives are for humans debugging a cycle;
@@ -186,6 +214,11 @@ A human reviews the PR. No agent merges.
   `status: blocked`, stop and report that to the human. Do not improvise the missing stage.
 - Checklist items carry stable IDs (`D1`, `D2`, …) assigned by the designer. Every later
   stage refers to work by that ID so a human can trace one line from design to test.
+  Gatekeeper findings use `G1`, `G2`, … in the same way.
+- The gatekeeper is the one stage whose real output lives on GitHub — review comments and
+  Issues, where reviewers actually look. Its report is a local record of that review, not
+  the deliverable. A reviewer must never have to open a git-ignored file to learn what was
+  flagged.
 
 ---
 
@@ -193,12 +226,22 @@ A human reviews the PR. No agent merges.
 
 These are hard limits on every agent.
 
-- **Work happens on a feature branch.** `feature/<short-slug>`, branched from an up-to-date
+- **Work happens on a feature branch.** `feature/<short-slug>` for new work, or
+  `bugfix/<short-slug>` when resolving a gatekeeper Issue. Both branch from an up-to-date
   `master`. Never commit directly to `master`.
-- **Agents push to feature branches only.** Never push to `master`, never force-push a branch
-  an agent did not create, never rewrite published history.
+- **Agents push to feature and bugfix branches only.** Never push to `master`, never
+  force-push a branch an agent did not create, never rewrite published history.
 - **Raise a PR to `master` for human review.** The documenter (or whichever stage finishes the
-  cycle) opens it. No agent approves or merges its own work — or anyone else's.
+  cycle) opens it. No agent approves or merges its own work — or anyone else's. That includes
+  the gatekeeper, whose `REQUEST_CHANGES` is a signal, not a veto.
+- **Every GitHub comment, review, and issue ends with the attribution footer**, so reviewers
+  know it was agent-authored:
+
+  ```
+
+  ---
+  _Generated by [Claude Code](https://claude.ai/code)_
+  ```
 - Commit messages: imperative subject under 72 chars, body explaining *why*. Reference
   checklist IDs where they apply.
 - Never commit `reports/`, `dist/`, `node_modules/`, or anything matching `.gitignore`.

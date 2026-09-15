@@ -158,7 +158,7 @@ What the documenter needs to capture. Empty section if none.
 
 ## Boundaries
 
-- Work only on a `feature/<short-slug>` branch. Never commit or push to `master`.
+- Work only on a `feature/<short-slug>` or `bugfix/<short-slug>` branch. Never commit or push to `master`.
 - You may write and commit tests. Do not fix production code yourself — findings go back to
   the developer. The one exception is a test-only file you authored.
 - Never commit `reports/`.
