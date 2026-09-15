@@ -1,17 +1,140 @@
 ---
+// This is the Phase 2 dummy page: the surface the design system is signed off on at
+// 320px, 768px and 1440px in both colour schemes. It is real prose in the real
+// column, not a swatch grid — the swatch grid is /styleguide/.
+//
+// Phase 3 replaces the BODY of this page with the home layout from setup-guide
+// Part 1. The layout, the wrapper and the Prose block survive that change.
+//
+// TODO(human input): the home hero's positioning sentence — what you build and who
+// it's for — is human input (setup-guide Part 5) and is not invented here. Every
+// word below is PLACEHOLDER copy about the design system itself, which is what this
+// page is for in Phase 2; none of it is site positioning.
 
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Prose from "../components/Prose.astro";
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout
+  title="TechNoise"
+  description="A design system in one column: cream page, ink text, one loud orange, and nothing outside the scale."
+>
+  <div class="wrap">
+    <Prose>
+      <p class="eyebrow">Phase 2</p>
+      <h1>The design system, on one page</h1>
+
+      <p class="lede">
+        Everything below is drawn from seven brand colours, an eight-step type
+        scale and a nine-step spacing scale. If a value here is not one of those,
+        it is a defect.
+      </p>
+
+      <p>
+        The page is cream, never white. Pure white next to <code>#FDF9F3</code> reads
+        as a rendering bug, so the surface token resolves to cream in the light scheme
+        and to ink in the dark one. Body text is ink on cream at 12.9:1, which clears
+        AAA with room to spare, and the column is capped at 720px so a line lands
+        between 68 and 72 characters at the desktop body size.
+      </p>
+
+      <h2>Links, rules and the one orange thing</h2>
+
+      <p>
+        Body links use the darkened signal blue at 5.4:1, never the raw brand blue,
+        which measures 4.1:1 and fails. They are <a href="/styleguide/">underlined
+        as well as coloured</a>, because colour alone is not an affordance. Raw orange
+        is a fill, never text on cream — the button below is the only orange thing on
+        this screen, which is the entire point of it.
+      </p>
+
+      <p class="cta">
+        <a class="button" href="/styleguide/">Open the styleguide</a>
+        <a class="button button--ghost" href="/blog/">Read the blog</a>
+      </p>
+
+      <h3>Rhythm</h3>
+
+      <p>
+        Vertical space comes from one scale: 4, 8, 12, 16, 24, 32, 48, 64, 96. Paragraphs
+        are separated by 24px, a heading opens with 64px above it, and the footer sits
+        96px below the last block. Nothing is nudged by an odd pixel.
+      </p>
+
+      <ul>
+        <li>Two families: Inter for everything, the platform mono for code.</li>
+        <li>Body 18px on mobile, 20px from 768px up.</li>
+        <li>Line height 1.65 for body, 1.2 for headings.</li>
+        <li>One breakpoint, declared in em so it survives page zoom.</li>
+      </ul>
+
+      <blockquote>
+        <p>
+          Editorial layout, generous whitespace, one column of readable text. No
+          cards-in-cards, no gradients, no shadow deeper than a hairline.
+        </p>
+      </blockquote>
+
+      <h3>Code</h3>
+
+      <p>
+        Inline code such as <code>--space-24</code> sits on a sunken surface at 11.6:1.
+        A block runs to the gutter edges below the breakpoint rather than squeezing an
+        already narrow column, and scrolls horizontally when it has to.
+      </p>
+
+      <pre tabindex="0"><code>.wrap &#123;
+  width: 100%;
+  max-width: calc(var(--content) + var(--gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+&#125;</code></pre>
+
+      <h3>Tables</h3>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Token</th>
+              <th>On page</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Body text</td>
+              <td><code>--text</code></td>
+              <td>12.9:1</td>
+            </tr>
+            <tr>
+              <td>Link text</td>
+              <td><code>--link</code></td>
+              <td>5.4:1</td>
+            </tr>
+            <tr>
+              <td>Muted text</td>
+              <td><code>--text-muted</code></td>
+              <td>6.0:1</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr />
+
+      <p class="meta">
+        Placeholder content. Phase 3 replaces the body of this page with the home
+        layout and leaves the shell intact.
+      </p>
+    </Prose>
+  </div>
+</BaseLayout>
+
+<style>
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16);
+  }
+</style>
