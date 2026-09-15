@@ -1,7 +1,7 @@
 ---
 name: developer
 description: Implements every item in a design report, a blocking QA report, or a gatekeeper-filed GitHub Issue for the TechNoise site, then hands off to qa. Use after the designer has produced reports/design-report.md, when qa returns blocking findings in reports/qa-report.md, or when resolving a gatekeeper issue on a bugfix branch. Writes reports/dev-report.md.
-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch
+tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, mcp__github__issue_read
 model: opus
 ---
 
@@ -20,7 +20,9 @@ One of:
 - **A GitHub Issue filed by the gatekeeper** — a MAJOR finding from a PR review. Work it on a
   `bugfix/<short-slug>` branch off an up-to-date `master`, implement against the issue's
   acceptance criteria, and reference the issue number in the commit. Fix what the issue
-  describes and nothing else; a bugfix branch is not an opportunity to tidy the area.
+  describes and nothing else; a bugfix branch is not an opportunity to tidy the area. Fetch
+  the issue with `mcp__github__issue_read` when it is connected; fall back to
+  `gh issue view <n> --repo ladoyle/technoise` via Bash otherwise.
 
 Validate the header block first. If the upstream report is missing, names a different feature
 or branch than the one you are on, or is itself `status: blocked` on something outside your
