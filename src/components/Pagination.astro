@@ -1,0 +1,84 @@
+---
+// Prev / status / next, which scales to any number of pages without truncation logic.
+// A missing neighbour omits its cell: a greyed-out link is a control that looks
+// operable and is not.
+
+interface Props {
+  currentPage: number;
+  lastPage: number;
+  prevUrl?: string;
+  nextUrl?: string;
+  label?: string;
+}
+
+const { currentPage, lastPage, prevUrl, nextUrl, label = "Pagination" } = Astro.props;
+---
+
+{
+  lastPage > 1 && (
+    <nav class="pagination" aria-label={label}>
+      {prevUrl && (
+        <a class="pagination__link" href={prevUrl} rel="prev">
+          <span aria-hidden="true">←</span> Newer posts
+        </a>
+      )}
+
+      <p class="pagination__status">Page {currentPage} of {lastPage}</p>
+
+      {nextUrl && (
+        <a class="pagination__link pagination__link--next" href={nextUrl} rel="next">
+          Older posts <span aria-hidden="true">→</span>
+        </a>
+      )}
+    </nav>
+  )
+}
+
+<style>
+  .pagination {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-12);
+    margin-block-start: var(--space-48);
+  }
+
+  .pagination__link {
+    padding-block: var(--space-8);
+    color: var(--link);
+    font-size: var(--size-16);
+    line-height: var(--lh-tight);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  .pagination__link:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .pagination__status {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--text-meta);
+    line-height: var(--lh-tight);
+  }
+
+  /* Explicit columns rather than source order, so a missing newer neighbour leaves
+     its side empty instead of sliding the status cell off centre. */
+  @media (min-width: 48em) {
+    .pagination {
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      justify-items: start;
+    }
+
+    .pagination__status {
+      grid-column: 2;
+    }
+
+    .pagination__link--next {
+      grid-column: 3;
+      justify-self: end;
+    }
+  }
+</style>

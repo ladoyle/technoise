@@ -1,0 +1,66 @@
+---
+// The trail ends in the current page, which is never a link. An href on the last item
+// is a caller bug, not something this component repairs.
+
+interface Props {
+  items: { label: string; href?: string }[];
+}
+
+const { items } = Astro.props;
+---
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol class="breadcrumb__list">
+    {
+      items.map((item) => (
+        <li>
+          {item.href ? (
+            <a href={item.href}>{item.label}</a>
+          ) : (
+            <span aria-current="page">{item.label}</span>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .breadcrumb__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-meta);
+    line-height: var(--lh-tight);
+  }
+
+  /* Generated with empty alt text so a screen reader gets the trail, not a run of
+     slashes. Wrapping is correct here — truncating a long title hides information. */
+  .breadcrumb__list li + li::before {
+    content: "/" / "";
+    margin-inline: var(--space-8);
+    color: var(--text-muted);
+  }
+
+  .breadcrumb__list a {
+    display: inline-block;
+    padding-block: var(--space-8);
+    color: var(--link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  .breadcrumb__list a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .breadcrumb__list [aria-current="page"] {
+    display: inline-block;
+    padding-block: var(--space-8);
+    color: var(--text-muted);
+  }
+</style>

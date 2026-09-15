@@ -1,0 +1,80 @@
+---
+// Two forms, one box. With an href it is a link to a tag archive; without one it is a
+// static chip used for project stack badges, which have no archive to point at.
+
+interface Props {
+  label: string;
+  href?: string;
+  count?: number;
+  current?: boolean;
+}
+
+const { label, href, count, current = false } = Astro.props;
+---
+
+{
+  href ? (
+    <a class="tag-pill" href={href} aria-current={current ? "page" : undefined}>
+      {label}
+      {count !== undefined && (
+        <span class="tag-pill__count">
+          {count}
+          <span class="visually-hidden"> posts</span>
+        </span>
+      )}
+    </a>
+  ) : (
+    <span class="tag-pill tag-pill--static">
+      {label}
+      {count !== undefined && (
+        <span class="tag-pill__count">
+          {count}
+          <span class="visually-hidden"> posts</span>
+        </span>
+      )}
+    </span>
+  )
+}
+
+<style>
+  /* The transparent border is on both forms so the two are the same size and the
+     hover state colours an existing edge rather than adding one. */
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-8) var(--space-12);
+    border: var(--hairline) solid transparent;
+    border-radius: var(--radius-full);
+    font-size: var(--text-meta);
+    line-height: var(--lh-tight);
+    text-decoration: none;
+  }
+
+  a.tag-pill {
+    border-color: var(--border);
+    color: var(--link);
+  }
+
+  a.tag-pill:hover {
+    background: var(--surface-sunken);
+    border-color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  a.tag-pill[aria-current="page"] {
+    background: var(--surface-sunken);
+    border-color: var(--link);
+    font-weight: var(--weight-semibold);
+  }
+
+  .tag-pill--static {
+    background: var(--surface-sunken);
+    color: var(--text-muted);
+  }
+
+  .tag-pill__count {
+    color: var(--text-muted);
+  }
+</style>
