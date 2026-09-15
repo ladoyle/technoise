@@ -15,7 +15,9 @@ const { label, href, count, current = false } = Astro.props;
 {
   href ? (
     <a class="tag-pill" href={href} aria-current={current ? "page" : undefined}>
-      {label}
+      {/* The space is a flex-collapsed text node, there so the accessible name reads
+          "astro 2 posts" rather than "astro2 posts". */}
+      {label}{" "}
       {count !== undefined && (
         <span class="tag-pill__count">
           {count}
