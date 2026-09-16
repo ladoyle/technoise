@@ -1,9 +1,11 @@
 ---
-// The page shell. Phase 2 owns the document skeleton, the stylesheet graph, the font
-// preload and the landmark structure. It does NOT own SEO: canonical URL, Open Graph,
-// Twitter card and JSON-LD are the "SEO head block" component in Phase 4, which slots
-// into the marked gap below. The `title` and `description` props exist now so that
-// slotting it in later is additive.
+// The page shell: the document skeleton, the stylesheet graph, the font preload and
+// the landmark structure. It owns <title> and the meta description; everything else
+// a crawler or social client reads — canonical, robots, Open Graph, Twitter card,
+// the feed link and JSON-LD — belongs to <SeoHead>, which this layout feeds.
+//
+// A page that passes no `canonicalPath` gets one derived from its own URL, so a new
+// route is canonical by default rather than by remembering.
 
 import "../styles/fonts.css";
 import "../styles/tokens.css";
@@ -11,14 +13,36 @@ import "../styles/global.css";
 
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import SeoHead from "../components/SeoHead.astro";
+import { canonicalPath as toCanonicalPath } from "../lib/seo";
 
 interface Props {
   title: string;
   description: string;
   noindex?: boolean;
+  canonicalPath?: string;
+  ogType?: "website" | "article";
+  ogImage?: { src: string; alt: string; width: number; height: number };
+  article?: { published: Date; modified?: Date; tags: string[] };
+  prevPath?: string;
+  nextPath?: string;
+  schema?: Record<string, unknown>[];
 }
 
-const { title, description, noindex = false } = Astro.props;
+const {
+  title,
+  description,
+  noindex = false,
+  canonicalPath,
+  ogType,
+  ogImage,
+  article,
+  prevPath,
+  nextPath,
+  schema,
+} = Astro.props;
+
+const path = canonicalPath ?? toCanonicalPath(Astro.url);
 ---
 
 <!doctype html>
@@ -30,7 +54,6 @@ const { title, description, noindex = false } = Astro.props;
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
 
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -44,7 +67,18 @@ const { title, description, noindex = false } = Astro.props;
       crossorigin
     />
 
-    {/* TODO(Phase 4): <SeoHead /> goes here — canonical, OG, Twitter, JSON-LD. */}
+    <SeoHead
+      title={title}
+      description={description}
+      canonicalPath={path}
+      noindex={noindex}
+      ogType={ogType}
+      ogImage={ogImage}
+      article={article}
+      prevPath={prevPath}
+      nextPath={nextPath}
+      schema={schema}
+    />
   </head>
 
   <body>
