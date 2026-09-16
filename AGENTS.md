@@ -159,8 +159,8 @@ block) and owns nothing else a crawler or social client reads. A page passes:
   `canonicalPath(Astro.url)`, so a new route is canonical by default, not by remembering.
 - `noindex?` — emits `noindex, nofollow` instead of the default
   `index, follow, max-image-preview:large`. Used by `/styleguide/` only.
-- `ogType?`, `ogImage?`, `article?` — Open Graph/Twitter overrides; omitting `ogImage` falls
-  back to the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
+- `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
+  page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.
 - `schema?` — an array of JSON-LD `@graph` nodes; omitted or empty emits no `<script>` tag.
 

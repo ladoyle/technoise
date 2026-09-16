@@ -22,7 +22,6 @@ interface Props {
   noindex?: boolean;
   canonicalPath?: string;
   ogType?: "website" | "article";
-  ogImage?: { src: string; alt: string; width: number; height: number };
   article?: { published: Date; modified?: Date; tags: string[] };
   prevPath?: string;
   nextPath?: string;
@@ -35,7 +34,6 @@ const {
   noindex = false,
   canonicalPath,
   ogType,
-  ogImage,
   article,
   prevPath,
   nextPath,
@@ -73,7 +71,6 @@ const path = canonicalPath ?? toCanonicalPath(Astro.url);
       canonicalPath={path}
       noindex={noindex}
       ogType={ogType}
-      ogImage={ogImage}
       article={article}
       prevPath={prevPath}
       nextPath={nextPath}
