@@ -19,8 +19,17 @@
 import { Picture } from "astro:assets";
 
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PostCard from "../components/PostCard.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { getPublishedPosts, getPublishedProjects, readingMinutes } from "../lib/content";
 import { SITE, absoluteUrl } from "../lib/seo";
 import heroArt from "../assets/technoise-background.png";
+
+// A hero on its own would be a splash screen hiding the two posts and the project
+// that already exist one click away, for no saving. The slices are the teaser, not
+// the archive — /blog/ and /projects/ are a link below each run.
+const posts = (await getPublishedPosts()).slice(0, 3);
+const projects = (await getPublishedProjects()).slice(0, 2);
 
 const home = absoluteUrl("/", Astro.site);
 const personId = `${home}#person`;
@@ -77,6 +86,59 @@ const schema = [
       </div>
     </div>
   </section>
+
+  <div class="wrap wrap--wide">
+    <section>
+      <h2 class="teaser__title">Latest posts</h2>
+      {
+        posts.length === 0 ? (
+          <p class="teaser__empty">No posts yet.</p>
+        ) : (
+          <div class="teaser__posts">
+            {posts.map((post) => (
+              <PostCard
+                title={post.data.title}
+                href={`/blog/${post.id}/`}
+                description={post.data.description}
+                pubDate={post.data.pubDate}
+                minutes={readingMinutes(post.body)}
+                tags={post.data.tags}
+                headingLevel={3}
+              />
+            ))}
+          </div>
+        )
+      }
+      <p class="teaser__more">
+        <a href="/blog/">All posts <span aria-hidden="true">&rarr;</span></a>
+      </p>
+    </section>
+
+    <section>
+      <h2 class="teaser__title">Projects</h2>
+      {
+        projects.length === 0 ? (
+          <p class="teaser__empty">No projects yet.</p>
+        ) : (
+          <div class="teaser__grid">
+            {projects.map((project) => (
+              <ProjectCard
+                title={project.data.title}
+                href={`/projects/${project.id}/`}
+                description={project.data.description}
+                stack={project.data.stack}
+                status={project.data.status}
+                headingLevel={3}
+              />
+            ))}
+          </div>
+        )
+      }
+      <p class="teaser__more">
+        <a href="/projects/">All projects <span aria-hidden="true">&rarr;</span></a>
+      </p>
+    </section>
+  </div>
 </BaseLayout>
 
 <style>
@@ -148,6 +210,51 @@ const schema = [
     background: var(--surface);
   }
 
+  .teaser__title {
+    margin-block: var(--space-96) var(--space-24);
+    font-size: var(--text-h2);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  /* Each PostCard draws its own top rule, so the run needs closing at the bottom
+     the same way the blog listing closes it. */
+  .teaser__posts {
+    border-block-end: var(--hairline) solid var(--border);
+  }
+
+  .teaser__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: var(--space-32);
+  }
+
+  .teaser__empty {
+    margin: 0;
+    padding-block: var(--space-32);
+    color: var(--text-muted);
+    font-size: var(--size-18);
+  }
+
+  /* A plain link, not a button: the hero's primary CTA is the page's one orange. */
+  .teaser__more {
+    margin: var(--space-32) 0 0;
+  }
+
+  .teaser__more a {
+    color: var(--link);
+    font-size: var(--size-18);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .teaser__more a:hover {
+    text-decoration-thickness: 2px;
+  }
+
   @media (min-width: 48em) {
     .hero {
       padding-block: var(--space-96);
@@ -156,6 +263,10 @@ const schema = [
     .hero__actions {
       flex-direction: row;
       flex-wrap: wrap;
+    }
+
+    .teaser__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>
