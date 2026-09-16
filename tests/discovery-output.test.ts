@@ -30,9 +30,9 @@ let robots = "";
 let locs: string[] = [];
 
 beforeAll(() => {
-  if (!existsSync(dist) || htmlFiles(dist).length === 0) {
-    execFileSync("npx", ["astro", "build"], { cwd: root, stdio: "ignore", timeout: 300_000 });
-  }
+  // Always build. Reusing an existing dist/ meant a tree left behind by another
+  // branch could be asserted against and reported green.
+  execFileSync("npx", ["astro", "build"], { cwd: root, stdio: "ignore", timeout: 300_000 });
   pages = htmlFiles(dist).map((path) => ({
     // dist/blog/index.html -> /blog/
     route: `/${relative(dist, path).replace(/index\.html$/, "").split(/[\\/]/).join("/")}`,
