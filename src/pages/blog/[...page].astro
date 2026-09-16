@@ -12,7 +12,7 @@ import {
   type Post,
   type TagCount,
 } from "../../lib/content";
-import { canonicalPath } from "../../lib/seo";
+import { canonicalPath, pageTitle } from "../../lib/seo";
 
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
   const posts = await getPublishedPosts();
@@ -39,8 +39,11 @@ interface Props {
 
 const { page, tags } = Astro.props;
 
-const suffix = page.currentPage > 1 ? ` — page ${page.currentPage}` : "";
-const title = page.currentPage > 1 ? `Blog, page ${page.currentPage} — TechNoise` : "Blog — TechNoise";
+const title =
+  page.currentPage > 1 ? pageTitle(`Blog, page ${page.currentPage}`) : pageTitle("Blog");
+// A sentence of its own rather than a dangling " — page 2" clause, which reads as
+// truncation in a search snippet.
+const suffix = page.currentPage > 1 ? ` Page ${page.currentPage}.` : "";
 const description = `Notes on building this site: the generator choice, the colour tokens, and the rules the design system runs on.${suffix}`;
 
 // Google dropped rel=prev/next as an indexing signal in 2019; Bing still reads it,
