@@ -1,0 +1,70 @@
+---
+// A scaffold, not a resume. The nav and the home hero's third CTA need a destination
+// that returns 200; neither needs invented employers, dates or outcomes, which are
+// human input (setup-guide Part 5). Every section below is a heading and an honest
+// "not written yet" until that material arrives.
+//
+// noindex, and absent from STATIC_SITEMAP_ROUTES on purpose: an indexed empty page
+// costs the SEO floor and answers no search. When real content lands, drop the
+// `noindex` prop below and add "/resume/" to STATIC_SITEMAP_ROUTES in src/lib/seo.ts.
+// That is the whole change.
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { pageTitle } from "../lib/seo";
+
+const sections = ["Summary", "Experience", "Projects", "Skills", "Education"];
+---
+
+<BaseLayout
+  title={pageTitle("Resume")}
+  description="The resume sections — summary, experience, projects, skills and education — are scaffolded here and fill in as the material is written."
+  noindex
+>
+  <div class="wrap">
+    <h1 class="resume__title">Resume</h1>
+    <p class="resume__lede">
+      This page is scaffolding. Each section below is in place and stays empty until
+      the material behind it is written.
+    </p>
+
+    {
+      sections.map((section) => (
+        <section class="resume__section">
+          <h2 class="resume__heading">{section}</h2>
+          <p class="resume__pending">Not written yet.</p>
+        </section>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .resume__title {
+    margin: 0;
+    font-size: var(--text-h1);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .resume__lede {
+    margin: var(--space-16) 0 0;
+    color: var(--text);
+    font-size: var(--text-h3);
+    line-height: var(--lh-body);
+  }
+
+  .resume__heading {
+    margin-block: var(--space-48) var(--space-16);
+    font-size: var(--text-h2);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .resume__pending {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--size-18);
+  }
+</style>

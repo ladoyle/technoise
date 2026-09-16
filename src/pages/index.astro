@@ -1,19 +1,35 @@
 ---
-// This is the Phase 2 dummy page: the surface the design system is signed off on at
-// 320px, 768px and 1440px in both colour schemes. It is real prose in the real
-// column, not a swatch grid — the swatch grid is /styleguide/.
+// The front door. A first-time visitor arriving at / with no context gets one
+// sentence about what this is and three places to go next — not a design-system
+// memo, which is what this page used to be. That material moved to /styleguide/,
+// where the reasoning and the specimens now sit together.
 //
-// Phase 3 replaces the BODY of this page with the home layout from setup-guide
-// Part 1. The layout, the wrapper and the Prose block survive that change.
+// TODO(human input): the hero still carries no positioning sentence — what the owner
+// builds and who it is for is human input (setup-guide Part 5) and is not invented
+// here. The copy below describes the site's contents, which is a repo-authored fact.
 //
-// TODO(human input): the home hero's positioning sentence — what you build and who
-// it's for — is human input (setup-guide Part 5) and is not invented here. Every
-// word below is PLACEHOLDER copy about the design system itself, which is what this
-// page is for in Phase 2; none of it is site positioning.
+// The artwork is decorative: alt="" because the hero's meaning is entirely in the
+// text beside it, and a description of the mascot would be noise between the H1 and
+// the calls to action. It is laid under a flat --surface scrim at --scrim-opacity so
+// the contrast of text over it is a known quantity rather than a guess — composited
+// output stays above 6.5:1 in both schemes across viewport widths. The scrim is plain
+// opacity, not color-mix(), because an unsupported color-mix() falls back to
+// transparent and the failure mode is unreadable text.
+
+import { Picture } from "astro:assets";
 
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Prose from "../components/Prose.astro";
+import PostCard from "../components/PostCard.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { getPublishedPosts, getPublishedProjects, readingMinutes } from "../lib/content";
 import { SITE, absoluteUrl } from "../lib/seo";
+import heroArt from "../assets/technoise-background.png";
+
+// A hero on its own would be a splash screen hiding the two posts and the project
+// that already exist one click away, for no saving. The slices are the teaser, not
+// the archive — /blog/ and /projects/ are a link below each run.
+const posts = (await getPublishedPosts()).slice(0, 3);
+const projects = (await getPublishedProjects()).slice(0, 2);
 
 const home = absoluteUrl("/", Astro.site);
 const personId = `${home}#person`;
@@ -40,125 +56,217 @@ const schema = [
 
 <BaseLayout
   title="TechNoise"
-  description="A design system in one column: cream page, ink text, one loud orange, and nothing outside the scale."
+  description="A personal blog and project log: posts about how this site is built, the projects behind it, and a resume."
   schema={schema}
 >
-  <div class="wrap">
-    <Prose>
-      <p class="eyebrow">Phase 2</p>
-      <h1>The design system, on one page</h1>
+  <section class="hero">
+    <Picture
+      src={heroArt}
+      alt=""
+      widths={[640, 960, 1280, 1536]}
+      sizes="100vw"
+      formats={["avif", "webp"]}
+      loading="eager"
+      fetchpriority="high"
+      class="hero__art"
+    />
 
-      <p class="lede">
-        Everything below is drawn from seven brand colours, an eight-step type
-        scale and a nine-step spacing scale. If a value here is not one of those,
-        it is a defect.
-      </p>
-
-      <p>
-        The page is cream, never white. Pure white next to <code>#FDF9F3</code> reads
-        as a rendering bug, so the surface token resolves to cream in the light scheme
-        and to ink in the dark one. Body text is ink on cream at 12.9:1, which clears
-        AAA with room to spare, and the column is capped at 720px so a line lands
-        between 68 and 72 characters at the desktop body size.
-      </p>
-
-      <h2>Links, rules and the one orange thing</h2>
-
-      <p>
-        Body links use the darkened signal blue at 5.4:1, never the raw brand blue,
-        which measures 4.1:1 and fails. They are <a href="/styleguide/">underlined
-        as well as coloured</a>, because colour alone is not an affordance. Raw orange
-        is a fill, never text on cream — the button below is the only orange thing on
-        this screen, which is the entire point of it.
-      </p>
-
-      <p class="cta">
-        <a class="button" href="/styleguide/">Open the styleguide</a>
-        <a class="button button--ghost" href="/blog/">Read the blog</a>
-      </p>
-
-      <h3>Rhythm</h3>
-
-      <p>
-        Vertical space comes from one scale: 4, 8, 12, 16, 24, 32, 48, 64, 96. Paragraphs
-        are separated by 24px, a heading opens with 64px above it, and the footer sits
-        96px below the last block. Nothing is nudged by an odd pixel.
-      </p>
-
-      <ul>
-        <li>Two families: Inter for everything, the platform mono for code.</li>
-        <li>Body 18px on mobile, 20px from 768px up.</li>
-        <li>Line height 1.65 for body, 1.2 for headings.</li>
-        <li>One breakpoint, declared in em so it survives page zoom.</li>
-      </ul>
-
-      <blockquote>
-        <p>
-          Editorial layout, generous whitespace, one column of readable text. No
-          cards-in-cards, no gradients, no shadow deeper than a hairline.
+    <div class="wrap wrap--wide hero__inner">
+      <div class="hero__text">
+        <h1 class="hero__title">A blog and a project log</h1>
+        <p class="hero__lede">
+          A personal site for writing and projects. Start with the posts, look through
+          the projects, or read the resume.
         </p>
-      </blockquote>
-
-      <h3>Code</h3>
-
-      <p>
-        Inline code such as <code>--space-24</code> sits on a sunken surface at 11.6:1.
-        A block runs to the gutter edges below the breakpoint rather than squeezing an
-        already narrow column, and scrolls horizontally when it has to.
-      </p>
-
-      <pre tabindex="0"><code>.wrap &#123;
-  width: 100%;
-  max-width: calc(var(--content) + var(--gutter) * 2);
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-&#125;</code></pre>
-
-      <h3>Tables</h3>
-
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Role</th>
-              <th>Token</th>
-              <th>On page</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Body text</td>
-              <td><code>--text</code></td>
-              <td>12.9:1</td>
-            </tr>
-            <tr>
-              <td>Link text</td>
-              <td><code>--link</code></td>
-              <td>5.4:1</td>
-            </tr>
-            <tr>
-              <td>Muted text</td>
-              <td><code>--text-muted</code></td>
-              <td>6.0:1</td>
-            </tr>
-          </tbody>
-        </table>
+        <p class="hero__actions">
+          <a class="button" href="/blog/">Read the blog</a>
+          <a class="button button--ghost" href="/projects/">See the projects</a>
+          <a class="button button--ghost" href="/resume/">Read the resume</a>
+        </p>
       </div>
+    </div>
+  </section>
 
-      <hr />
-
-      <p class="meta">
-        Placeholder content. Phase 3 replaces the body of this page with the home
-        layout and leaves the shell intact.
+  <div class="wrap wrap--wide">
+    <section>
+      <h2 class="teaser__title">Latest posts</h2>
+      {
+        posts.length === 0 ? (
+          <p class="teaser__empty">No posts yet.</p>
+        ) : (
+          <div class="teaser__posts">
+            {posts.map((post) => (
+              <PostCard
+                title={post.data.title}
+                href={`/blog/${post.id}/`}
+                description={post.data.description}
+                pubDate={post.data.pubDate}
+                minutes={readingMinutes(post.body)}
+                tags={post.data.tags}
+                headingLevel={3}
+              />
+            ))}
+          </div>
+        )
+      }
+      <p class="teaser__more">
+        <a href="/blog/">All posts <span aria-hidden="true">&rarr;</span></a>
       </p>
-    </Prose>
+    </section>
+
+    <section>
+      <h2 class="teaser__title">Projects</h2>
+      {
+        projects.length === 0 ? (
+          <p class="teaser__empty">No projects yet.</p>
+        ) : (
+          <div class="teaser__grid">
+            {projects.map((project) => (
+              <ProjectCard
+                title={project.data.title}
+                href={`/projects/${project.id}/`}
+                description={project.data.description}
+                stack={project.data.stack}
+                status={project.data.status}
+                headingLevel={3}
+              />
+            ))}
+          </div>
+        )
+      }
+      <p class="teaser__more">
+        <a href="/projects/">All projects <span aria-hidden="true">&rarr;</span></a>
+      </p>
+    </section>
   </div>
 </BaseLayout>
 
 <style>
-  .cta {
+  /*
+    The negative top margin cancels main's opening padding so the art sits flush under
+    the header instead of floating in a band of page colour. isolation keeps the two
+    negative-z-index layers inside the hero's own stacking context.
+  */
+  .hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin-block-start: calc(var(--space-48) * -1);
+    padding-block: var(--space-64);
+  }
+
+  .hero__art {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: 50% 35%;
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--surface);
+    opacity: var(--scrim-opacity);
+  }
+
+  /* No muted text anywhere in here: --text-muted over the worst composite under the
+     scrim measures 3.5:1 and fails. Everything in the hero is full --text. */
+  .hero__text {
+    max-width: var(--content);
+  }
+
+  .hero__title {
+    margin: 0;
+    font-size: var(--text-hero);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .hero__lede {
+    margin: var(--space-24) 0 0;
+    color: var(--text);
+    font-size: var(--text-h3);
+    line-height: var(--lh-body);
+  }
+
+  .hero__actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: var(--space-16);
+    margin: var(--space-32) 0 0;
+  }
+
+  /* A ghost label is --link on whatever shows through, which over the bare scrim is
+     3.1:1 and fails. An opaque surface fill under it restores 5.4:1 light, 7.2:1 dark
+     without touching the shared button rules in global.css. */
+  .hero .button--ghost {
+    background: var(--surface);
+  }
+
+  .teaser__title {
+    margin-block: var(--space-96) var(--space-24);
+    font-size: var(--text-h2);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  /* Each PostCard draws its own top rule, so the run needs closing at the bottom
+     the same way the blog listing closes it. */
+  .teaser__posts {
+    border-block-end: var(--hairline) solid var(--border);
+  }
+
+  .teaser__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: var(--space-32);
+  }
+
+  .teaser__empty {
+    margin: 0;
+    padding-block: var(--space-32);
+    color: var(--text-muted);
+    font-size: var(--size-18);
+  }
+
+  /* A plain link, not a button: the hero's primary CTA is the page's one orange. */
+  .teaser__more {
+    margin: var(--space-32) 0 0;
+  }
+
+  .teaser__more a {
+    color: var(--link);
+    font-size: var(--size-18);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .teaser__more a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  @media (min-width: 48em) {
+    .hero {
+      padding-block: var(--space-96);
+    }
+
+    .hero__actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .teaser__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 </style>

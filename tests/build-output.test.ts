@@ -30,8 +30,8 @@ beforeAll(() => {
 }, 300_000);
 
 describe("the build output itself", () => {
-  it("contains the twelve pages this phase generates", () => {
-    expect(pages.length).toBe(12);
+  it("contains the thirteen pages this phase generates", () => {
+    expect(pages.length).toBe(13);
   });
 });
 

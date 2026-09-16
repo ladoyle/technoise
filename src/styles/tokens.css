@@ -99,6 +99,14 @@
   --radius-md: 8px;
   --radius-full: 999px;
   --hairline: 1px;
+
+  /*
+    A compositing amount, not a colour: how much page colour the home hero lays over
+    the mascot artwork. color-mix() was rejected here because an unsupported browser
+    makes the property invalid at computed-value time and falls back to transparent —
+    unreadable text — where a plain opacity has no such cliff.
+  */
+  --scrim-opacity: 0.72;
 }
 
 /*
@@ -139,6 +147,7 @@
     --accent-text: var(--pulse-300);
     --select-bg: var(--ink-border);
     --select-fg: var(--cream);
+    --scrim-opacity: 0.82;
   }
 }
 
@@ -157,6 +166,7 @@
   --accent-text: var(--pulse-300);
   --select-bg: var(--ink-border);
   --select-fg: var(--cream);
+  --scrim-opacity: 0.82;
 }
 
 :root[data-theme="light"] {

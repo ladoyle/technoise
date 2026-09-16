@@ -1,13 +1,20 @@
 ---
-// The permanent specimen sheet. Every token, every scale step and every interactive
-// state on one surface, so a change to the design system can be eyeballed in one
-// place instead of hunted for across pages.
+// The site's one technical page: the reasoning behind the design system and the
+// specimen sheet for it, together. Every token, every scale step and every
+// interactive state on one surface, each under the argument for why it is that value,
+// so a change to the system can be eyeballed and justified in one place instead of
+// hunted for across pages. The narrative arrived here from the home page, which now
+// has a job of its own.
 //
 // noindex, and excluded from the sitemap in Phase 4 — the SEO score is 100 or it is
-// a defect, and an indexed swatch grid is not a page anyone searched for.
+// a defect, and an indexed swatch grid is not a page anyone searched for. noindex is
+// not unlinkable: the header and footer both link here.
 //
-// This page shows orange more than once. The "orange appears once per screen" rule
-// governs composed pages, not a specimen sheet whose subject is the palette.
+// This page shows orange more than once, and the exemption survives the narrative.
+// The "orange appears once per screen" rule governs a composed page, where orange
+// marks the one thing to do. Here the palette is the subject, not the chrome — the
+// orange on this page is a specimen being described, and describing it is precisely
+// what the added prose does.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Prose from "../components/Prose.astro";
@@ -50,7 +57,7 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
 
 <BaseLayout
   title="Styleguide — TechNoise"
-  description="Every colour token, type scale step, spacing step and interactive state in the TechNoise design system."
+  description="Why the TechNoise palette, type scale and spacing scale are what they are, with every token, scale step and interactive state on one page."
   noindex
 >
   <div class="wrap wrap--wide">
@@ -61,7 +68,39 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
       to, light first. Nothing here should ever need a value outside the scales.
     </p>
 
+    <Prose class="sg-narrow">
+      <p>
+        The page is cream, never white. Pure white next to <code>#FDF9F3</code> reads
+        as a rendering bug, so the surface token resolves to cream in the light scheme
+        and to ink in the dark one. Body text is ink on cream at 12.9:1, which clears
+        AAA with room to spare, and the column is capped at 720px so a line lands
+        between 68 and 72 characters at the desktop body size.
+      </p>
+
+      <blockquote>
+        <p>
+          Editorial layout, generous whitespace, one column of readable text. No
+          cards-in-cards, no gradients, no shadow deeper than a hairline.
+        </p>
+      </blockquote>
+    </Prose>
+
     <h2 class="sg-h2" id="colour">Colour</h2>
+    <Prose class="sg-narrow">
+      <p>
+        Body links use the darkened signal blue at 5.4:1, never the raw brand blue,
+        which measures 4.1:1 and fails. They are <a href="#states">underlined
+        as well as coloured</a>, because colour alone is not an affordance. Raw orange
+        is a fill, never text on cream.
+      </p>
+
+      <p>
+        The home hero lays the page colour over the mascot artwork at
+        <code>--scrim-opacity</code> — 72% in the light scheme, 82% in the dark one.
+        Measured against composited output across viewport widths, body text stays
+        above 6.5:1 in both schemes.
+      </p>
+    </Prose>
     <ul class="sg-swatches">
       {
         colors.map((c) => (
@@ -79,6 +118,14 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
     </ul>
 
     <h2 class="sg-h2" id="type">Type scale</h2>
+    <Prose class="sg-narrow">
+      <ul>
+        <li>Two families: Inter for everything, the platform mono for code.</li>
+        <li>Body 18px on mobile, 20px from 768px up.</li>
+        <li>Line height 1.65 for body, 1.2 for headings.</li>
+        <li>One breakpoint, declared in em so it survives page zoom.</li>
+      </ul>
+    </Prose>
     <ul class="sg-type">
       {
         typeSteps.map((t) => (
@@ -95,6 +142,13 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
     </ul>
 
     <h2 class="sg-h2" id="space">Spacing scale</h2>
+    <Prose class="sg-narrow">
+      <p>
+        Vertical space comes from one scale: 4, 8, 12, 16, 24, 32, 48, 64, 96. Paragraphs
+        are separated by 24px, a heading opens with 64px above it, and the footer sits
+        96px below the last block. Nothing is nudged by an odd pixel.
+      </p>
+    </Prose>
     <ul class="sg-space">
       {
         spaceSteps.map((s) => (
@@ -229,6 +283,13 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
     />
 
     <h2 class="sg-h2" id="prose">Prose</h2>
+    <Prose class="sg-narrow">
+      <p>
+        Inline code such as <code>--space-24</code> sits on a sunken surface at 11.6:1.
+        A block runs to the gutter edges below the breakpoint rather than squeezing an
+        already narrow column, and scrolls horizontally when it has to.
+      </p>
+    </Prose>
     <div class="sg-narrow">
       <Prose>
         <h2>A second-level heading</h2>
@@ -357,6 +418,17 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
 
   .sg-narrow {
     max-width: var(--content);
+  }
+
+  /* prose.css deliberately gives a .prose block no trailing margin — nothing owns
+     the space after itself. The narrative blocks are the one place on this page
+     where that leaves reasoning touching the specimen list it introduces. */
+  .sg-lede + .sg-narrow {
+    margin-block-start: var(--space-24);
+  }
+
+  .sg-h2 + .sg-narrow {
+    margin-block-end: var(--space-32);
   }
 
   /* Each card draws its own top rule, so the run needs closing at the bottom the

@@ -5,13 +5,19 @@
 
 import "../styles/prose.css";
 
+// The rest spread is load-bearing, not convenience. Astro hands a child component its
+// parent's data-astro-cid-* as a prop and the child has to put it on its own root, or
+// the parent's scoped styles cannot touch the wrapper it just gave a class to —
+// `<Prose class="sg-narrow">` silently got none of .sg-narrow's rules.
+
 interface Props {
   class?: string;
+  [key: string]: unknown;
 }
 
-const { class: className } = Astro.props;
+const { class: className, ...rest } = Astro.props;
 ---
 
-<div class:list={["prose", className]}>
+<div class:list={["prose", className]} {...rest}>
   <slot />
 </div>
