@@ -56,9 +56,13 @@ const svgs: Svg[] = BRAND_FILES.map((name) => {
   const source = readFileSync(join(brandDir, name), "utf8");
 
   // The dark override is the only @media block in these files, so splitting on it
-  // separates the default fills from the overridden ones without parsing CSS.
-  const darkStart = source.indexOf("@media (prefers-color-scheme: dark)");
-  if (darkStart < 0) throw new Error(`${name} carries no prefers-color-scheme: dark override`);
+  // separates the default fills from the overridden ones without parsing CSS. Matched
+  // by regex, not a literal substring: svgo's minifier is free to drop the whitespace
+  // inside the media feature (e.g. `prefers-color-scheme:dark`) without changing what
+  // the browser parses, and this assertion shouldn't care which form ships.
+  const darkMedia = /@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/.exec(source);
+  if (!darkMedia) throw new Error(`${name} carries no prefers-color-scheme: dark override`);
+  const darkStart = darkMedia.index;
   const darkEnd = source.indexOf("</style>");
 
   const box = /viewBox="(-?[\d.]+)\s+(-?[\d.]+)\s+([\d.]+)\s+([\d.]+)"/.exec(source);
