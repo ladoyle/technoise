@@ -10,6 +10,15 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import Prose from "../components/Prose.astro";
 import TagPill from "../components/TagPill.astro";
 import { formatDate, isoDate, readingMinutes, type Post } from "../lib/content";
+import {
+  OG_IMAGE,
+  SITE,
+  absoluteUrl,
+  breadcrumbList,
+  canonicalPath,
+  pageTitle,
+  type TrailItem,
+} from "../lib/seo";
 
 interface Props {
   post: Post;
@@ -21,17 +30,54 @@ const { post, newer, older } = Astro.props;
 const { title, description, pubDate, updatedDate, tags } = post.data;
 
 const minutes = readingMinutes(post.body);
+
+const path = canonicalPath(Astro.url);
+const url = absoluteUrl(path, Astro.site);
+
+// One array feeds both the visible trail and the BreadcrumbList. Two literals
+// would drift.
+const trail: TrailItem[] = [
+  { label: "Home", href: "/" },
+  { label: "Blog", href: "/blog/" },
+  { label: title },
+];
+
+// headline is capped at 110 characters by Google. The schema caps titles at 48, so
+// no truncation can be reached from content — hence none here.
+const schema = [
+  {
+    "@type": "BlogPosting",
+    "@id": `${url}#post`,
+    headline: title,
+    description,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    datePublished: isoDate(pubDate),
+    dateModified: isoDate(updatedDate ?? pubDate),
+    keywords: tags.join(", "),
+    timeRequired: `PT${minutes}M`,
+    inLanguage: SITE.locale,
+    image: [absoluteUrl(OG_IMAGE.src, Astro.site)],
+    author: {
+      "@type": "Person",
+      name: SITE.author.name,
+      url: absoluteUrl("/", Astro.site),
+    },
+  },
+  breadcrumbList(trail, Astro.site),
+];
 ---
 
-<BaseLayout title={`${title} — TechNoise`} description={description}>
+<BaseLayout
+  title={pageTitle(title)}
+  description={description}
+  canonicalPath={path}
+  ogType="article"
+  article={{ published: pubDate, modified: updatedDate, tags }}
+  schema={schema}
+>
   <div class="wrap">
-    <Breadcrumb
-      items={[
-        { label: "Home", href: "/" },
-        { label: "Blog", href: "/blog/" },
-        { label: title },
-      ]}
-    />
+    <Breadcrumb items={trail} />
 
     <header class="post-header">
       <h1 class="post-header__title">{title}</h1>

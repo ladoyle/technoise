@@ -52,6 +52,26 @@ export function absoluteUrl(path: string, site: URL | undefined): string {
   return new URL(path, site).toString();
 }
 
+export interface TrailItem {
+  label: string;
+  href?: string;
+}
+
+// Built from the same array the visible <Breadcrumb> renders, so structured data
+// can never describe a trail the page does not show. The last item carries no
+// `item`, mirroring the component's hrefless current-page entry.
+export function breadcrumbList(trail: TrailItem[], site: URL | undefined): Record<string, unknown> {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.label,
+      ...(item.href ? { item: absoluteUrl(item.href, site) } : {}),
+    })),
+  };
+}
+
 export function canonicalPath(url: URL): string {
   const collapsed = `/${url.pathname}`.replace(/\/+/g, "/");
   // A path ending in a file extension is a file, not a directory: /rss.xml must not

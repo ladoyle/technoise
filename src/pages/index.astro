@@ -13,11 +13,36 @@
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Prose from "../components/Prose.astro";
+import { SITE, absoluteUrl } from "../lib/seo";
+
+const home = absoluteUrl("/", Astro.site);
+const personId = `${home}#person`;
+
+// sameAs is omitted rather than empty: the profile URLs are human input, and an
+// identity claim in structured data is not a place to guess.
+const schema = [
+  {
+    "@type": "WebSite",
+    "@id": `${home}#website`,
+    name: SITE.name,
+    url: home,
+    description: SITE.description,
+    inLanguage: SITE.locale,
+    publisher: { "@id": personId },
+  },
+  {
+    "@type": "Person",
+    "@id": personId,
+    name: SITE.author.name,
+    url: home,
+  },
+];
 ---
 
 <BaseLayout
   title="TechNoise"
   description="A design system in one column: cream page, ink text, one loud orange, and nothing outside the scale."
+  schema={schema}
 >
   <div class="wrap">
     <Prose>
