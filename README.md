@@ -10,9 +10,12 @@ The binding stack, layout and design-standards contract lives in [`AGENTS.md`](A
 ## Current state
 
 Blog and project routes are live: listing, post, tag archives, projects index, project
-detail (`docs/setup-guide.md` Phase 3). Home hero, About, Resume and 404 are not built yet —
-they need positioning copy, resume content and project details that only the site owner can
-supply (see `docs/setup-guide.md` Part 5).
+detail (`docs/setup-guide.md` Phase 3). Every page now carries a canonical URL, Open Graph
+and Twitter card tags, and a JSON-LD graph; `/sitemap.xml`, `/rss.xml` and `/robots.txt` are
+generated at build, and shared links render a committed 1200×630 OG card instead of a grey
+placeholder (`docs/setup-guide.md` Phase 4). Home hero, About, Resume and 404 are not built
+yet — they need positioning copy, resume content and project details that only the site
+owner can supply (see `docs/setup-guide.md` Part 5).
 
 ## Running locally
 
@@ -22,7 +25,8 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule and build-output tests
+npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper and
+                      # discovery-output (sitemap/rss/robots) tests
 ```
 
 Node `>=22.12.0` is required, pinned in `.nvmrc`.
