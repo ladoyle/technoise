@@ -4,15 +4,21 @@
 // bytes on a header that appears on every page. The mascot is deliberately absent
 // here: AGENTS.md posture rule 3 confines it to the home hero, About and 404.
 //
-// The four routes below do not exist until Phase 3 and 404 on this branch. That is
-// expected and deliberate — the nav is built once, against the final route shape,
-// rather than being rewritten when the pages land. Do not stub pages to silence it.
+// Every route below returns 200. /about/ is not in the list because the page does not
+// exist yet — a nav item that promises a 404 is worse than no nav item, so About
+// returns to both this list and the footer's when the page does.
+//
+// The disclosure below is the site's one JS island, and it is deliberate. A toggle
+// with aria-expanded, aria-controls, Escape-to-close and click-outside cannot be built
+// from HTML and CSS: <details>/<summary> was the zero-JS candidate and loses on all
+// three. The cost is bounded — below 48em only, and with JS off the toggle never
+// appears and the whole list renders stacked, which is exactly the old behaviour.
 
 const nav = [
   { href: "/blog/", label: "Blog" },
   { href: "/projects/", label: "Projects" },
   { href: "/resume/", label: "Resume" },
-  { href: "/about/", label: "About" },
+  { href: "/styleguide/", label: "Styleguide" },
 ];
 
 const here = Astro.url.pathname;
@@ -20,7 +26,7 @@ const isCurrent = (href: string) =>
   href === "/" ? here === "/" : here.startsWith(href);
 ---
 
-<header class="site-header">
+<header class="site-header" data-nav-root data-nav="closed">
   <div class="wrap wrap--wide site-header__inner">
     <a
       class="site-header__brand"
@@ -28,8 +34,45 @@ const isCurrent = (href: string) =>
       aria-current={here === "/" ? "page" : undefined}>TechNoise</a
     >
 
-    <nav aria-label="Primary">
-      <ul class="site-header__list">
+    <button
+      class="site-header__toggle"
+      type="button"
+      data-nav-toggle
+      aria-expanded="false"
+      aria-controls="primary-nav"
+    >
+      <svg
+        data-icon="open"
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+      <svg
+        data-icon="close"
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="5" y1="5" x2="19" y2="19"></line>
+        <line x1="19" y1="5" x2="5" y2="19"></line>
+      </svg>
+      Menu
+    </button>
+
+    <nav class="site-header__nav" aria-label="Primary">
+      <ul class="site-header__list" id="primary-nav">
         {
           nav.map((item) => (
             <li>
@@ -48,27 +91,56 @@ const isCurrent = (href: string) =>
   </div>
 </header>
 
+<script>
+  const header = document.querySelector<HTMLElement>("[data-nav-root]");
+  const toggle = header?.querySelector<HTMLButtonElement>("[data-nav-toggle]");
+
+  if (header && toggle) {
+    const isOpen = () => toggle.getAttribute("aria-expanded") === "true";
+
+    // The label and the icons are never rewritten here: CSS swaps them off
+    // aria-expanded, so the accessible name and the visual state cannot disagree.
+    const setOpen = (open: boolean) => {
+      header.dataset.nav = open ? "open" : "closed";
+      toggle.setAttribute("aria-expanded", String(open));
+    };
+
+    toggle.addEventListener("click", () => setOpen(!isOpen()));
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isOpen()) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (isOpen() && !header.contains(event.target as Node)) setOpen(false);
+    });
+  }
+</script>
+
 <style>
   .site-header {
     border-block-end: var(--hairline) solid var(--border);
   }
 
   /*
-    Below the breakpoint the brand and the nav stack onto two rows: the four nav
-    items fit the 272px column at 320px on their own, but not alongside the brand.
-    No hamburger, no disclosure widget, no client JS — the whole nav stays visible
-    at every width. A fifth item wraps rather than overflowing.
+    Below the breakpoint the brand and the toggle share the first row and the nav
+    wraps onto a second. Above it the row-100% basis is dropped and the two sit on
+    one line, which is what the header has always looked like at that width.
   */
   .site-header__inner {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--space-8) var(--space-32);
     padding-block: var(--space-16);
   }
 
   .site-header__brand {
-    flex: 1 0 100%;
+    flex: 0 0 auto;
     color: var(--text);
     font-size: var(--size-20);
     font-weight: var(--weight-semibold);
@@ -81,22 +153,56 @@ const isCurrent = (href: string) =>
     color: var(--link);
   }
 
-  .site-header__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-4) var(--space-16);
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .site-header__nav {
+    flex: 1 0 100%;
   }
 
   /*
-    padding-block lifts each link to a ~35px target box, clearing the 24px minimum
-    in WCAG 2.2 SC 2.5.8 without a layout change.
+    min-block-size, not more padding: the specified 8px/12px padding around a 24px
+    icon lands at ~42px, and WCAG 2.5.5's 44px target is the floor this has to clear.
   */
+  .site-header__toggle {
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-8);
+    min-block-size: var(--space-48);
+    padding: var(--space-8) var(--space-12);
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: var(--size-16);
+    line-height: var(--lh-tight);
+    cursor: pointer;
+  }
+
+  .site-header__toggle:hover {
+    color: var(--link);
+  }
+
+  .site-header__toggle [data-icon] {
+    display: none;
+    inline-size: var(--space-24);
+    block-size: var(--space-24);
+  }
+
+  .site-header__toggle[aria-expanded="false"] [data-icon="open"],
+  .site-header__toggle[aria-expanded="true"] [data-icon="close"] {
+    display: block;
+  }
+
+  .site-header__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    border-block-start: var(--hairline) solid var(--border);
+    list-style: none;
+  }
+
   .site-header__link {
     display: inline-block;
-    padding-block: var(--space-8);
+    padding-block: var(--space-12);
     color: var(--text);
     font-size: var(--size-16);
     line-height: var(--lh-tight);
@@ -118,16 +224,53 @@ const isCurrent = (href: string) =>
     text-underline-offset: 4px;
   }
 
+  /*
+    The collapse. The base rule hides the panel and the min-width block re-declares
+    the same selector at equal specificity, so source order restores it — one
+    breakpoint, no max-width query, no !important. With no `js` class on <html> the
+    toggle stays hidden and the list stays visible: the no-JS fallback is the default,
+    not an afterthought.
+  */
+  .site-header__toggle {
+    display: none;
+  }
+
+  :global(html.js) .site-header__toggle {
+    display: inline-flex;
+  }
+
+  :global(html.js) .site-header[data-nav="closed"] .site-header__list {
+    display: none;
+  }
+
   @media (min-width: 48em) {
     .site-header__inner {
       flex-wrap: nowrap;
-      justify-content: space-between;
       align-items: center;
       padding-block: var(--space-24);
     }
 
-    .site-header__brand {
+    .site-header__nav {
       flex: 0 0 auto;
+    }
+
+    .site-header__list {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: var(--space-4) var(--space-16);
+      border-block-start: 0;
+    }
+
+    .site-header__link {
+      padding-block: var(--space-8);
+    }
+
+    :global(html.js) .site-header__toggle {
+      display: none;
+    }
+
+    :global(html.js) .site-header[data-nav="closed"] .site-header__list {
+      display: flex;
     }
   }
 </style>

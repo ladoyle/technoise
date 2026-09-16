@@ -48,6 +48,15 @@ const path = canonicalPath ?? toCanonicalPath(Astro.url);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/*
+      Inline and render-blocking on purpose: the header's nav panel is collapsed by a
+      `html.js` rule, so the class has to exist before first paint. Deferred or
+      bundled, the panel would paint open below 48em and snap shut on script load —
+      a visible layout shift on every page. With JS off the class never lands and the
+      full nav renders as a stacked column, which is the no-JS fallback.
+    */}
+    <script is:inline>document.documentElement.classList.add("js");</script>
+
     <meta name="generator" content={Astro.generator} />
 
     <title>{title}</title>
