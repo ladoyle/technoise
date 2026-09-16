@@ -37,8 +37,13 @@ export const SITEMAP_PATH = "/sitemap.xml";
 
 // Routes with no collection entry behind them. A new static route must be added
 // here, or to the dynamic expansion in src/pages/sitemap.xml.ts, or it will not be
-// in the sitemap. /styleguide/ is deliberately absent: it is noindex.
-export const STATIC_SITEMAP_ROUTES: readonly string[] = ["/", "/blog/", "/projects/"];
+// in the sitemap. /styleguide/ is the only deliberate exclusion: it is noindex.
+export const STATIC_SITEMAP_ROUTES: readonly string[] = [
+  "/",
+  "/blog/",
+  "/projects/",
+  "/resume/",
+];
 
 export class MissingSiteError extends Error {
   constructor() {

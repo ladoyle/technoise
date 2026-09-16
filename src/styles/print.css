@@ -1,0 +1,43 @@
+/*
+  Imported by src/pages/resume.astro only, so these rules ship on that route and no
+  other. There is no downloadable PDF to keep in sync because Ctrl+P is the PDF.
+*/
+
+@media print {
+  /* Re-assert the light scheme in tokens, not hex: a reader whose OS is dark would
+     otherwise print cream text with the background dropped. */
+  :root {
+    --surface: var(--cream);
+    --surface-sunken: var(--cream-sunken);
+    --text: var(--ink);
+    --text-muted: var(--ink-muted);
+    --link: var(--signal-700);
+    --border: var(--slate);
+  }
+
+  .site-header,
+  .site-footer,
+  .skip-link {
+    display: none;
+  }
+
+  main {
+    padding-block: 0;
+  }
+
+  .resume__role,
+  .resume__degree,
+  .resume__skill-group {
+    break-inside: avoid;
+  }
+
+  .resume__heading {
+    break-after: avoid;
+  }
+
+  /* A printed link has no href unless the page prints one. */
+  .resume__contact a[href^="http"]::after {
+    content: " — " attr(href);
+    font-size: var(--text-meta);
+  }
+}
