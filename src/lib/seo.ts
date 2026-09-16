@@ -77,9 +77,11 @@ export function breadcrumbList(trail: TrailItem[], site: URL | undefined): Recor
 }
 
 export function canonicalPath(url: URL): string {
-  const collapsed = `/${url.pathname}`.replace(/\/+/g, "/");
+  const collapsed = url.pathname.replace(/\/+/g, "/");
   // A path ending in a file extension is a file, not a directory: /rss.xml must not
-  // grow a trailing slash.
+  // grow a trailing slash. No page route reaches this branch: astro.config.mjs leaves
+  // build.format at its "directory" default, so a resolved page pathname always ends
+  // in "/". The guard is here for the non-page paths the helper's unit tests pass it.
   if (/\.[a-z0-9]+$/i.test(collapsed)) return collapsed;
   return collapsed.endsWith("/") ? collapsed : `${collapsed}/`;
 }
