@@ -62,6 +62,7 @@ const schema = [
       "@type": "Person",
       name: SITE.author.name,
       url: absoluteUrl("/", Astro.site),
+      sameAs: SITE.author.sameAs,
     },
   },
   breadcrumbList(trail, Astro.site),

@@ -273,8 +273,12 @@ describe("the JSON-LD graph each page type publishes", () => {
     expect(person["@id"]).toMatch(/#person$/);
     expect(person.name.length).toBeGreaterThan(0);
     expect(isAbsolute(person.url)).toBe(true);
-    // sameAs is omitted while the profile URLs are human input, never emitted empty.
-    expect(person).not.toHaveProperty("sameAs");
+    // sameAs carries the supplied profile links, never an empty array.
+    expect(Array.isArray(person.sameAs)).toBe(true);
+    expect(person.sameAs.length).toBeGreaterThan(0);
+    for (const href of person.sameAs) {
+      expect(() => new URL(href)).not.toThrow();
+    }
   });
 
   it("gives every post a BlogPosting with the fields a rich result needs", () => {

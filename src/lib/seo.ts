@@ -12,12 +12,16 @@ export const SITE = {
   description:
     "A personal blog and portfolio site, built on Astro as a static site with zero client JavaScript by default.",
   locale: "en",
-  // TODO(human input): the site owner's real name and their `sameAs` profile URLs
-  // (setup-guide Part 5) are human input. "TechNoise" is the persona the site
-  // publishes under — a PLACEHOLDER standing in for a name, not a claim about a
-  // person. Do not invent a name, and do not derive a profile URL from a project's
-  // repoUrl: an identity claim in structured data is not a place to guess.
-  author: { name: "TechNoise" },
+  // The site owner's real identity, supplied as human input (setup-guide Part 5) —
+  // used as the `Person` behind the WebSite entity on the home page, and as
+  // `author` on every post and project. "TechNoise" (above) stays the publishing
+  // persona; this is the person behind it. `sameAs` carries only the one profile
+  // link supplied — no other profile URL is invented or derived from a project's
+  // repoUrl.
+  author: {
+    name: "Luke Doyle",
+    sameAs: ["https://www.linkedin.com/in/luke-doyle-116b58160"],
+  },
 } as const;
 
 export const OG_IMAGE = {

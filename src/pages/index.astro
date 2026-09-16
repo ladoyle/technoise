@@ -18,8 +18,6 @@ import { SITE, absoluteUrl } from "../lib/seo";
 const home = absoluteUrl("/", Astro.site);
 const personId = `${home}#person`;
 
-// sameAs is omitted rather than empty: the profile URLs are human input, and an
-// identity claim in structured data is not a place to guess.
 const schema = [
   {
     "@type": "WebSite",
@@ -35,6 +33,7 @@ const schema = [
     "@id": personId,
     name: SITE.author.name,
     url: home,
+    sameAs: SITE.author.sameAs,
   },
 ];
 ---
