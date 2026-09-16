@@ -1,0 +1,95 @@
+---
+// A bordered tile for the two-column grid. Only the title is interactive: a hover
+// effect on the card body would be a false affordance.
+
+import TagPill from "./TagPill.astro";
+
+interface Props {
+  title: string;
+  href: string;
+  description: string;
+  stack: string[];
+  status: "in-progress" | "shipped" | "archived";
+  headingLevel?: 2 | 3;
+}
+
+const { title, href, description, stack, status, headingLevel = 2 } = Astro.props;
+
+const Heading = `h${headingLevel}` as "h2" | "h3";
+
+const statusLabel = {
+  "in-progress": "In progress",
+  shipped: "Shipped",
+  archived: "Archived",
+}[status];
+---
+
+<article class="project-card">
+  <p class="eyebrow">{statusLabel}</p>
+
+  <Heading class="project-card__title"><a href={href}>{title}</a></Heading>
+
+  <p class="project-card__pitch">{description}</p>
+
+  <ul class="project-card__stack">
+    {
+      stack.map((item) => (
+        <li>
+          <TagPill label={item} />
+        </li>
+      ))
+    }
+  </ul>
+</article>
+
+<style>
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: var(--space-24);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+
+  .project-card__title {
+    margin: 0;
+    font-size: var(--text-h3);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .project-card__title a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .project-card__title a:hover,
+  .project-card__title a:focus-visible {
+    color: var(--link);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  .project-card__pitch {
+    margin: 0;
+    color: var(--text);
+    font-size: var(--size-18);
+  }
+
+  /* auto pushes the badges to the bottom, so every card in a row lands them on the
+     same baseline however long its description is. */
+  .project-card__stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin: 0;
+    margin-block-start: auto;
+    padding: 0;
+    list-style: none;
+  }
+</style>

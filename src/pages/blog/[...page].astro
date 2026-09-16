@@ -1,0 +1,88 @@
+---
+import type { GetStaticPaths, Page } from "astro";
+
+import ListingLayout from "../../layouts/ListingLayout.astro";
+import PostCard from "../../components/PostCard.astro";
+import Pagination from "../../components/Pagination.astro";
+import {
+  PAGE_SIZE,
+  collectTags,
+  getPublishedPosts,
+  readingMinutes,
+  type Post,
+  type TagCount,
+} from "../../lib/content";
+
+export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
+  const posts = await getPublishedPosts();
+
+  // The rest parameter puts page 2 at /blog/2/, so a post whose slug is a bare number
+  // would fight the pagination route for the same URL.
+  const numeric = posts.find((post) => /^\d+$/.test(post.id));
+  if (numeric) {
+    throw new Error(
+      `Post slug "${numeric.id}" is a bare number and collides with the /blog/<n>/ pagination URLs. Rename the file.`,
+    );
+  }
+
+  return paginate(posts, {
+    pageSize: PAGE_SIZE,
+    props: { tags: collectTags(posts) },
+  });
+};
+
+interface Props {
+  page: Page<Post>;
+  tags: TagCount[];
+}
+
+const { page, tags } = Astro.props;
+
+const suffix = page.currentPage > 1 ? ` — page ${page.currentPage}` : "";
+const title = page.currentPage > 1 ? `Blog, page ${page.currentPage} — TechNoise` : "Blog — TechNoise";
+const description = `Notes on building this site: the generator choice, the colour tokens, and the rules the design system runs on.${suffix}`;
+---
+
+<ListingLayout
+  title={title}
+  description={description}
+  heading="Blog"
+  lede="Notes on how this site is built — the decisions, the measurements behind them, and what they cost."
+  tags={tags}
+>
+  {
+    page.data.length === 0 ? (
+      <p class="listing-empty">No posts yet.</p>
+    ) : (
+      page.data.map((post) => (
+        <PostCard
+          title={post.data.title}
+          href={`/blog/${post.id}/`}
+          description={post.data.description}
+          pubDate={post.data.pubDate}
+          minutes={readingMinutes(post.body)}
+          tags={post.data.tags}
+          headingLevel={2}
+        />
+      ))
+    )
+  }
+
+  <Pagination
+    slot="pagination"
+    currentPage={page.currentPage}
+    lastPage={page.lastPage}
+    prevUrl={page.url.prev}
+    nextUrl={page.url.next}
+    label="Blog pagination"
+  />
+</ListingLayout>
+
+<style>
+  .listing-empty {
+    margin: 0;
+    padding-block: var(--space-32);
+    color: var(--text-muted);
+    font-size: var(--size-18);
+  }
+</style>

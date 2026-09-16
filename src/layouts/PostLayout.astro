@@ -1,0 +1,167 @@
+---
+// The post shell. The H1 sits outside <Prose> so prose's own h1 rule never applies to
+// it, and the Markdown body keeps prose typography untouched by this file.
+//
+// Prev/next are not Pagination: pagination walks a list by number, these name two
+// specific posts. One consumer, so they stay plain markup here.
+
+import BaseLayout from "./BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Prose from "../components/Prose.astro";
+import TagPill from "../components/TagPill.astro";
+import { formatDate, isoDate, readingMinutes, type Post } from "../lib/content";
+
+interface Props {
+  post: Post;
+  newer?: Post;
+  older?: Post;
+}
+
+const { post, newer, older } = Astro.props;
+const { title, description, pubDate, updatedDate, tags } = post.data;
+
+const minutes = readingMinutes(post.body);
+---
+
+<BaseLayout title={`${title} — TechNoise`} description={description}>
+  <div class="wrap">
+    <Breadcrumb
+      items={[
+        { label: "Home", href: "/" },
+        { label: "Blog", href: "/blog/" },
+        { label: title },
+      ]}
+    />
+
+    <header class="post-header">
+      <h1 class="post-header__title">{title}</h1>
+
+      <p class="post-header__meta">
+        <time datetime={isoDate(pubDate)}>{formatDate(pubDate)}</time>
+        <span aria-hidden="true">·</span>
+        <span>{minutes} min read</span>
+        {
+          updatedDate && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>
+                Updated <time datetime={isoDate(updatedDate)}>{formatDate(updatedDate)}</time>
+              </span>
+            </>
+          )
+        }
+      </p>
+
+      <ul class="post-header__tags">
+        {
+          tags.map((tag) => (
+            <li>
+              <TagPill label={tag} href={`/blog/tags/${tag}/`} />
+            </li>
+          ))
+        }
+      </ul>
+    </header>
+
+    <Prose>
+      <slot />
+    </Prose>
+
+    {
+      (newer || older) && (
+        <nav class="post-nav" aria-label="More posts">
+          {newer && (
+            <div class="post-nav__cell">
+              <p class="eyebrow">Newer post</p>
+              <a class="post-nav__link" href={`/blog/${newer.id}/`}>
+                {newer.data.title}
+              </a>
+            </div>
+          )}
+          {older && (
+            <div class="post-nav__cell post-nav__cell--older">
+              <p class="eyebrow">Older post</p>
+              <a class="post-nav__link" href={`/blog/${older.id}/`}>
+                {older.data.title}
+              </a>
+            </div>
+          )}
+        </nav>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .post-header {
+    padding-block-end: var(--space-32);
+    border-block-end: var(--hairline) solid var(--border);
+    margin-block-end: var(--space-48);
+  }
+
+  .post-header__title {
+    margin: var(--space-24) 0 0;
+    font-size: var(--text-h1);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .post-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-8);
+    margin: var(--space-16) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-meta);
+    line-height: var(--lh-tight);
+  }
+
+  .post-header__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin: var(--space-16) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .post-nav {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-24);
+    margin-block-start: var(--space-64);
+    padding-block-start: var(--space-32);
+    border-block-start: var(--hairline) solid var(--border);
+  }
+
+  .post-nav__link {
+    display: inline-block;
+    margin-block-start: var(--space-8);
+    color: var(--link);
+    font-size: var(--size-18);
+    line-height: var(--lh-tight);
+    text-decoration: none;
+  }
+
+  .post-nav__link:hover,
+  .post-nav__link:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  /* The older cell is pinned to column 2 so a missing newer neighbour leaves the
+     left side empty rather than sliding the older post across. */
+  @media (min-width: 48em) {
+    .post-nav {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .post-nav__cell--older {
+      grid-column: 2;
+      text-align: end;
+    }
+  }
+</style>

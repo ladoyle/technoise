@@ -1,0 +1,96 @@
+---
+// One shell for the blog index and every tag archive, so a tag archive reads as the
+// blog index filtered rather than as a second page design.
+//
+// It styles only what it renders. Cards arrive through the slot, and Astro's scoped
+// styles do not cross a slot boundary — a `.post-card` rule written here would
+// compile and silently do nothing.
+
+import BaseLayout from "./BaseLayout.astro";
+import TagPill from "../components/TagPill.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+  lede: string;
+  tags: { tag: string; count: number }[];
+  activeTag?: string;
+}
+
+const { title, description, heading, lede, tags, activeTag } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="wrap">
+    <header class="listing__header">
+      <h1 class="listing__title">{heading}</h1>
+      <p class="listing__lede">{lede}</p>
+    </header>
+
+    {
+      tags.length > 0 && (
+        <nav class="listing__tags" aria-label="Filter posts by tag">
+          <ul>
+            <li>
+              <TagPill label="all" href="/blog/" current={activeTag === undefined} />
+            </li>
+            {tags.map(({ tag, count }) => (
+              <li>
+                <TagPill
+                  label={tag}
+                  href={`/blog/tags/${tag}/`}
+                  count={count}
+                  current={tag === activeTag}
+                />
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+
+    <div class="listing__list">
+      <slot />
+    </div>
+
+    <slot name="pagination" />
+  </div>
+</BaseLayout>
+
+<style>
+  .listing__title {
+    margin: 0;
+    font-size: var(--text-h1);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .listing__lede {
+    margin: var(--space-16) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-h3);
+    line-height: var(--lh-body);
+  }
+
+  .listing__tags {
+    margin-block-start: var(--space-32);
+  }
+
+  .listing__tags ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Each card supplies its own top rule; this closes the run at the bottom. */
+  .listing__list {
+    margin-block-start: var(--space-32);
+    border-block-end: var(--hairline) solid var(--border);
+  }
+</style>

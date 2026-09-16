@@ -1,0 +1,84 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import { getPublishedProjects } from "../../lib/content";
+
+const projects = await getPublishedProjects();
+---
+
+<BaseLayout
+  title="Projects — TechNoise"
+  description="Things built and being built, with the problem each one started from and what turned out to be hard about it."
+>
+  <div class="wrap wrap--wide">
+    <header class="projects__header">
+      <h1 class="projects__title">Projects</h1>
+      <p class="projects__lede">
+        What each one was for, how it was built, and what was harder than expected.
+      </p>
+    </header>
+
+    {
+      projects.length === 0 ? (
+        <p class="projects-empty">No projects yet.</p>
+      ) : (
+        <div class="projects__grid">
+          {projects.map((project) => (
+            <ProjectCard
+              title={project.data.title}
+              href={`/projects/${project.id}/`}
+              description={project.data.description}
+              stack={project.data.stack}
+              status={project.data.status}
+              headingLevel={2}
+            />
+          ))}
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .projects__header {
+    margin-block-end: var(--space-48);
+  }
+
+  .projects__title {
+    margin: 0;
+    font-size: var(--text-h1);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .projects__lede {
+    margin: var(--space-16) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-h3);
+    line-height: var(--lh-body);
+  }
+
+  /* Two columns at most. A third would put the cards below a readable width on the
+     1100px column and buy nothing. */
+  .projects__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: var(--space-32);
+  }
+
+  .projects-empty {
+    margin: 0;
+    padding-block: var(--space-32);
+    color: var(--text-muted);
+    font-size: var(--size-18);
+  }
+
+  @media (min-width: 48em) {
+    .projects__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>

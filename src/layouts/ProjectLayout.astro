@@ -1,0 +1,120 @@
+---
+// The project shell. The single pulse button is this page's entire orange budget:
+// a demo when there is one, otherwise the source, otherwise no action row at all.
+
+import BaseLayout from "./BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Prose from "../components/Prose.astro";
+import TagPill from "../components/TagPill.astro";
+import type { Project } from "../lib/content";
+
+interface Props {
+  project: Project;
+}
+
+const { project } = Astro.props;
+const { title, description, stack, status, demoUrl, repoUrl } = project.data;
+
+const statusLabel = {
+  "in-progress": "In progress",
+  shipped: "Shipped",
+  archived: "Archived",
+}[status];
+---
+
+<BaseLayout title={`${title} — TechNoise`} description={description}>
+  <div class="wrap">
+    <Breadcrumb
+      items={[
+        { label: "Home", href: "/" },
+        { label: "Projects", href: "/projects/" },
+        { label: title },
+      ]}
+    />
+
+    <header class="project-header">
+      <p class="eyebrow project-header__status">{statusLabel}</p>
+
+      <h1 class="project-header__title">{title}</h1>
+
+      <p class="project-header__lede">{description}</p>
+
+      <ul class="project-header__stack">
+        {
+          stack.map((item) => (
+            <li>
+              <TagPill label={item} />
+            </li>
+          ))
+        }
+      </ul>
+
+      {
+        (demoUrl || repoUrl) && (
+          <p class="project-header__actions">
+            {demoUrl && (
+              <a class="button" href={demoUrl}>
+                Live demo
+              </a>
+            )}
+            {repoUrl && (
+              <a class:list={["button", demoUrl && "button--ghost"]} href={repoUrl}>
+                View source
+              </a>
+            )}
+          </p>
+        )
+      }
+    </header>
+
+    <Prose>
+      <slot />
+    </Prose>
+  </div>
+</BaseLayout>
+
+<style>
+  .project-header {
+    padding-block-end: var(--space-32);
+    border-block-end: var(--hairline) solid var(--border);
+    margin-block-end: var(--space-48);
+  }
+
+  .project-header__title {
+    margin: var(--space-8) 0 0;
+    font-size: var(--text-h1);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .project-header__lede {
+    margin: var(--space-16) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-h3);
+    line-height: var(--lh-body);
+  }
+
+  .project-header__stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin: var(--space-24) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .project-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16);
+    margin: var(--space-24) 0 0;
+  }
+
+  /* The gap between the breadcrumb trail and the header block, matching the
+     breadcrumb-to-H1 gap on a post. */
+  .project-header__status {
+    margin-block-start: var(--space-24);
+  }
+</style>

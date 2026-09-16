@@ -174,11 +174,13 @@ before the header is built, not after.
 ```
 technoise/
 ├─ src/
+│  ├─ content.config.ts  collection schemas (Astro 7 path — outside src/content/)
 │  ├─ content/
 │  │  ├─ blog/           one Markdown file per post
 │  │  └─ projects/       one Markdown file per project
 │  ├─ components/
 │  ├─ layouts/
+│  ├─ lib/               shared TypeScript helpers (publishing rules, formatting)
 │  ├─ pages/
 │  └─ styles/
 ├─ public/
@@ -199,7 +201,7 @@ technoise/
 Each phase ends in something verifiable. Don't start the next one until the current one is
 actually done.
 
-### Phase 1 — Repo and local build (1 evening)
+### Phase 1 — Repo and local build (1 evening) — done
 1. Create the GitHub repo. Public unless you have a reason otherwise.
 2. Scaffold the generator, pin the Node version in `.nvmrc`, commit the lockfile.
 3. Confirm the dev server runs and the production build produces a static output folder.
@@ -207,21 +209,23 @@ actually done.
 
 **Done when:** `git clone` on a different machine, install, build, and it works.
 
-### Phase 2 — Design system (1–2 evenings)
+### Phase 2 — Design system (1–2 evenings) — done
 1. Encode the color tokens, type scale, and spacing scale as CSS custom properties.
 2. Build the header, footer, and prose styles.
 3. Wire dark mode off `prefers-color-scheme` using the tinted tokens.
 
 **Done when:** one dummy page looks right at 320px, 768px, 1440px, in both color schemes.
 
-### Phase 3 — Content pipeline (1–2 evenings)
-1. Define typed frontmatter schemas for posts and projects.
+### Phase 3 — Content pipeline (1–2 evenings) — done
+1. Define typed frontmatter schemas for posts and projects, in `src/content.config.ts` using
+   the `glob()` loader from `astro/loaders`. That path matters: Astro 7 throws
+   `LegacyContentConfigError` on the pre-7 `src/content/config.ts` location.
 2. Build the blog index, post page, tag archives, project index, project detail.
 3. Write two real posts and one real project entry. Two is the minimum that reveals layout
    bugs a single sample hides.
 
 **Done when:** adding a Markdown file to `src/content/blog/` makes a live page with no other
-edits.
+edits. Verified.
 
 ### Phase 4 — SEO scaffolding (1 evening)
 1. Per-page title, description, canonical URL, Open Graph, Twitter card.
