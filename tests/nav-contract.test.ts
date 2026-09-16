@@ -122,19 +122,9 @@ describe("the disclosure's accessible wiring", () => {
   });
 });
 
-describe("the resume stub stays honest while it is empty", () => {
-  it("is noindex, so an empty page cannot cost the SEO floor", () => {
-    const resume = pages.find((p) => p.path === join("resume", "index.html"));
-    expect(resume, "no resume page built").toBeTruthy();
-    expect(resume!.html).toMatch(/<meta name="robots" content="noindex, nofollow"/);
-  });
-
-  it("invents no employer, date or outcome — every section reads 'Not written yet.'", () => {
-    const resume = pages.find((p) => p.path === join("resume", "index.html"))!;
-    const body = resume.html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? resume.html;
-    const headings = [...body.matchAll(/<h2[^>]*>([^<]*)<\/h2>/g)].map((m) => m[1].trim());
-    expect(headings).toEqual(["Summary", "Experience", "Projects", "Skills", "Education"]);
-    const pending = [...body.matchAll(/class="resume__pending"[^>]*>([^<]*)</g)].map((m) => m[1].trim());
-    expect(pending).toEqual(Array(5).fill("Not written yet."));
-  });
-});
+// The "resume stub stays honest while it is empty" block that stood here asserted
+// noindex, a five-heading run including Projects, and five "Not written yet." lines.
+// All three are false by construction now that /resume/ carries real content (design
+// report D4–D7). It is removed rather than rewritten here: D10 assigns the
+// replacement — robots meta, the four-heading run, the no-phone/no-address privacy
+// regression and the no-href="#" check — to QA, which owns test authorship.
