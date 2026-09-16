@@ -1,8 +1,15 @@
 ---
-// The wordmark is live text, not an image. It is sharp at every DPR, recolours for
-// dark mode for free, is selectable, sits in the accessibility tree, and costs zero
-// bytes on a header that appears on every page. The mascot is deliberately absent
-// here: AGENTS.md posture rule 3 confines it to the home hero, About and 404.
+// The brand is the committed logo SVG rather than live text. What makes an image
+// acceptable on a header that renders on every page is that the file is vector and
+// carries its own fills as three classes with a prefers-color-scheme: dark override
+// — so it stays sharp at any DPR and recolours with the page instead of baking
+// light-mode ink into the pixels, which is what ruled out the raster exports.
+// The <picture> hinges on the same 48em breakpoint as the nav collapse below, so
+// the header still has exactly one responsive breakpoint to reason about.
+//
+// Known gap: the file is referenced by URL, not inlined, so its dark mode follows
+// the OS prefers-color-scheme only — a future ThemeToggle setting the scheme
+// manually will not reach inside it.
 //
 // Every route below returns 200. /about/ is not in the list because the page does not
 // exist yet — a nav item that promises a 404 is worse than no nav item, so About
@@ -31,8 +38,21 @@ const isCurrent = (href: string) =>
     <a
       class="site-header__brand"
       href="/"
-      aria-current={here === "/" ? "page" : undefined}>TechNoise</a
+      aria-current={here === "/" ? "page" : undefined}
     >
+      <picture>
+        <source
+          media="(min-width: 48em)"
+          srcset="/brand/technoise-logo-full.svg"
+        />
+        <img
+          src="/brand/technoise-logo-presentation.svg"
+          alt="TechNoise — Hear the future"
+          width="1024"
+          height="1024"
+        />
+      </picture>
+    </a>
 
     <button
       class="site-header__toggle"
@@ -140,17 +160,25 @@ const isCurrent = (href: string) =>
   }
 
   .site-header__brand {
+    display: flex;
     flex: 0 0 auto;
-    color: var(--text);
-    font-size: var(--size-20);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-tight);
-    line-height: var(--lh-tight);
-    text-decoration: none;
   }
 
-  .site-header__brand:hover {
-    color: var(--link);
+  /*
+    block-size is the only constraint; inline-size follows whichever source <picture>
+    picked, so the stacked 1:1 file and the horizontal 3:2 file each keep their own
+    ratio. The stacked file's ratio is on the <img> attributes so the box is reserved
+    before the SVG arrives.
+
+    One height for both files, and 48px is the floor rather than a preference: the
+    horizontal file spends ~64% of its box on transparent margin (its artwork is 36%
+    of the height, against 72% for the stacked file), so below 48px the wordmark in it
+    stops resolving. 48px is also what the mobile row already stands at from the
+    toggle's 44px-target floor, so the stacked mark costs no extra height there.
+  */
+  .site-header__brand img {
+    inline-size: auto;
+    block-size: var(--space-48);
   }
 
   .site-header__nav {
@@ -247,7 +275,13 @@ const isCurrent = (href: string) =>
     .site-header__inner {
       flex-wrap: nowrap;
       align-items: center;
-      padding-block: var(--space-24);
+      /*
+        One step down from the 24px this row used to carry. The 48px mark already
+        supplies ~15px of its own transparent margin top and bottom, so the optical
+        air is unchanged while the row stays at the 80px it is below the breakpoint,
+        instead of growing to 96px against the text wordmark's old 83px.
+      */
+      padding-block: var(--space-16);
     }
 
     .site-header__nav {
