@@ -75,6 +75,14 @@ technoise/
 └─ .github/workflows/   deploy.yml
 ```
 
+`public/brand/*.svg`'s viewBoxes are trimmed to ~88% ink (no wasted transparent margin) —
+`.site-header__brand img`, `.site-footer__brand img` and the `<img width height>` pair
+(`918`/`835`, the presentation file's own extents) all assume that framing. Re-exporting or
+re-cropping any of these three files means revisiting all three of those places, or the mark
+renders at the wrong size or off-center in its reserved box. `tests/brand-assets.test.ts`
+asserts the declared size matches each file's own `viewBox`, so a desync fails the suite
+instead of shipping quietly.
+
 ---
 
 ## Design standards
@@ -100,12 +108,35 @@ Dark mode (ink becomes the page, via `prefers-color-scheme`): links lighten to `
 (7.2:1 on ink), accents to `#FF9F6B` (6.7:1 on ink). Both are tints of the brand bases —
 do not introduce new hues.
 
+**One legitimate exception to "never hardcode a hex value":** the three brand SVGs in
+`public/brand/` (`technoise-icon.svg`, `technoise-logo-presentation.svg`,
+`technoise-logo-full.svg`) plus `public/favicon.svg`. They're referenced by `<img src>` /
+`<link>` URL, not inlined, so they cannot read this page's CSS custom properties — each file
+carries its own fills as literal hex, three classes (`.tn-ink`, `.tn-signal`, `.tn-pulse`)
+with a `prefers-color-scheme: dark` override that must byte-match `--ink`/`--signal`/`--pulse`
+in light mode and `--cream`/`--signal-300`/`--pulse-300` in dark. `tests/brand-assets.test.ts`
+reads `tokens.css` at test time and asserts the match — that test, not a code review, is what
+keeps this exception honest. Don't "fix" the hardcoded hex in these files without re-running
+it; a token edit that isn't mirrored here silently desyncs to an ink-on-ink wordmark in dark
+mode (measured 1.00:1 — invisible, not just off-color).
+
 ### The three posture rules
 
 1. **Orange appears once per screen.** It is the "do this" color. Three orange things on a
-   page means the page has no call to action.
+   page means the page has no call to action. **Carve-out:** the `.tn-pulse` headphones baked
+   into the brand logo SVGs (`Header.astro`, `Footer.astro`) don't count against this budget.
+   They're fixed brand chrome — the same class of exception the color-token table already
+   grants raw `--signal` for "icons, borders only" — not a page-content "do this" signal. A
+   page's actual call to action still gets exactly one orange fill; two logo instances plus one
+   CTA is the correct, intended count, not a violation.
 2. **Cream is the page, never white.** Pure white next to `#FDF9F3` reads as a rendering bug.
-3. **The mascot is a guest, not wallpaper.** Home hero, About, and 404 only.
+3. **The mascot is a guest, not wallpaper.** This applies to the mascot as *page content or
+   illustration* — home hero, About, and 404 only (`src/assets/technoise-background.png` and
+   anything like it stays confined to those three pages). It does not apply to the mascot as
+   *part of the fixed brand lockup*: the header and footer logos (`public/brand/*.svg`) and the
+   favicon render on every page, exactly as any site's logo and favicon would. That's not
+   wallpaper, it's signage — the distinction is illustration-of-the-page vs. identity-of-the-
+   site.
 
 Editorial layout, generous whitespace, one column of readable text. No cards-in-cards, no
 gradients, no shadow deeper than a hairline.
@@ -120,6 +151,15 @@ gradients, no shadow deeper than a hairline.
 - **Grid**: single 720px content column, widening to 1100px only for project card grids and
   the footer. Gutters 24px mobile, 48px desktop.
 
+`48em` is the site's one responsive hinge, reused deliberately rather than adding a second
+breakpoint to reason about. It now carries three responsibilities: `Header.astro`'s nav
+collapse, `Footer.astro`'s three-column grid, and — since `7e3924d` — both components'
+`<picture><source media="(min-width: 48em)">` brand-logo swap. That third one lives in an HTML
+attribute, not a CSS media query, so a future change to the breakpoint value has to be made in
+both languages across `Header.astro`, `Footer.astro` and `tokens.css`.
+`tests/brand-assets.test.ts` pins the `<source media>` value to `48em`, so a mismatch fails the
+suite instead of drifting silently.
+
 ### Component inventory
 
 Build once, reuse everywhere:
@@ -128,6 +168,14 @@ Header · Footer · PostCard · ProjectCard · TagPill · Prose block · CodeBlo
 button · Callout · Pagination · Breadcrumb · ThemeToggle · SEO head block · OG image template
 
 If a page needs a thirteenth component, question the page before adding it.
+
+**ThemeToggle has a hard prerequisite.** `Header.astro` and `Footer.astro` reference the brand
+SVGs by URL, so their dark-mode fills follow the OS `prefers-color-scheme` only — a `data-theme`
+attribute on `<html>` cannot reach inside a URL-referenced image. Whoever builds ThemeToggle
+must, in the same change, either inline these SVGs (so page-level `data-theme` CSS can target
+their classes) or serve scheme-specific files swapped by `data-theme`. Shipping ThemeToggle
+without doing one of those gives a user who OS-light/manually-dark an invisible, ink-on-ink
+wordmark in the header and footer — measured, not theoretical.
 
 `Prose` forwards unrecognized props (`...rest`) onto its root `<div>`, not just `class`.
 Astro hands a child component its parent's scoped-style attribute as a prop, and the child

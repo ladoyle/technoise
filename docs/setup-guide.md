@@ -97,8 +97,11 @@ than after fifty posts use it.
 
 ### Type and rhythm
 
-- **Two families, no more.** One grotesk/humanist sans for everything (the wordmark reads
-  as Inter or Work Sans), one mono for code.
+- **Two families, no more.** One grotesk/humanist sans for everything, one mono for code. The
+  wordmark itself is no longer live text — it shipped as artwork inside the brand SVGs
+  (`public/brand/`) once the header and footer took the traced logo, so it doesn't draw from
+  the body typeface at all. See AGENTS.md's posture-rule carve-outs for why the mascot and
+  wordmark are now global brand chrome rather than confined to hero/About/404.
 - **Body: 18px on mobile, 19–20px on desktop.** Measure capped at 68–72 characters.
   Line height 1.65 for body, 1.2 for headings.
 - **Scale (1.25 ratio):** 14 / 16 / 18 / 20 / 25 / 31 / 39 / 49 px. Nothing outside it.
@@ -160,14 +163,15 @@ document, which means the PDF and the page can never drift apart.
 | `favicon.ico` 32px + 16px | `TechNoise_Minified_Icon.png` | Detail is already reduced for small sizes |
 | `icon-192`, `icon-512` | `TechNoise_Large_Icon.png` | PWA manifest and Android |
 | `apple-touch-icon` 180px | `TechNoise_Large_Icon.png` | Needs an opaque cream background, no transparency |
-| Header logo | `TechNoise_Full_Logo.PNG` | Trace to SVG — a PNG wordmark will look soft on retina |
+| Header logo — **done** | `TechNoise_Full_Logo.PNG` | Traced to SVG (`public/brand/technoise-logo-full.svg` and `-presentation.svg`); used in both `Header.astro` and `Footer.astro`, swapped by breakpoint |
 | Social profile images | `TechNoise_Presentation_Logo.png` | GitHub, LinkedIn, X |
 | Default OG image 1200×630 | `TechNoise_Full_Logo.PNG` | Cream field, logo left, page title right |
 | Hero / About / 404 art | `TechNoise_Background.png` | Export at 2x width used, AVIF + WebP |
 
-One flag: all five assets are raster. Converting the full logo and icon to SVG is a small
-one-time job that pays off in sharpness, dark-mode recoloring, and file size. Worth doing
-before the header is built, not after.
+The full logo and icon are now traced to SVG (`public/brand/`, plus `favicon.svg`/`.ico`) — the
+one-time job the original flag below asked for is done. Still raster and still pending:
+`icon-192`, `icon-512`, `apple-touch-icon`, and the PWA manifest that would reference them —
+out of scope for the header/footer branding pass that shipped the logo trace.
 
 ### Repo layout
 
