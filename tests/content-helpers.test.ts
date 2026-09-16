@@ -5,6 +5,8 @@ import {
   collectTags,
   formatDate,
   isoDate,
+  newestOf,
+  postDate,
   readingMinutes,
   type Post,
 } from "../src/lib/content";
@@ -100,5 +102,70 @@ describe("isoDate", () => {
   it("emits the YYYY-MM-DD form <time datetime> needs", () => {
     expect(isoDate(new Date("2026-09-15T00:00:00Z"))).toBe("2026-09-15");
     expect(isoDate(new Date("2026-12-31T23:59:59Z"))).toBe("2026-12-31");
+  });
+});
+
+// The sitemap's <lastmod> and the feed's <lastBuildDate> both route "when did this
+// last change" through these two. discovery-output.test.ts asserts the two artifacts
+// agree with each other, which cannot catch the rule itself changing underneath both
+// at once — these assert the rule directly, at the one place it is now written.
+function dated(pubDate: string, updatedDate?: string): Post {
+  return {
+    id: "a-post",
+    collection: "blog",
+    data: {
+      title: "A post",
+      description: "d",
+      pubDate: new Date(pubDate),
+      ...(updatedDate ? { updatedDate: new Date(updatedDate) } : {}),
+      tags: ["meta"],
+      draft: false,
+    },
+  } as unknown as Post;
+}
+
+describe("postDate", () => {
+  it("falls back to pubDate when a post was never edited", () => {
+    expect(postDate(dated("2026-09-15")).toISOString()).toBe("2026-09-15T00:00:00.000Z");
+  });
+
+  it("prefers updatedDate, so a same-day edit to an older post is not understated", () => {
+    expect(postDate(dated("2026-09-15", "2026-09-20")).toISOString()).toBe(
+      "2026-09-20T00:00:00.000Z",
+    );
+  });
+
+  it("honours an updatedDate even when it predates pubDate, rather than silently clamping", () => {
+    // Not a valid authoring state, but the helper must not invent a max(): the
+    // sitemap and feed should surface bad frontmatter, not paper over it.
+    expect(postDate(dated("2026-09-15", "2026-09-10")).toISOString()).toBe(
+      "2026-09-10T00:00:00.000Z",
+    );
+  });
+});
+
+describe("newestOf", () => {
+  it("returns undefined for no dates, so the caller omits the element entirely", () => {
+    expect(newestOf([])).toBeUndefined();
+  });
+
+  it("returns the single date unchanged", () => {
+    expect(newestOf([new Date("2026-09-15")])?.toISOString()).toBe("2026-09-15T00:00:00.000Z");
+  });
+
+  it("returns the newest regardless of input order", () => {
+    const dates = [new Date("2026-09-15"), new Date("2026-09-20"), new Date("2026-01-01")];
+    expect(newestOf(dates)?.toISOString()).toBe("2026-09-20T00:00:00.000Z");
+    expect(newestOf([...dates].reverse())?.toISOString()).toBe("2026-09-20T00:00:00.000Z");
+  });
+
+  it("does not mutate the array it is given", () => {
+    const dates = [new Date("2026-09-15"), new Date("2026-09-20"), new Date("2026-01-01")];
+    newestOf(dates);
+    expect(dates.map((d) => d.toISOString().slice(0, 10))).toEqual([
+      "2026-09-15",
+      "2026-09-20",
+      "2026-01-01",
+    ]);
   });
 });
