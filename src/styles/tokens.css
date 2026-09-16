@@ -130,8 +130,13 @@
   what ships, the [data-theme="dark"] block exists so the scheme can be inspected at
   any width without changing an OS setting, and so a later ThemeToggle is a pure
   addition rather than a token rewrite. Keep them in sync.
+
+  Both are scoped to `screen`: a route that resets these tokens for `@media print`
+  (see src/styles/print.css) does so on a bare `:root` selector, which only out-specifies
+  an unscoped dark block by also winning the media query, not the cascade. Scoping dark
+  to screen means print never has to out-specify it in the first place.
 */
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --surface: var(--ink);
@@ -151,22 +156,24 @@
   }
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --surface: var(--ink);
-  --surface-sunken: var(--ink-sunken);
-  --text: var(--cream);
-  --text-muted: var(--cream-muted);
-  --link: var(--signal-300);
-  --rule: var(--signal-300);
-  --border: var(--ink-border);
-  --focus: var(--signal-300);
-  --accent-fill-hover: var(--pulse-300);
-  --accent-on-fill-hover: var(--ink);
-  --accent-text: var(--pulse-300);
-  --select-bg: var(--ink-border);
-  --select-fg: var(--cream);
-  --scrim-opacity: 0.82;
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: var(--ink);
+    --surface-sunken: var(--ink-sunken);
+    --text: var(--cream);
+    --text-muted: var(--cream-muted);
+    --link: var(--signal-300);
+    --rule: var(--signal-300);
+    --border: var(--ink-border);
+    --focus: var(--signal-300);
+    --accent-fill-hover: var(--pulse-300);
+    --accent-on-fill-hover: var(--ink);
+    --accent-text: var(--pulse-300);
+    --select-bg: var(--ink-border);
+    --select-fg: var(--cream);
+    --scrim-opacity: 0.82;
+  }
 }
 
 :root[data-theme="light"] {
