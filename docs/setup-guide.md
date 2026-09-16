@@ -174,6 +174,7 @@ before the header is built, not after.
 ```
 technoise/
 ├─ src/
+│  ├─ assets/            astro:assets input — processed and hashed at build, unlike public/
 │  ├─ content.config.ts  collection schemas (Astro 7 path — outside src/content/)
 │  ├─ content/
 │  │  ├─ blog/           one Markdown file per post

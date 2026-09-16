@@ -12,11 +12,19 @@ The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/set
 
 | | |
 |---|---|
-| Generator | Astro 7 (static output, zero JS by default) |
+| Generator | Astro 7 (static output; one justified JS island — see below) |
 | Node | `>=22.12.0`, pinned in `.nvmrc` |
 | Package manager | npm, lockfile committed |
 | Host | GitHub Pages via `.github/workflows/deploy.yml` on push to `master` |
 | Content | Markdown in `src/content/`, typed frontmatter schemas |
+
+Astro still emits zero client JS by default — every page ships one exception: the header's
+mobile nav disclosure (`html.js` class hook in `BaseLayout`, plus `Header`'s own bundled
+module). It exists because `aria-expanded`/`aria-controls`, Escape-to-close and
+click-outside cannot be built in HTML and CSS alone; see "Accessibility and performance
+floors" below for the standard that justifies an island, and `Header.astro` for the only
+one that currently meets it. Without JS the nav degrades to the full link list, stacked —
+no broken affordance.
 
 ```sh
 npm install          # install dependencies
@@ -24,8 +32,8 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper and
-                      # discovery-output (sitemap/rss/robots) tests
+npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
+                      # discovery-output (sitemap/rss/robots) and nav/route-resolution tests
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -38,6 +46,12 @@ can still emit its page from that cache — clear it with `rm -rf node_modules/.
 plain `rm -rf .astro dist` is not enough). CI is unaffected: the deploy workflow always
 installs into a clean `node_modules`.
 
+`vitest.config.ts` sets `fileParallelism: false`. Two suites (`build-output.test.ts`,
+`discovery-output.test.ts`) each shell out to `astro build` in the repo root; run in
+parallel they race over the same `dist/` and `node_modules/.astro` and one build dies.
+Leave it off — the cost is about 1.5s on a ~16s suite, and any future test file that shells
+out to `astro build` inherits the same hazard.
+
 ---
 
 ## Repo layout
@@ -48,6 +62,7 @@ technoise/
 ├─ docs/                setup-guide.md — design plan and phase roadmap
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
+│  ├─ assets/           astro:assets input — processed and hashed at build, unlike public/
 │  ├─ content.config.ts schema for the collections below (Astro 7 path — not src/content/config.ts)
 │  ├─ content/          blog/ and projects/ — one Markdown file per entry
 │  ├─ components/       reusable, from the component inventory below
@@ -114,6 +129,13 @@ button · Callout · Pagination · Breadcrumb · ThemeToggle · SEO head block �
 
 If a page needs a thirteenth component, question the page before adding it.
 
+`Prose` forwards unrecognized props (`...rest`) onto its root `<div>`, not just `class`.
+Astro hands a child component its parent's scoped-style attribute as a prop, and the child
+has to place it on its own root or the parent's scoped rules never match — `<Prose
+class="sg-narrow">` needs the spread to receive `sg-narrow`'s own CSS. Every call site
+today passes only `class`; keep it that way, since the spread also means a typo'd prop name
+type-checks and lands silently in the DOM.
+
 ### Accessibility and performance floors
 
 Non-negotiable on every change:
@@ -158,7 +180,9 @@ block) and owns nothing else a crawler or social client reads. A page passes:
 - `canonicalPath?` — omit it and the layout derives one from the page's own URL via
   `canonicalPath(Astro.url)`, so a new route is canonical by default, not by remembering.
 - `noindex?` — emits `noindex, nofollow` instead of the default
-  `index, follow, max-image-preview:large`. Used by `/styleguide/` only.
+  `index, follow, max-image-preview:large`. Used by `/styleguide/` and by `/resume/` while
+  it is a stub — both are also absent from `STATIC_SITEMAP_ROUTES`. Lifting `noindex` and
+  adding the route is the one-line change when either page has content that should be found.
 - `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
   page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.

@@ -1,8 +1,9 @@
 # TechNoise
 
 A personal blog and portfolio site, built on [Astro](https://astro.build) as a static site
-with zero client JavaScript by default. Content is Markdown with typed frontmatter; the
-build fails rather than publish a malformed entry.
+that ships zero client JavaScript by default, with one justified exception: the header's
+mobile nav disclosure. Content is Markdown with typed frontmatter; the build fails rather
+than publish a malformed entry.
 
 The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/setup-guide.md).
 The binding stack, layout and design-standards contract lives in [`AGENTS.md`](AGENTS.md).
@@ -13,9 +14,13 @@ Blog and project routes are live: listing, post, tag archives, projects index, p
 detail (`docs/setup-guide.md` Phase 3). Every page now carries a canonical URL, Open Graph
 and Twitter card tags, and a JSON-LD graph; `/sitemap.xml`, `/rss.xml` and `/robots.txt` are
 generated at build, and shared links render a committed 1200×630 OG card instead of a grey
-placeholder (`docs/setup-guide.md` Phase 4). Home hero, About, Resume and 404 are not built
-yet — they need positioning copy, resume content and project details that only the site
-owner can supply (see `docs/setup-guide.md` Part 5).
+placeholder (`docs/setup-guide.md` Phase 4). The home page is a real front door — mascot
+hero, one heading, one lede, three calls to action, latest posts and projects — with a
+primary nav that collapses behind a labelled toggle below 768px. `/resume/` exists as an
+honest, `noindex` scaffold: five section headings, each still reading "Not written yet."
+About and 404 are not built yet — they, and real resume content, need positioning copy,
+work history and project details that only the site owner can supply (see
+`docs/setup-guide.md` Part 5).
 
 ## Running locally
 
@@ -25,8 +30,8 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper and
-                      # discovery-output (sitemap/rss/robots) tests
+npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
+                      # discovery-output (sitemap/rss/robots) and nav/route-resolution tests
 ```
 
 Node `>=22.12.0` is required, pinned in `.nvmrc`.
