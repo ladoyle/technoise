@@ -11,8 +11,8 @@
 // The artwork is decorative: alt="" because the hero's meaning is entirely in the
 // text beside it, and a description of the mascot would be noise between the H1 and
 // the calls to action. It is laid under a flat --surface scrim at --scrim-opacity so
-// the contrast of text over it is a known quantity rather than a guess — the worst
-// pixel of the art puts body text at 7.4:1 light and 7.5:1 dark. The scrim is plain
+// the contrast of text over it is a known quantity rather than a guess — composited
+// output stays above 6.5:1 in both schemes across viewport widths. The scrim is plain
 // opacity, not color-mix(), because an unsupported color-mix() falls back to
 // transparent and the failure mode is unreadable text.
 

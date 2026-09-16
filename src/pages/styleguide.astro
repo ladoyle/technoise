@@ -89,7 +89,7 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
     <Prose class="sg-narrow">
       <p>
         Body links use the darkened signal blue at 5.4:1, never the raw brand blue,
-        which measures 4.1:1 and fails. They are <a href="/styleguide/">underlined
+        which measures 4.1:1 and fails. They are <a href="#states">underlined
         as well as coloured</a>, because colour alone is not an affordance. Raw orange
         is a fill, never text on cream.
       </p>
@@ -97,8 +97,8 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
       <p>
         The home hero lays the page colour over the mascot artwork at
         <code>--scrim-opacity</code> — 72% in the light scheme, 82% in the dark one.
-        Measured against the darkest pixel of that artwork, body text still lands at
-        7.4:1 light and 7.5:1 dark.
+        Measured against composited output across viewport widths, body text stays
+        above 6.5:1 in both schemes.
       </p>
     </Prose>
     <ul class="sg-swatches">
