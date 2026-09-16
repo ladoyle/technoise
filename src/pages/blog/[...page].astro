@@ -81,8 +81,8 @@ const linkRel = (href: string | undefined): string | undefined =>
     slot="pagination"
     currentPage={page.currentPage}
     lastPage={page.lastPage}
-    prevUrl={page.url.prev}
-    nextUrl={page.url.next}
+    prevUrl={linkRel(page.url.prev)}
+    nextUrl={linkRel(page.url.next)}
     label="Blog pagination"
   />
 </ListingLayout>
