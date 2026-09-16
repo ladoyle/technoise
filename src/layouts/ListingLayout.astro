@@ -7,7 +7,9 @@
 // compile and silently do nothing.
 
 import BaseLayout from "./BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
 import TagPill from "../components/TagPill.astro";
+import { breadcrumbList, type TrailItem } from "../lib/seo";
 
 interface Props {
   title: string;
@@ -16,14 +18,30 @@ interface Props {
   lede: string;
   tags: { tag: string; count: number }[];
   activeTag?: string;
+  breadcrumb?: TrailItem[];
+  prevPath?: string;
+  nextPath?: string;
 }
 
-const { title, description, heading, lede, tags, activeTag } = Astro.props;
+const { title, description, heading, lede, tags, activeTag, breadcrumb, prevPath, nextPath } =
+  Astro.props;
+
+// No trail on the page means no BreadcrumbList: structured data is never emitted
+// for a path the reader cannot see.
+const schema = breadcrumb ? [breadcrumbList(breadcrumb, Astro.site)] : undefined;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout
+  title={title}
+  description={description}
+  prevPath={prevPath}
+  nextPath={nextPath}
+  schema={schema}
+>
   <div class="wrap">
-    <header class="listing__header">
+    {breadcrumb && <Breadcrumb items={breadcrumb} />}
+
+    <header class:list={["listing__header", breadcrumb && "listing__header--trailed"]}>
       <h1 class="listing__title">{heading}</h1>
       <p class="listing__lede">{lede}</p>
     </header>
@@ -59,6 +77,11 @@ const { title, description, heading, lede, tags, activeTag } = Astro.props;
 </BaseLayout>
 
 <style>
+  /* The same gap a post leaves between its trail and its H1. */
+  .listing__header--trailed {
+    margin-block-start: var(--space-24);
+  }
+
   .listing__title {
     margin: 0;
     font-size: var(--text-h1);

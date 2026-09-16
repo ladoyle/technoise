@@ -12,6 +12,7 @@ import {
   type Post,
   type TagCount,
 } from "../../lib/content";
+import { canonicalPath } from "../../lib/seo";
 
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
   const posts = await getPublishedPosts();
@@ -41,6 +42,12 @@ const { page, tags } = Astro.props;
 const suffix = page.currentPage > 1 ? ` — page ${page.currentPage}` : "";
 const title = page.currentPage > 1 ? `Blog, page ${page.currentPage} — TechNoise` : "Blog — TechNoise";
 const description = `Notes on building this site: the generator choice, the colour tokens, and the rules the design system runs on.${suffix}`;
+
+// Google dropped rel=prev/next as an indexing signal in 2019; Bing still reads it,
+// and it costs two tags. The canonical stays self-referential either way — pointing
+// page 2 at page 1 would tell a crawler the posts only on page 2 do not exist.
+const linkRel = (href: string | undefined): string | undefined =>
+  href ? canonicalPath(new URL(href, Astro.url)) : undefined;
 ---
 
 <ListingLayout
@@ -49,6 +56,8 @@ const description = `Notes on building this site: the generator choice, the colo
   heading="Blog"
   lede="Notes on how this site is built — the decisions, the measurements behind them, and what they cost."
   tags={tags}
+  prevPath={linkRel(page.url.prev)}
+  nextPath={linkRel(page.url.next)}
 >
   {
     page.data.length === 0 ? (
