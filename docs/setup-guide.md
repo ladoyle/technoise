@@ -180,14 +180,16 @@ technoise/
 │  │  └─ projects/       one Markdown file per project
 │  ├─ components/
 │  ├─ layouts/
-│  ├─ lib/               shared TypeScript helpers (publishing rules, formatting)
-│  ├─ pages/
+│  ├─ lib/               shared TypeScript helpers (publishing rules, formatting, SEO)
+│  ├─ pages/             routes, plus generated non-HTML endpoints: sitemap.xml.ts,
+│  │                     rss.xml.ts, robots.txt.ts (see Phase 4 — not static files in
+│  │                     public/, because the sitemap URL has to be absolute and a
+│  │                     literal hostname there would go stale the moment one is chosen)
 │  └─ styles/
 ├─ public/
 │  ├─ brand/             logo source files, committed
 │  ├─ favicon files
-│  ├─ resume.pdf
-│  └─ robots.txt
+│  └─ resume.pdf
 ├─ .github/workflows/
 ├─ .nvmrc
 ├─ README.md
@@ -227,16 +229,22 @@ actually done.
 **Done when:** adding a Markdown file to `src/content/blog/` makes a live page with no other
 edits. Verified.
 
-### Phase 4 — SEO scaffolding (1 evening)
+### Phase 4 — SEO scaffolding (1 evening) — done
 1. Per-page title, description, canonical URL, Open Graph, Twitter card.
-2. Auto-generated `sitemap.xml` and `rss.xml` at build.
-3. `robots.txt` allowing crawl and pointing at the sitemap.
-4. JSON-LD: `Person` on home and about, `BlogPosting` on posts, `CreativeWork` on projects,
-   `BreadcrumbList` where nesting exists.
-5. Generated OG images, or one good static fallback.
+2. Hand-rolled `sitemap.xml` and `rss.xml` endpoints at build, built on the existing
+   publishing rules in `src/lib/content.ts` rather than the official integrations — see
+   `src/lib/seo.ts` and the endpoint files for the reasoning (an integration can't know
+   this repo's own `noindex` rules, and `@astrojs/sitemap` doesn't emit `/sitemap.xml`).
+3. `robots.txt` generated at `src/pages/robots.txt.ts`, not a static file in `public/` —
+   it needs an absolute sitemap URL and the hostname isn't settled (Part 0 Decision 3).
+4. JSON-LD: `WebSite` + `Person` on home, `BlogPosting` on posts, `CreativeWork` on
+   projects, `BreadcrumbList` on posts, projects and tag archives. `Person` on About is
+   deferred until that page exists (Part 5) — it's a two-line addition when it's built.
+5. One static OG image fallback (`public/og/technoise-og.png`), not per-page generation —
+   three content entries didn't justify a renderer dependency.
 
 **Done when:** view-source on three different page types shows three different titles,
-descriptions, and canonicals — no duplicates.
+descriptions, and canonicals — no duplicates. Verified.
 
 ### Phase 5 — Deploy (1 evening)
 1. Push to GitHub.
@@ -307,12 +315,18 @@ tier; build-time image optimization; nothing.
 
 ## Part 4 — Launch checklist
 
-- [ ] Every page has a unique title (≤60 chars) and description (≤155 chars)
-- [ ] Canonical URLs are absolute and use the chosen hostname
-- [ ] OG image renders correctly in a social preview debugger
-- [ ] `sitemap.xml` lists every public page and no drafts
-- [ ] `robots.txt` allows crawling and references the sitemap
-- [ ] RSS validates
+- [x] Every page has a unique title (≤60 chars) and description (≤155 chars)
+- [ ] Canonical URLs are absolute and use the chosen hostname — absolute: done; the
+      hostname itself is still `https://technoise.dev` in `astro.config.mjs`, unconfirmed
+      against the GitHub Pages deploy target. A human must settle this before Phase 5.
+- [ ] OG image renders correctly in a social preview debugger — image is built and
+      committed (1200×630, cream field, no crop); not run against a debugger, which needs
+      a publicly reachable URL and the site isn't deployed yet
+- [x] `sitemap.xml` lists every public page and no drafts
+- [x] `robots.txt` allows crawling and references the sitemap
+- [ ] RSS validates — parses under a real XML parser with the required channel elements,
+      `xmlns:atom` and `atom:link rel="self"`; the W3C Feed Validation Service itself
+      wasn't reachable in this environment to run the last mile of this check
 - [ ] Apex/`www` decision made, other one 301s
 - [ ] HTTPS enforced
 - [ ] 404 page works on the live host, not just locally

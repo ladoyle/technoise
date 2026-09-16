@@ -10,6 +10,7 @@ import {
   type Post,
   type TagCount,
 } from "../../../lib/content";
+import { pageTitle, type TrailItem } from "../../../lib/seo";
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const posts = await getPublishedPosts();
@@ -32,15 +33,24 @@ interface Props {
 }
 
 const { tag, tags, posts } = Astro.props;
+
+// A tag archive is two levels deep, so it gets the trail a post gets. The blog
+// index passes none: one level deep needs no breadcrumb.
+const trail: TrailItem[] = [
+  { label: "Home", href: "/" },
+  { label: "Blog", href: "/blog/" },
+  { label: `Posts tagged ${tag}` },
+];
 ---
 
 <ListingLayout
-  title={`Posts tagged ${tag} — TechNoise`}
+  title={pageTitle(`Posts tagged ${tag}`)}
   description={`Every TechNoise post tagged ${tag}.`}
   heading={`Posts tagged ${tag}`}
   lede={`Every post on this site filed under ${tag}, newest first.`}
   tags={tags}
   activeTag={tag}
+  breadcrumb={trail}
 >
   {
     posts.map((post) => (

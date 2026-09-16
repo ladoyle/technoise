@@ -13,11 +13,35 @@
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Prose from "../components/Prose.astro";
+import { SITE, absoluteUrl } from "../lib/seo";
+
+const home = absoluteUrl("/", Astro.site);
+const personId = `${home}#person`;
+
+const schema = [
+  {
+    "@type": "WebSite",
+    "@id": `${home}#website`,
+    name: SITE.name,
+    url: home,
+    description: SITE.description,
+    inLanguage: SITE.locale,
+    publisher: { "@id": personId },
+  },
+  {
+    "@type": "Person",
+    "@id": personId,
+    name: SITE.author.name,
+    url: home,
+    sameAs: SITE.author.sameAs,
+  },
+];
 ---
 
 <BaseLayout
   title="TechNoise"
   description="A design system in one column: cream page, ink text, one loud orange, and nothing outside the scale."
+  schema={schema}
 >
   <div class="wrap">
     <Prose>

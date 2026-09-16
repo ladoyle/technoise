@@ -6,31 +6,75 @@ import BaseLayout from "./BaseLayout.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import Prose from "../components/Prose.astro";
 import TagPill from "../components/TagPill.astro";
-import type { Project } from "../lib/content";
+import { isoDate, type Project } from "../lib/content";
+import {
+  OG_IMAGE,
+  SITE,
+  absoluteUrl,
+  breadcrumbList,
+  canonicalPath,
+  pageTitle,
+  type TrailItem,
+} from "../lib/seo";
 
 interface Props {
   project: Project;
 }
 
 const { project } = Astro.props;
-const { title, description, stack, status, demoUrl, repoUrl } = project.data;
+const { title, description, stack, status, startDate, demoUrl, repoUrl } = project.data;
 
 const statusLabel = {
   "in-progress": "In progress",
   shipped: "Shipped",
   archived: "Archived",
 }[status];
+
+const path = canonicalPath(Astro.url);
+const url = absoluteUrl(path, Astro.site);
+
+const trail: TrailItem[] = [
+  { label: "Home", href: "/" },
+  { label: "Projects", href: "/projects/" },
+  { label: title },
+];
+
+// A project page is a portfolio entry, not a dated article: ogType stays "website"
+// and no article:published_time is claimed for it.
+const sameAs = [demoUrl, repoUrl].filter((href): href is string => Boolean(href));
+
+const schema = [
+  {
+    "@type": "CreativeWork",
+    "@id": `${url}#project`,
+    name: title,
+    description,
+    url,
+    dateCreated: isoDate(startDate),
+    keywords: stack.join(", "),
+    creativeWorkStatus: statusLabel,
+    inLanguage: SITE.locale,
+    image: [absoluteUrl(OG_IMAGE.src, Astro.site)],
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+    author: {
+      "@type": "Person",
+      name: SITE.author.name,
+      url: absoluteUrl("/", Astro.site),
+      sameAs: SITE.author.sameAs,
+    },
+  },
+  breadcrumbList(trail, Astro.site),
+];
 ---
 
-<BaseLayout title={`${title} — TechNoise`} description={description}>
+<BaseLayout
+  title={pageTitle(title)}
+  description={description}
+  canonicalPath={path}
+  schema={schema}
+>
   <div class="wrap">
-    <Breadcrumb
-      items={[
-        { label: "Home", href: "/" },
-        { label: "Projects", href: "/projects/" },
-        { label: title },
-      ]}
-    />
+    <Breadcrumb items={trail} />
 
     <header class="project-header">
       <p class="eyebrow project-header__status">{statusLabel}</p>

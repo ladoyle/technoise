@@ -24,7 +24,8 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule and build-output tests
+npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper and
+                      # discovery-output (sitemap/rss/robots) tests
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -51,8 +52,9 @@ technoise/
 │  ├─ content/          blog/ and projects/ — one Markdown file per entry
 │  ├─ components/       reusable, from the component inventory below
 │  ├─ layouts/          page shells
-│  ├─ lib/              shared TypeScript helpers (publishing rules, formatting)
-│  ├─ pages/            routes
+│  ├─ lib/              shared TypeScript helpers (publishing rules, formatting, SEO)
+│  ├─ pages/            routes, plus generated non-HTML endpoints (sitemap.xml.ts,
+│  │                    rss.xml.ts, robots.txt.ts)
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        committed logo sources
 └─ .github/workflows/   deploy.yml
@@ -144,6 +146,29 @@ Non-negotiable on every change:
   `tabindex="0"` Astro puts on the resulting `<pre>` (required for a scrolling region to be
   keyboard-reachable). Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false`
   without accounting for both.
+
+### Page SEO
+
+Every page renders through `BaseLayout`, which feeds `<SeoHead>` (the inventory's SEO head
+block) and owns nothing else a crawler or social client reads. A page passes:
+
+- `title`, `description` — required. `title` is the full `<title>` text (callers append
+  `SITE.titleSuffix` via `pageTitle()` from `src/lib/seo.ts`; the home page alone stays
+  bare). `description` doubles as the card summary and the meta description.
+- `canonicalPath?` — omit it and the layout derives one from the page's own URL via
+  `canonicalPath(Astro.url)`, so a new route is canonical by default, not by remembering.
+- `noindex?` — emits `noindex, nofollow` instead of the default
+  `index, follow, max-image-preview:large`. Used by `/styleguide/` only.
+- `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
+  page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
+- `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.
+- `schema?` — an array of JSON-LD `@graph` nodes; omitted or empty emits no `<script>` tag.
+
+No absolute URL — canonical, `og:url`, `og:image`, JSON-LD `@id`, sitemap `<loc>`, RSS
+`link`/`guid` — is ever written as a literal hostname. Every one derives from `site` in
+`astro.config.mjs` through the helpers in `src/lib/seo.ts` (`absoluteUrl`, `canonicalPath`,
+`pageTitle`, …). A test walks `src/` and fails the suite if a `technoise.dev` or `github.io`
+literal ever appears, so changing the domain stays a one-line edit to `astro.config.mjs`.
 
 ### Content authoring rules
 
