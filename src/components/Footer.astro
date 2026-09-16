@@ -7,6 +7,9 @@
 // elsewhere links). The feed is not: it exists as of Phase 4 and is linked below.
 // PLACEHOLDER: this footer ships with site navigation only until those URLs are
 // supplied. Do not invent them.
+//
+// About is absent for a different reason: /about/ does not exist yet and the link
+// would 404. It returns here, and to the header, when the page does.
 
 const year = new Date().getFullYear();
 
@@ -14,7 +17,7 @@ const nav = [
   { href: "/blog/", label: "Blog" },
   { href: "/projects/", label: "Projects" },
   { href: "/resume/", label: "Resume" },
-  { href: "/about/", label: "About" },
+  { href: "/styleguide/", label: "Styleguide" },
   { href: "/rss.xml", label: "RSS" },
 ];
 ---
