@@ -9,7 +9,7 @@
 
 import type { APIRoute } from "astro";
 
-import { getPublishedPosts } from "../lib/content";
+import { getPublishedPosts, newestOf, postDate } from "../lib/content";
 import { RSS_PATH, SITE, absoluteUrl, escapeXml, rfc822 } from "../lib/seo";
 
 export const GET: APIRoute = async ({ site }) => {
@@ -31,10 +31,13 @@ export const GET: APIRoute = async ({ site }) => {
     </item>`;
   });
 
-  // The newest post's date, never the build time: an unchanged build produces a
-  // byte-identical feed.
-  const lastBuildDate = posts[0]
-    ? `\n    <lastBuildDate>${escapeXml(rfc822(posts[0].data.pubDate))}</lastBuildDate>`
+  // The newest content date, never the build time: an unchanged build produces a
+  // byte-identical feed. postDate is the rule the sitemap's /blog/ lastmod uses, so
+  // an edited post moves both, rather than the two disagreeing about when the blog
+  // last changed. The item pubDate above stays the original publication date.
+  const lastChanged = newestOf(posts.map(postDate));
+  const lastBuildDate = lastChanged
+    ? `\n    <lastBuildDate>${escapeXml(rfc822(lastChanged))}</lastBuildDate>`
     : "";
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>

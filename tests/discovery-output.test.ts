@@ -47,6 +47,14 @@ beforeAll(() => {
 const isNoindex = (html: string) => /<meta name="robots" content="noindex/.test(html);
 const pathOf = (loc: string) => new URL(loc).pathname;
 
+const lastmodOf = (path: string): string | undefined => {
+  for (const [, block] of sitemap.matchAll(/<url>([\s\S]*?)<\/url>/g)) {
+    const loc = block.match(/<loc>([^<]+)<\/loc>/)?.[1];
+    if (loc && pathOf(loc) === path) return block.match(/<lastmod>([^<]+)<\/lastmod>/)?.[1];
+  }
+  return undefined;
+};
+
 // A post route, never a tag archive and never a /blog/<n>/ pagination page. The
 // numeric exclusion matters: a bare-number slug is rejected at build time, so a digit
 // segment here is always pagination, and without it these tests would break for a
@@ -129,8 +137,21 @@ describe("rss.xml", () => {
   });
 
   it("dates lastBuildDate from content, not from the clock, so a rebuild is byte-identical", () => {
-    const lastBuild = Date.parse(feed.match(/<lastBuildDate>([^<]+)<\/lastBuildDate>/)?.[1] ?? "");
-    expect(lastBuild).toBe(Math.max(...items().map((i) => Date.parse(field(i, "pubDate")))));
+    const raw = feed.match(/<lastBuildDate>([^<]+)<\/lastBuildDate>/)?.[1];
+    expect(raw, "lastBuildDate").toBeDefined();
+    const lastBuild = Date.parse(raw!);
+
+    // The sitemap's /blog/ lastmod answers the same question — when did the blog last
+    // change — from the same posts, so the two have to agree. Asserting against that
+    // rather than against the newest item pubDate is what makes this exercise the
+    // updatedDate rule: once any post carries an updatedDate, the two dates diverge
+    // and only a feed reading `updatedDate ?? pubDate` still matches.
+    expect(new Date(lastBuild).toISOString().slice(0, 10)).toBe(lastmodOf("/blog/"));
+
+    // An edit can only move it forward: never earlier than the newest published item.
+    expect(lastBuild).toBeGreaterThanOrEqual(
+      Math.max(...items().map((i) => Date.parse(field(i, "pubDate")))),
+    );
   });
 
   it("emits no unescaped markup — an item description is data, never HTML", () => {

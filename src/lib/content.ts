@@ -40,6 +40,19 @@ export async function getPublishedProjects(): Promise<Project[]> {
   );
 }
 
+// "When did this post last change" and "when did any of them last change". Both live
+// here because the sitemap's /blog/ lastmod and the feed's lastBuildDate ask that one
+// question of the same posts — answering it in two files is how they drift apart.
+// An item's own <pubDate> is deliberately not this: an edit must not re-notify every
+// subscriber by moving the date the post was published.
+export function postDate(post: Post): Date {
+  return post.data.updatedDate ?? post.data.pubDate;
+}
+
+export function newestOf(dates: Date[]): Date | undefined {
+  return dates.length > 0 ? dates.reduce((a, b) => (b > a ? b : a)) : undefined;
+}
+
 const WORDS_PER_MINUTE = 200;
 
 export function readingMinutes(body: string | undefined): number {

@@ -18,7 +18,8 @@ import {
   getPublishedPosts,
   getPublishedProjects,
   isoDate,
-  type Post,
+  newestOf,
+  postDate,
 } from "../lib/content";
 import { STATIC_SITEMAP_ROUTES, absoluteUrl, escapeXml } from "../lib/seo";
 
@@ -26,11 +27,6 @@ interface SitemapEntry {
   path: string;
   lastmod?: Date;
 }
-
-const postDate = (post: Post): Date => post.data.updatedDate ?? post.data.pubDate;
-
-const newestOf = (dates: Date[]): Date | undefined =>
-  dates.length > 0 ? dates.reduce((a, b) => (b > a ? b : a)) : undefined;
 
 export const GET: APIRoute = async ({ site }) => {
   const posts = await getPublishedPosts();
