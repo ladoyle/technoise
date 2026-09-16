@@ -1,43 +1,82 @@
-# Astro Starter Kit: Minimal
+# TechNoise
+
+A personal blog and portfolio site, built on [Astro](https://astro.build) as a static site
+with zero client JavaScript by default. Content is Markdown with typed frontmatter; the
+build fails rather than publish a malformed entry.
+
+The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/setup-guide.md).
+The binding stack, layout and design-standards contract lives in [`AGENTS.md`](AGENTS.md).
+
+## Current state
+
+Blog and project routes are live: listing, post, tag archives, projects index, project
+detail (`docs/setup-guide.md` Phase 3). Home hero, About, Resume and 404 are not built yet —
+they need positioning copy, resume content and project details that only the site owner can
+supply (see `docs/setup-guide.md` Part 5).
+
+## Running locally
 
 ```sh
-npm create astro@latest -- --template minimal
+npm install          # install dependencies
+npm run dev          # dev server on localhost:4321
+npm run build        # production build to ./dist/
+npm run preview      # serve the built output
+npx astro check      # type and template diagnostics
+npm test             # vitest run — schema, publishing-rule and build-output tests
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Node `>=22.12.0` is required, pinned in `.nvmrc`.
 
-## 🚀 Project Structure
+If a content file was deleted or renamed and a rebuild still shows it, clear Astro's content
+cache: `rm -rf node_modules/.astro`. It lives there, not in `.astro/`, so a plain
+`rm -rf .astro dist` will not pick up the change.
 
-Inside of your Astro project, you'll see the following folders and files:
+## Adding content
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+Drop a Markdown file into `src/content/blog/` or `src/content/projects/` and it produces a
+live page, a listing entry, and (for posts) a tag archive — no other edits. The schema in
+`src/content.config.ts` enforces the frontmatter shape at build time; a bad entry fails the
+build with the field and the reason.
+
+**Blog post** (`src/content/blog/<slug>.md`):
+
+```yaml
+---
+title: string, 1–48 characters
+description: string, 1–155 characters
+pubDate: 2026-01-01
+updatedDate: 2026-01-15 # optional, must not be earlier than pubDate
+tags: [design-systems, astro] # 1–4 tags, lowercase-hyphenated, ≤24 characters each
+draft: false # optional, defaults to false
+---
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+**Project** (`src/content/projects/<slug>.md`):
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+```yaml
+---
+title: string, 1–48 characters
+description: string, 1–155 characters
+stack: [Astro, TypeScript] # 1–6 entries
+status: in-progress | shipped | archived # defaults to in-progress
+startDate: 2026-01-01
+demoUrl: https://example.com # optional
+repoUrl: https://example.com # optional
+draft: false # optional, defaults to false
+---
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+Rules worth knowing before writing:
 
-## 🧞 Commands
+- A post's filename becomes its URL slug and may not be a bare number — it collides with the
+  `/blog/<n>/` pagination routes and fails the build.
+- `draft: true` hides an entry from production builds only; `astro dev` still shows it.
+- Markdown renders raw HTML as-is, so a content file is as privileged as a component. Only
+  repo-authored, reviewed Markdown goes in `src/content/`.
 
-All commands are run from the root of the project, from a terminal:
+See [`AGENTS.md`](AGENTS.md) for the full content-authoring contract.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Deploying
 
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+GitHub Pages, via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), on every
+push to `master`. No manual build step — the workflow installs, builds, and publishes.

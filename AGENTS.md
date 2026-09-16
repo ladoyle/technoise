@@ -24,11 +24,18 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
+npm test             # vitest run — schema, publishing-rule and build-output tests
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
 Manage it with `astro dev stop`, `astro dev status`, and `astro dev logs`. Never leave a
 foreground dev server blocking a turn.
+
+Astro's content loader caches parsed entries in `node_modules/.astro/data-store.json`, not
+in `.astro/`. Deleting or renaming a file in `src/content/` and re-running `npm run build`
+can still emit its page from that cache — clear it with `rm -rf node_modules/.astro` (a
+plain `rm -rf .astro dist` is not enough). CI is unaffected: the deploy workflow always
+installs into a clean `node_modules`.
 
 ---
 
@@ -40,9 +47,11 @@ technoise/
 ├─ docs/                setup-guide.md — design plan and phase roadmap
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
+│  ├─ content.config.ts schema for the collections below (Astro 7 path — not src/content/config.ts)
 │  ├─ content/          blog/ and projects/ — one Markdown file per entry
 │  ├─ components/       reusable, from the component inventory below
 │  ├─ layouts/          page shells
+│  ├─ lib/              shared TypeScript helpers (publishing rules, formatting)
 │  ├─ pages/            routes
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        committed logo sources
@@ -117,7 +126,10 @@ Non-negotiable on every change:
 
 ## Code conventions
 
-- TypeScript for anything with logic; typed frontmatter schemas for all content collections.
+- TypeScript for anything with logic; typed frontmatter schemas for all content collections,
+  defined in `src/content.config.ts` using the `glob()` loader from `astro/loaders`. Astro 7
+  throws `LegacyContentConfigError` on the pre-7 `src/content/config.ts` path — the config
+  file lives beside `src/pages/`, not inside `src/content/`.
 - Components are `.astro` by default. Reach for a framework island only when interactivity
   cannot be done with HTML and CSS, and say why in the handoff report.
 - Styles go in `src/styles/` or a component's own `<style>` block. Tokens only — no raw hex,
@@ -127,6 +139,32 @@ Non-negotiable on every change:
 - Comments explain *why*, never *what*. Default to none.
 - Do not add dependencies without flagging it in the handoff report — every dependency is a
   future upgrade and a supply-chain surface.
+- `astro.config.mjs` carries a Shiki transformer that strips Shiki's own inline colours from
+  fenced code blocks so `prose.css` — not Shiki's theme — styles them, and keeps the
+  `tabindex="0"` Astro puts on the resulting `<pre>` (required for a scrolling region to be
+  keyboard-reachable). Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false`
+  without accounting for both.
+
+### Content authoring rules
+
+Binding for every entry in `src/content/blog/` and `src/content/projects/`, enforced by the
+schema in `src/content.config.ts`:
+
+- `title` ≤48 characters. Every page renders `` `${title} — TechNoise` ``; the suffix costs
+  12 of the 60-character `<title>` budget, so 48 is the full remaining allowance, not a
+  stylistic choice.
+- `description` ≤155 characters. It is the card summary, the detail-page lede, and the meta
+  description — one field, not three.
+- `tags`: lowercase, hyphenated (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤24 characters each, 1–4 per
+  entry. Stored and displayed in slug form so `"Astro"` and `"astro"` can't open two archives
+  for one idea.
+- A post's filename (its slug) may not be a bare number — it collides with the `/blog/<n>/`
+  pagination routes and fails the build with the colliding filename in the error.
+- `draft: true` hides an entry from production builds only; `astro dev` still shows it.
+- Astro renders raw HTML inside Markdown by default, so a `.md` file is as privileged as a
+  component. Every file in `src/content/` today is repo-authored and reviewed; if content is
+  ever accepted from outside the repo (an external PR, a CMS), add a rehype sanitizer at that
+  point rather than after the fact.
 
 ---
 
