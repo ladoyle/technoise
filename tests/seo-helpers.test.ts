@@ -84,6 +84,20 @@ describe("assertRootDeploy", () => {
   it("treats an absent BASE_URL as the root, for callers outside a Vite build", () => {
     expect(() => assertRootDeploy(SITE_URL, undefined)).not.toThrow();
   });
+
+  it("still rejects a path-carrying `site` when BASE_URL is absent", () => {
+    // The permissive undefined default above must not switch the whole guard off: the
+    // half that does not read the environment has to keep firing.
+    expect(() => assertRootDeploy(new URL("https://example.test/sub/"), undefined)).toThrow(
+      SubpathDeployError,
+    );
+  });
+
+  it("accepts a root `site` written without a trailing slash, as astro.config.mjs writes it", () => {
+    // astro.config.mjs's literal has no trailing slash; URL normalises its pathname to
+    // "/", so the guard must not read the missing slash as a subpath.
+    expect(() => assertRootDeploy(new URL("https://example.test"), "/")).not.toThrow();
+  });
 });
 
 describe("canonicalPath", () => {
