@@ -33,17 +33,19 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
-                      # discovery-output (sitemap/rss/robots), nav/route-resolution,
-                      # workflow-permissions, test-harness-contract, ci-workflow and
-                      # dependency-contract tests (12 files)
+npm test             # vitest run — schema, publishing-rule, content-helper, build-output,
+                      # SEO-helper, discovery-output (sitemap/rss/robots),
+                      # nav/route-resolution, brand-asset, workflow-permissions,
+                      # test-harness-contract, ci-workflow and dependency-contract tests
+                      # (12 files)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
                       # assertions for the hero ghost-CTA hover rule, not only markup checks;
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
-                      # permitted, this one asserts that it actually runs the gates; and
+                      # permitted, this one asserts that it actually runs the gates — and
+                      # also pins deploy.yml's node-version input against .nvmrc; and
                       # tests/dependency-contract.test.ts pins devDependencies.sharp to the
                       # range the installed astro declares for its own image service, and
                       # asserts the lockfile holds exactly one sharp, not one marked
@@ -97,6 +99,10 @@ technoise/
 │  │                    rss.xml.ts, robots.txt.ts)
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        committed logo sources
+├─ public/fonts/        the self-hosted Inter woff2 that fonts.css loads
+├─ public/og/           the one committed Open Graph card (OG_IMAGE in src/lib/seo.ts)
+├─ public/favicon.*     .ico and .svg, both linked from BaseLayout's head
+├─ tests/               vitest suites, plus global-setup.ts — the one build they all read
 └─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
 
