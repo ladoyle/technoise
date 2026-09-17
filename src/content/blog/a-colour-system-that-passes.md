@@ -31,7 +31,7 @@ border, all of which answer to the 3:1 non-text floor instead.
 | Link text | `#0A6F94` | 5.4:1 | 4.5 |
 | Raw signal | `#0C83AE` | 4.1:1 | fails 4.5 |
 | Orange as text | `#B94614` | 5.1:1 | 4.5 |
-| Raw pulse | `#F75E1A` | 3.1:1 | fills only |
+| Raw pulse | `#F75E1A` | 3.0:1 | fills only |
 | Borders | `#C2D1D8` | 1.5:1 | decorative |
 
 </div>

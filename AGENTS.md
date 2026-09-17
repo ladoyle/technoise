@@ -35,14 +35,21 @@ npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
 npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
                       # discovery-output (sitemap/rss/robots), nav/route-resolution,
-                      # workflow-permissions, test-harness-contract and ci-workflow tests
+                      # workflow-permissions, test-harness-contract, ci-workflow,
+                      # dependency-contract and palette-tokens tests (13 files)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
                       # assertions for the hero ghost-CTA hover rule, not only markup checks;
-                      # and tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
+                      # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
-                      # permitted, this one asserts that it actually runs the gates)
+                      # permitted, this one asserts that it actually runs the gates;
+                      # tests/dependency-contract.test.ts pins devDependencies.sharp to the
+                      # range the installed astro declares for its own image service, and
+                      # asserts the lockfile holds exactly one sharp, not one marked
+                      # "optional: true"; and tests/palette-tokens.test.ts reads tokens.css
+                      # and re-derives every ratio the styleguide prints, so it also carries
+                      # that page's own prose-figure assertions, not just src/lib/palette.ts's)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -176,24 +183,37 @@ value anywhere else.
 | Link text | `--signal-700` | `#0A6F94` | 5.4:1 | Use for all body links |
 | Raw signal | `--signal` | `#0C83AE` | 4.1:1 | **Fails AA** — large text, icons, borders only |
 | Orange text | `--pulse-700` | `#B94614` | 5.1:1 | Orange text on cream |
-| Raw pulse | `--pulse` | `#F75E1A` | 3.1:1 | Button *fills* and rules only, never text on cream |
+| Raw pulse | `--pulse` | `#F75E1A` | 3.0:1 | Button *fills* and rules only, never text on cream |
 | Borders / muted UI | `--slate` | `#C2D1D8` | 1.5:1 | Decorative only |
 
 Dark mode (ink becomes the page, via `prefers-color-scheme`): links lighten to `#6EC9E8`
 (7.2:1 on ink), accents to `#FF9F6B` (6.7:1 on ink). Both are tints of the brand bases —
 do not introduce new hues.
 
-**One legitimate exception to "never hardcode a hex value":** the three brand SVGs in
-`public/brand/` (`technoise-icon.svg`, `technoise-logo-presentation.svg`,
-`technoise-logo-full.svg`) plus `public/favicon.svg`. They're referenced by `<img src>` /
-`<link>` URL, not inlined, so they cannot read this page's CSS custom properties — each file
-carries its own fills as literal hex, three classes (`.tn-ink`, `.tn-signal`, `.tn-pulse`)
-with a `prefers-color-scheme: dark` override that must byte-match `--ink`/`--signal`/`--pulse`
-in light mode and `--cream`/`--signal-300`/`--pulse-300` in dark. `tests/brand-assets.test.ts`
-reads `tokens.css` at test time and asserts the match — that test, not a code review, is what
-keeps this exception honest. Don't "fix" the hardcoded hex in these files without re-running
-it; a token edit that isn't mirrored here silently desyncs to an ink-on-ink wordmark in dark
-mode (measured 1.00:1 — invisible, not just off-color).
+**"Never hardcode a hex value" has a pattern of exception, not a single one:** a hex literal
+is tolerated outside `tokens.css` only where a `var()` genuinely cannot reach — a `<img src>`/
+`<link>`-referenced file, or a caption printing a value rather than styling with it — and only
+where a test reads `tokens.css` at test time and fails the suite on drift. Two instances exist
+today.
+
+The first is the three brand SVGs in `public/brand/` (`technoise-icon.svg`,
+`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus `public/favicon.svg`.
+They're referenced by `<img src>` / `<link>` URL, not inlined, so they cannot read this page's
+CSS custom properties — each file carries its own fills as literal hex, three classes
+(`.tn-ink`, `.tn-signal`, `.tn-pulse`) with a `prefers-color-scheme: dark` override that must
+byte-match `--ink`/`--signal`/`--pulse` in light mode and `--cream`/`--signal-300`/
+`--pulse-300` in dark. `tests/brand-assets.test.ts` reads `tokens.css` at test time and
+asserts the match — that test, not a code review, is what keeps this exception honest. Don't
+"fix" the hardcoded hex in these files without re-running it; a token edit that isn't mirrored
+here silently desyncs to an ink-on-ink wordmark in dark mode (measured 1.00:1 — invisible, not
+just off-color).
+
+The second is `src/lib/palette.ts`, the module behind `/styleguide/`'s swatch captions. A
+caption prints a hex string and a computed WCAG ratio; neither can be a `var()`, so the
+module hand-declares each base's hex and each semantic token's base per scheme, and derives
+every ratio at build time rather than storing one. `tests/palette-tokens.test.ts` plays the
+same role here that `tests/brand-assets.test.ts` plays for the SVGs: it reads `tokens.css`
+and fails on any drift between it and the module, in either direction.
 
 `tests/brand-assets.test.ts` carries a third standing guard, alongside the hex-token-sync rule
 above and the ink-to-viewBox-height floor from Issue #22: **`public/` may hold no file that
@@ -307,6 +327,19 @@ Non-negotiable on every change:
 - Comments explain *why*, never *what*. Default to none.
 - Do not add dependencies without flagging it in the handoff report — every dependency is a
   future upgrade and a supply-chain surface.
+- **`sharp` is a declared `devDependency`, not redundant with Astro.** It has two consumers:
+  Astro's default `astro:assets` image service (the `<Picture>` calls in `index.astro` and
+  `404.astro`) and `tests/brand-assets.test.ts`, which imports it directly to rasterise the
+  brand SVGs for the Issue #22 ink-floor guard. Before Issue #31 it was only present as
+  astro's *optional* transitive, so an Astro release inside `^7.3.2` that changed image
+  service would have dropped it and taken the whole brand-asset suite down as a vitest
+  *collection* error — a broken-harness message, not a brand regression. Its range tracks
+  astro's own `optionalDependencies.sharp` so the build and the test resolve one copy; bump
+  the two together, and don't tidy the declaration back out. `tests/dependency-contract.test.ts`
+  is what makes the range-matching rule binding — the same role `tests/brand-assets.test.ts`
+  plays for the brand-SVG hex exception and `tests/workflow-permissions.test.ts` plays for the
+  deploy-workflow rules: the coupling holds because a test goes red, not because a reviewer
+  remembers to check.
 - `astro.config.mjs` carries a Shiki transformer that strips Shiki's own inline colours from
   fenced code blocks so `prose.css` — not Shiki's theme — styles them, and keeps the
   `tabindex="0"` Astro puts on the resulting `<pre>` (required for a scrolling region to be

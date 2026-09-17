@@ -85,7 +85,7 @@ Three rules that keep it coherent:
 | Link text | `--signal-700` `#0A6F94` | 5.4:1 | **Use this, not raw signal** |
 | Raw signal `#0C83AE` | — | 4.1:1 | **Fails 4.5:1 — large text, icons, borders only** |
 | Orange as text | `--pulse-700` `#B94614` | 5.1:1 | For orange text on cream |
-| Raw pulse `#F75E1A` | — | 3.1:1 | Button *fills* and rules only, never text on cream |
+| Raw pulse `#F75E1A` | — | 3.0:1 | Button *fills* and rules only, never text on cream |
 | Borders / muted UI | `--slate` `#C2D1D8` | 1.5:1 | Decorative only |
 
 Dark mode (ink becomes the page): lighten to `#6EC9E8` for links (7.2:1 on ink) and
