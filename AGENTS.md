@@ -16,6 +16,7 @@ The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/set
 | Node | `>=22.12.0`, pinned in `.nvmrc` |
 | Package manager | npm, lockfile committed |
 | Host | GitHub Pages via `.github/workflows/deploy.yml` on push to `master` |
+| CI | `.github/workflows/ci.yml` — `npm ci`, `npx astro check`, `npm test` on every pull request and every push to `master` |
 | Content | Markdown in `src/content/`, typed frontmatter schemas |
 
 Astro still emits zero client JS by default — every page ships one exception: the header's
@@ -78,7 +79,7 @@ technoise/
 │  │                    rss.xml.ts, robots.txt.ts)
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        committed logo sources
-└─ .github/workflows/   deploy.yml
+└─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
 
 `public/brand/*.svg`'s viewBoxes are trimmed to ~88% ink (no wasted transparent margin) —
