@@ -91,9 +91,19 @@ technoise/
 │  ├─ pages/            routes, plus generated non-HTML endpoints (sitemap.xml.ts,
 │  │                    rss.xml.ts, robots.txt.ts)
 │  └─ styles/           tokens.css and global styles
-├─ public/brand/        committed logo sources
+├─ public/brand/        the three live logo SVGs — anything here is published
+├─ archive/             versioned but never built or served — see the rule below
 └─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
+
+`archive/` exists because `public/` does not mean "kept" — it means "deployed": anything
+under it is copied verbatim into `dist/` and published at a guessable URL on the canonical
+origin. `archive/brand-pre-svg-migration/` (Issue #32) holds the four pre-SVG-migration brand
+PNGs, kept because `docs/setup-guide.md`'s asset-prep table still names them as source
+material for exports (`icon-192`, `icon-512`, `apple-touch-icon`, social profile images) that
+have not been made yet. A file that must stay in the repo but must never be served belongs
+outside `public/` — `archive/` is that place, the same way `src/assets/` is the place for a
+file that must be served but only after `astro:assets` processes it.
 
 `public/brand/*.svg`'s viewBoxes are trimmed close to their ink bounds (no wasted transparent
 margin) — ~88% ink for `technoise-icon.svg` (0.889) and `technoise-logo-presentation.svg`
@@ -184,6 +194,16 @@ reads `tokens.css` at test time and asserts the match — that test, not a code 
 keeps this exception honest. Don't "fix" the hardcoded hex in these files without re-running
 it; a token edit that isn't mirrored here silently desyncs to an ink-on-ink wordmark in dark
 mode (measured 1.00:1 — invisible, not just off-color).
+
+`tests/brand-assets.test.ts` carries a third standing guard, alongside the hex-token-sync rule
+above and the ink-to-viewBox-height floor from Issue #22: **`public/` may hold no file that
+`src/` references nowhere.** It enumerates `public/` recursively, the same shape
+`tests/workflow-permissions.test.ts` uses for `.github/workflows/`, so a file dropped in later
+inherits the rule instead of escaping it — this is what caught the four orphaned PNGs in
+Issue #32. The one documented exception is `technoise-icon.svg`: it is the master the favicon
+is exported from, served live but named nowhere in `src/`, and a second assertion holds the
+exemption list to files `BRAND_FILES` already guards, so it cannot grow to cover an
+undocumented path.
 
 ### The three posture rules
 

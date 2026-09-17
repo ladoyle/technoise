@@ -164,17 +164,20 @@ on the page, in its structured data, or in its metadata — a hard constraint, n
 | Output | Source file | Notes |
 |---|---|---|
 | `favicon.ico` 32px + 16px | `TechNoise_Minified_Icon.png` | Detail is already reduced for small sizes |
-| `icon-192`, `icon-512` | `TechNoise_Large_Icon.png` | PWA manifest and Android |
-| `apple-touch-icon` 180px | `TechNoise_Large_Icon.png` | Needs an opaque cream background, no transparency |
+| `icon-192`, `icon-512` | `archive/brand-pre-svg-migration/technoise-large-icon.png` | PWA manifest and Android |
+| `apple-touch-icon` 180px | `archive/brand-pre-svg-migration/technoise-large-icon.png` | Needs an opaque cream background, no transparency |
 | Header logo — **done** | `TechNoise_Full_Logo.PNG` | Traced to SVG (`public/brand/technoise-logo-full.svg` and `-presentation.svg`); used in both `Header.astro` and `Footer.astro`, swapped by breakpoint |
-| Social profile images | `TechNoise_Presentation_Logo.png` | GitHub, LinkedIn, X |
+| Social profile images | `archive/brand-pre-svg-migration/technoise-presentation-logo.png` | GitHub, LinkedIn, X |
 | Default OG image 1200×630 | `TechNoise_Full_Logo.PNG` | Cream field, logo left, page title right |
 | Hero / About / 404 art | `TechNoise_Background.png` | Export at 2x width used, AVIF + WebP |
 
 The full logo and icon are now traced to SVG (`public/brand/`, plus `favicon.svg`/`.ico`) — the
 one-time job the original flag below asked for is done. Still raster and still pending:
 `icon-192`, `icon-512`, `apple-touch-icon`, and the PWA manifest that would reference them —
-out of scope for the header/footer branding pass that shipped the logo trace.
+out of scope for the header/footer branding pass that shipped the logo trace. Their source
+canvases moved in Issue #32 from `public/brand/` to `archive/brand-pre-svg-migration/`
+(versioned but never built or served, since Astro copies `public/` verbatim into `dist/`) — see
+that directory's `README.md` for the full file-to-file mapping.
 
 ### Repo layout
 
@@ -195,7 +198,7 @@ technoise/
 │  │                     literal hostname there would go stale the moment one is chosen)
 │  └─ styles/
 ├─ public/
-│  ├─ brand/             logo source files, committed
+│  ├─ brand/             the three live logo SVGs, committed
 │  └─ favicon files
 │     (no resume.pdf — the print stylesheet is the PDF; see Part 1's Resume layout)
 ├─ .github/workflows/
