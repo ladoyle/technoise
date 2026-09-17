@@ -41,7 +41,9 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
-                      # assertions for the hero ghost-CTA hover rule, not only markup checks;
+                      # assertions for the hero ghost-CTA hover rule, and asserts every
+                      # dark-scheme CSS rule in the shipped output stays `@media screen`-
+                      # scoped, not only markup checks;
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
                       # permitted, this one asserts that it actually runs the gates — and
@@ -85,6 +87,7 @@ a long-lived watch session to have a current `dist/`.
 ```
 technoise/
 ├─ .claude/agents/      designer, developer, qa, documenter, gatekeeper
+├─ .claude/skills/      a11y-verify, safe-install
 ├─ docs/                setup-guide.md — design plan and phase roadmap
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
@@ -319,14 +322,14 @@ Non-negotiable on every change:
 - **Route-scoped stylesheets are imported by the page that needs them, not by `BaseLayout` or
   a shared component.** `src/styles/print.css` is the first of these, and the repo's first
   `@media print` rules — imported only by `src/pages/resume.astro`, so the rules ship on that
-  route alone. A print block that resets tokens back to the light scheme (so a reader whose OS
-  is dark doesn't print cream-on-dropped-background) has to **out-specify or evade** the
-  dark-scheme block in `tokens.css`, not merely follow it in source order: media queries add
-  no specificity, so a bare `@media print { :root { … } }` loses to `:root:not([data-theme=
-  "light"])` regardless of which stylesheet a bundler emits last. `tokens.css` avoids the trap
-  by scoping both dark-scheme blocks to `@media screen`, so a print reset never has to
-  out-specify them in the first place — keep any future dark-scheme rule scoped the same way,
-  or a new route-scoped print stylesheet inherits the same inert reset.
+  route alone. It carries no token reset, and needs none: `tokens.css` scopes both dark-scheme
+  blocks to `@media screen`, so a reader whose OS is dark already gets the light tokens under
+  `@media print` without anything print-side asking for them. A reset would have been inert
+  even before that scoping existed to rely on — media queries add no specificity, so a bare
+  `@media print { :root { … } }` loses to `:root:not([data-theme="light"])` regardless of
+  which stylesheet a bundler emits last. Keep any future dark-scheme rule scoped to
+  `@media screen`; `tests/build-output.test.ts`'s "the dark scheme stays off the printed page"
+  suite now enforces this by scanning every shipped CSS rule, not just convention.
 
 ### Page SEO
 
