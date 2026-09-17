@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,11 +25,11 @@ function htmlFiles(dir: string): string[] {
 let pages: { path: string; html: string }[] = [];
 
 beforeAll(() => {
-  if (!existsSync(dist) || htmlFiles(dist).length === 0) {
-    execFileSync("npx", ["astro", "build"], { cwd: root, stdio: "ignore", timeout: 300_000 });
-  }
+  // dist/ is built once per run by tests/global-setup.ts, so what is read here always
+  // matches this src/ — reusing whatever dist/ happened to be on disk reported green
+  // against a tree left behind by another branch.
   pages = htmlFiles(dist).map((path) => ({ path: relative(dist, path), html: readFileSync(path, "utf8") }));
-}, 300_000);
+});
 
 // A href resolves if the build emitted either a directory index for it or a real file.
 function resolves(href: string): boolean {
