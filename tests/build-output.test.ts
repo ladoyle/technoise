@@ -151,6 +151,64 @@ describe("the hero's ghost CTA hover state", () => {
   });
 });
 
+// Gatekeeper audit G15: print.css resets no token, because tokens.css scopes both
+// dark-scheme blocks to `@media screen` and the light defaults are therefore already in
+// force on paper. That scoping is now the only thing holding the invariant, and a print
+// stylesheet could not repair it if it were dropped — a bare `:root` reset loses to
+// `:root:not([data-theme="light"])` on specificity, and a media query adds none. So the
+// rule is asserted on the shipped CSS: nothing that paints the dark scheme may apply in
+// print. Losing it prints cream text on a dropped background for any dark-OS reader.
+function flattenCss(css: string): { selector: string; declarations: string; conditions: string[] }[] {
+  const out: { selector: string; declarations: string; conditions: string[] }[] = [];
+  const stack: string[] = [];
+  let buffer = "";
+  for (const char of css) {
+    if (char === "{") {
+      stack.push(buffer.trim());
+      buffer = "";
+    } else if (char === "}") {
+      const prelude = stack.pop() ?? "";
+      if (!prelude.startsWith("@")) {
+        out.push({ selector: prelude, declarations: buffer.trim(), conditions: [...stack] });
+      }
+      buffer = "";
+    } else {
+      buffer += char;
+    }
+  }
+  return out;
+}
+
+describe("the dark scheme stays off the printed page", () => {
+  const darkSchemeRules = () => {
+    const bundles = readdirSync(join(dist, "_astro"))
+      .filter((f) => f.endsWith(".css"))
+      .map((f) => readFileSync(join(dist, "_astro", f), "utf8"));
+    const inline = pages.flatMap((p) => [...p.html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]));
+    return flattenCss([...bundles, ...inline].join("\n")).filter((r) =>
+      /--text\s*:\s*var\(--cream\)/.test(r.declarations),
+    );
+  };
+
+  it("ships the dark-scheme token blocks this guard is about", () => {
+    // Without this the scoping assertion below passes vacuously on a renamed token.
+    expect(
+      darkSchemeRules().length,
+      "found no rule setting --text to --cream in the shipped CSS; the scoping assertion would pass on nothing",
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("scopes every one of them to screen, so print keeps the light defaults", () => {
+    for (const rule of darkSchemeRules()) {
+      const screenScoped = rule.conditions.some((c) => /^@media\s+screen\b/.test(c));
+      expect(
+        screenScoped,
+        `"${rule.selector}" paints the dark scheme under ${JSON.stringify(rule.conditions)}, which also matches print`,
+      ).toBe(true);
+    }
+  });
+});
+
 describe("routing contract", () => {
   it("writes every internal href with a trailing slash", () => {
     const offenders: string[] = [];
