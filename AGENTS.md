@@ -33,7 +33,8 @@ npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
 npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
-                      # discovery-output (sitemap/rss/robots) and nav/route-resolution tests
+                      # discovery-output (sitemap/rss/robots), nav/route-resolution and
+                      # workflow-permissions tests
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests)
 ```
@@ -95,6 +96,27 @@ three layers — the built HTML, the parsed JSON-LD, and the exported `RESUME` o
 keys — so a location field added before anything renders it still fails the suite. This rule
 outlives the cycle that added it: treat any future edit to `resume.ts` or `resume.astro` as
 bound by it, not just the one that shipped the page.
+
+`.github/workflows/deploy.yml` follows two binding conventions, both born from Issue #14
+(a `pages: write` + `id-token: write` grant sitting at workflow level, readable by every job
+including one running third-party code):
+
+1. **Permission grants live on jobs, not on the workflow.** The workflow-level block is
+   `permissions: {}`; a job inherits nothing and must declare its own scopes, or it runs
+   with no access at all. `build`, which is the job that runs third-party code, holds only
+   `contents: read`. `pages: write` and `id-token: write` live on `deploy` alone, which runs
+   no third-party action.
+2. **A third-party action is pinned to a full commit SHA, with its version in a trailing
+   comment** (`withastro/action@<40-char sha> # v6.1.3`), never to a mutable tag. Bumping it
+   means re-resolving with `git ls-remote` and updating the SHA and the comment together.
+   First-party `actions/*` refs stay on tags today; if that changes, it changes for
+   `actions/checkout` and `actions/deploy-pages` in the same edit.
+
+`tests/workflow-permissions.test.ts` is what makes both of these binding — the same role
+`tests/brand-assets.test.ts` plays for the brand-SVG hex exception: the rule holds because a
+test goes red, not because a reviewer remembers. It parses every file under
+`.github/workflows/`, so a workflow added later inherits the rule instead of quietly
+escaping it.
 
 ---
 
