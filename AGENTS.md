@@ -267,6 +267,17 @@ No absolute URL — canonical, `og:url`, `og:image`, JSON-LD `@id`, sitemap `<lo
 `pageTitle`, …). A test walks `src/` and fails the suite if a `technoise.dev` or `github.io`
 literal ever appears, so changing the domain stays a one-line edit to `astro.config.mjs`.
 
+**This site supports a root deploy only.** `site` in `astro.config.mjs` must be an origin
+whose pathname is `/`, and Astro's `base` must stay unset or `/` — a project-subpath deploy
+(`base: '/technoise'`, or a `site` that itself carries a path) is not supported. Every URL
+`src/lib/seo.ts` builds is a rooted path resolved against `site`, and `robots.txt` must land
+at the origin root or no crawler reads it, so a subpath can't be made to work by prefixing
+alone. `assertRootDeploy()` in `src/lib/seo.ts`, called from `absoluteUrl()`, enforces this
+at build time — a misconfigured `site` or `base` fails the build immediately with an
+explicit message, rather than silently emitting wrong URLs — and `tests/seo-helpers.test.ts`
+locks in both rejections. This pairs with the no-hostname-literal rule above: that rule
+keeps a domain change to one line; this one constrains what that line may contain.
+
 ### Content authoring rules
 
 Binding for every entry in `src/content/blog/` and `src/content/projects/`, enforced by the
