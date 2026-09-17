@@ -19,9 +19,10 @@ hero, one heading, one lede, three calls to action, latest posts and projects �
 primary nav that collapses behind a labelled toggle below 768px. `/resume/` is real content —
 summary, experience, skills and education, indexable and in the sitemap — with the owner's
 phone number and location deliberately excluded from the page, its structured data, and its
-metadata (see `AGENTS.md`'s note on `src/lib/resume.ts`). About and 404 are not built yet —
-they need positioning copy and project details that only the site owner can supply (see
-`docs/setup-guide.md` Part 5).
+metadata (see `AGENTS.md`'s note on `src/lib/resume.ts`). A 404 page is live, reusing the
+home hero's mascot art, `noindex`ed and excluded from the sitemap since a static host can't
+pair it with a real 404 status. About is not built yet — it needs positioning copy that only
+the site owner can supply (see `docs/setup-guide.md` Part 5).
 
 ## Running locally
 
