@@ -33,8 +33,8 @@ npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
 npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
-                      # discovery-output (sitemap/rss/robots), nav/route-resolution and
-                      # workflow-permissions tests
+                      # discovery-output (sitemap/rss/robots), nav/route-resolution,
+                      # workflow-permissions and test-harness-contract tests
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests)
 ```
@@ -49,11 +49,21 @@ can still emit its page from that cache — clear it with `rm -rf node_modules/.
 plain `rm -rf .astro dist` is not enough). CI is unaffected: the deploy workflow always
 installs into a clean `node_modules`.
 
-`vitest.config.ts` sets `fileParallelism: false`. Two suites (`build-output.test.ts`,
-`discovery-output.test.ts`) each shell out to `astro build` in the repo root; run in
-parallel they race over the same `dist/` and `node_modules/.astro` and one build dies.
-Leave it off — the cost is about 1.5s on a ~16s suite, and any future test file that shells
-out to `astro build` inherits the same hazard.
+`tests/global-setup.ts` runs `astro build` exactly once per vitest invocation, before any
+test file loads; the three HTML-reading suites (`build-output.test.ts`,
+`discovery-output.test.ts`, `nav-contract.test.ts`) only ever `readFileSync` out of `dist/`.
+`vitest.config.ts` no longer sets `fileParallelism: false` — the race that setting guarded
+against (two suites each shelling out to `astro build` concurrently) no longer exists, since
+no suite builds for itself. **A test file must never run `astro build` itself** — it reads
+the `dist/` that `globalSetup` already produced. `tests/test-harness-contract.test.ts` is
+what makes this binding, the same role `tests/brand-assets.test.ts` plays for the brand-SVG
+hex exception: it asserts `globalSetup` stays registered in `vitest.config.ts` and that no
+file matching `tests/**/*.test.ts` shells out to a build, so either regression fails the
+suite instead of quietly reintroducing a stale-`dist/` or a build race. `globalSetup` runs
+once per vitest *invocation*, not per file-change, so `vitest --watch` does not get this
+guarantee — a change to a `.astro` page won't trigger a rebuild mid-watch-session unless a
+test file itself changed. Use `npm test` (run mode) for the freshness guarantee; don't trust
+a long-lived watch session to have a current `dist/`.
 
 ---
 
