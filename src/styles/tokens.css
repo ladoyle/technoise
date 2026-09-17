@@ -39,7 +39,6 @@
   --accent-on-fill: var(--ink);
   --accent-fill-hover: var(--pulse-700);
   --accent-on-fill-hover: var(--cream);
-  --accent-text: var(--pulse-700);
   --select-bg: var(--slate);
   --select-fg: var(--ink);
 
@@ -150,7 +149,6 @@
     --focus: var(--signal-300);
     --accent-fill-hover: var(--pulse-300);
     --accent-on-fill-hover: var(--ink);
-    --accent-text: var(--pulse-300);
     --select-bg: var(--ink-border);
     --select-fg: var(--cream);
     --scrim-opacity: 0.82;
@@ -170,7 +168,6 @@
     --focus: var(--signal-300);
     --accent-fill-hover: var(--pulse-300);
     --accent-on-fill-hover: var(--ink);
-    --accent-text: var(--pulse-300);
     --select-bg: var(--ink-border);
     --select-fg: var(--cream);
     --scrim-opacity: 0.82;

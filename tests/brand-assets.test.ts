@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, posix, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import sharp from "sharp";
@@ -225,6 +225,79 @@ describe("the header and footer brand lockup", () => {
       expect(tokens).toContain("@media (min-width: 48em)");
     });
   }
+});
+
+// Everything above walks a known list forward: a file this suite already names must exist and
+// must hold its colours and geometry. Nothing looked the other way, so public/ could — and did
+// — accumulate files nothing points at. Issue #32 found four superseded pre-SVG-migration PNGs
+// there, 4.2 MB across 43% of the deploy, published at guessable URLs on the canonical domain
+// for months. public/ is the directory where that can happen silently: Astro copies it verbatim
+// into dist/, with none of the reference-tracking or pruning the src/assets/ pipeline applies.
+// This enumerates the directory rather than a list, the same shape workflow-permissions.test.ts
+// uses for .github/workflows/, so a file dropped in later inherits the rule instead of escaping
+// it. The archived originals now live in archive/brand-pre-svg-migration/, outside every build.
+describe("public/ ships nothing the site references nowhere", () => {
+  const publicDir = join(root, "public");
+
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = join(dir, entry.name);
+      return entry.isDirectory() ? walk(full) : [full];
+    });
+
+  // A rooted URL path is how every reference to public/ is written — `/brand/…`, `/og/…`,
+  // `/fonts/…` — in markup, CSS and TS alike, so a substring search over src/ catches all
+  // three without parsing any of them. Binary sources are skipped: they can hold no
+  // reference, and src/assets/ carries megabyte rasters.
+  const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|mp4|webm)$/i;
+  const source = walk(join(root, "src"))
+    .filter((file) => !BINARY.test(file))
+    .map((file) => readFileSync(file, "utf8"))
+    .join("\n");
+
+  const urlPath = (file: string) => `/${relative(publicDir, file).split(sep).join(posix.sep)}`;
+
+  // technoise-icon.svg is the one served file src/ names nowhere: it is the master icon
+  // that favicon.svg and favicon.ico are exported from, kept live and documented in
+  // AGENTS.md as one of the three brand SVGs. It is exempt by name, not by being a brand
+  // file — exempting all of BRAND_FILES would also excuse the two logo SVGs, which src/
+  // does reference today, so a Header and Footer that stopped pointing at one would leave
+  // it shipping at a live URL with nothing red. The allowance still cannot drift outside
+  // the documented set; the assertion below is what holds it there.
+  const UNREFERENCED_BY_DESIGN = ["/brand/technoise-icon.svg"];
+
+  it("exempts only a file BRAND_FILES already guards", () => {
+    const undocumented = UNREFERENCED_BY_DESIGN.filter(
+      (path) => !BRAND_FILES.some((name) => path === `/brand/${name}`),
+    );
+
+    expect(
+      undocumented,
+      "an exemption must name a documented brand file, so it inherits the token-sync, " +
+        "geometry and ink guards above rather than escaping every check at once",
+    ).toEqual([]);
+  });
+
+  it("serves no file that nothing in src/ references", () => {
+    const exempt = new Set(UNREFERENCED_BY_DESIGN);
+    const orphans = walk(publicDir)
+      .map(urlPath)
+      .filter((path) => !exempt.has(path) && !source.includes(path));
+
+    expect(
+      orphans,
+      "public/ is copied verbatim into dist/ and published — an unreferenced file is a live URL. " +
+        "Reference it from src/, or move it outside public/ (see archive/brand-pre-svg-migration/).",
+    ).toEqual([]);
+  });
+
+  it("keeps public/brand/ to exactly the brand set AGENTS.md documents", () => {
+    expect(
+      readdirSync(brandDir).sort(),
+      "a file added to public/brand/ must join BRAND_FILES, so it inherits the token-sync, " +
+        "geometry and ink guards rather than shipping unchecked",
+    ).toEqual([...BRAND_FILES].sort());
+  });
 });
 
 describe("brand SVGs stay inert assets", () => {

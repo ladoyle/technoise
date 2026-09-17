@@ -5,9 +5,9 @@
 
   THE CASCADE BOUNDARY. Every element-name selector below is wrapped in :where(), so
   each rule weighs (0,1,0) — the weight of `.prose` alone. That is deliberate and
-  load-bearing. <Prose> hosts components as well as Markdown (TagPill, CodeBlock and
-  Callout all land inside it in Phase 3), and a bare `.prose p` is (0,1,1), which
-  outranks a component's own `.callout p` and every unscoped component class. Written
+  load-bearing. <Prose> styles whatever a page slots into it — Markdown today, and any
+  component a later page places inside it — and a bare `.prose p` is (0,1,1), which
+  outranks that component's own `.thing p` and every unscoped component class. Written
   that way, prose typography silently repaints anything placed inside it and the only
   remedy is to keep adding classes to a :not() list. With :where() the rules become a
   defaults layer instead: a component class wins, and an Astro-scoped component rule —
@@ -18,8 +18,8 @@
   in a plain global stylesheet is (0,1,0) and only ties, so it wins only while that
   sheet is emitted after this one — which Astro's import graph decides, not you.
 
-  Prose's own opt-in classes (.lede, .meta, .table-scroll, .rule--accent) keep their
-  natural weight. They are authored for prose content, not applied by components.
+  Prose's own opt-in classes (.lede, .meta, .table-scroll) keep their natural weight.
+  They are authored for prose content, not applied by components.
 */
 
 .prose {
@@ -138,12 +138,6 @@
   margin-block-end: var(--space-48);
   border: 0;
   background: var(--border);
-}
-
-/* The one sanctioned use of raw pulse as a rule. One per page, at most. */
-.prose hr.rule--accent {
-  height: 2px;
-  background: var(--accent-fill);
 }
 
 /* ---------- Code ---------- */
