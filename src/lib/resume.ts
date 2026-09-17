@@ -6,11 +6,9 @@
 // city to land in, and none appears in the data below. The two place-words present
 // are inseparable parts of institution proper names, not the owner's whereabouts.
 //
-// TODO(human input): the GitHub profile URL has not been supplied and is not
-// invented here — the same convention Footer.astro follows for its absent
-// "Elsewhere" links. `profiles` derives from SITE.author.sameAs, so adding the real
-// URL there is the only edit needed to light up the visible link and the JSON-LD
-// `sameAs` together.
+// `profiles` derives from SITE.author.sameAs, so a profile link is added or removed
+// in one place and lights up the visible contact list and the JSON-LD `sameAs`
+// together — never write a profile URL literally in this file.
 
 import { SITE } from "./seo";
 

@@ -15,12 +15,12 @@ export const SITE = {
   // The site owner's real identity, supplied as human input (setup-guide Part 5) —
   // used as the `Person` behind the WebSite entity on the home page, and as
   // `author` on every post and project. "TechNoise" (above) stays the publishing
-  // persona; this is the person behind it. `sameAs` carries only the one profile
-  // link supplied — no other profile URL is invented or derived from a project's
+  // persona; this is the person behind it. `sameAs` carries only profile links
+  // supplied — no other profile URL is invented or derived from a project's
   // repoUrl.
   author: {
     name: "Luke Doyle",
-    sameAs: ["https://www.linkedin.com/in/luke-doyle-116b58160"],
+    sameAs: ["https://www.linkedin.com/in/luke-doyle-116b58160", "https://github.com/ladoyle"],
   },
 } as const;
 
