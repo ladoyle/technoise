@@ -30,6 +30,12 @@
     break-after: avoid;
   }
 
+  /* On paper the label and the href below carry the channel; a glyph beside them is
+     ink spent on decoration. */
+  .resume__icon {
+    display: none;
+  }
+
   /* A printed link has no href unless the page prints one. */
   .resume__contact a[href^="http"]::after {
     content: " — " attr(href);
