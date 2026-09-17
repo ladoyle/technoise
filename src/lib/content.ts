@@ -26,8 +26,33 @@ function byNewest(aDate: Date, aTitle: string, bDate: Date, bTitle: string): num
   return byDate !== 0 ? byDate : aTitle.localeCompare(bTitle);
 }
 
+// An entry id becomes exactly one URL segment in /blog/<slug>/ and /projects/<slug>/, so
+// both hazards that break that assumption are checked here — once, on the path every
+// route already takes — rather than one guard per hazard per route. Astro's own failure
+// for a nested id is `TypeError: Missing parameter: slug`, which names neither the file
+// nor the collection, and the loader's `**/*.md` pattern actively invites the mistake.
+function assertRoutableId(id: string, collection: "blog" | "projects"): void {
+  if (id.includes("/")) {
+    throw new Error(
+      `${collection} entry "${id}" is in a subdirectory. Entry ids become a single URL segment, so content files must sit directly in src/content/${collection}/.`,
+    );
+  }
+
+  // The blog listing's rest parameter puts page 2 at /blog/2/, so a post whose slug is a
+  // bare number would fight the pagination route for the same URL. Projects have no
+  // paginated listing, so the rule is the blog's alone.
+  if (collection === "blog" && /^\d+$/.test(id)) {
+    throw new Error(
+      `Post slug "${id}" is a bare number and collides with the /blog/<n>/ pagination URLs. Rename the file.`,
+    );
+  }
+}
+
 export async function getPublishedPosts(): Promise<Post[]> {
   const posts = await getCollection("blog", (entry) => isPublished(entry.data.draft));
+  for (const post of posts) {
+    assertRoutableId(post.id, "blog");
+  }
   return posts.sort((a, b) =>
     byNewest(a.data.pubDate, a.data.title, b.data.pubDate, b.data.title),
   );
@@ -35,6 +60,9 @@ export async function getPublishedPosts(): Promise<Post[]> {
 
 export async function getPublishedProjects(): Promise<Project[]> {
   const projects = await getCollection("projects", (entry) => isPublished(entry.data.draft));
+  for (const project of projects) {
+    assertRoutableId(project.id, "projects");
+  }
   return projects.sort((a, b) =>
     byNewest(a.data.startDate, a.data.title, b.data.startDate, b.data.title),
   );

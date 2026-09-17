@@ -85,3 +85,64 @@ describe("getPublishedProjects", () => {
     expect((await getPublishedProjects()).map((p) => p.id)).toEqual(["shown"]);
   });
 });
+
+// The loader's `**/*.md` pattern collects nested files, but an entry id is one URL
+// segment. Astro's own failure for a nested id is `TypeError: Missing parameter: slug`,
+// which names no file — these pin the message that replaces it.
+describe("routable-id guard", () => {
+  it("rejects a nested post, naming the offending id and the directory rule", async () => {
+    entries.blog = [
+      blogEntry("flat-post", "Flat", "2026-01-01"),
+      blogEntry("2026/inner-post", "Inner", "2026-02-01"),
+    ];
+    await expect(getPublishedPosts()).rejects.toThrow(
+      /blog entry "2026\/inner-post" is in a subdirectory.*src\/content\/blog\//s,
+    );
+  });
+
+  it("rejects a nested project with the projects collection named", async () => {
+    entries.projects = [
+      projectEntry("flat-project", "Flat", "2026-01-01"),
+      projectEntry("archive/old-thing", "Old", "2026-02-01"),
+    ];
+    await expect(getPublishedProjects()).rejects.toThrow(
+      /projects entry "archive\/old-thing" is in a subdirectory.*src\/content\/projects\//s,
+    );
+  });
+
+  it("still rejects a bare-number post slug, now from the same guard", async () => {
+    entries.blog = [blogEntry("2026", "Numeric", "2026-01-01")];
+    await expect(getPublishedPosts()).rejects.toThrow(
+      'Post slug "2026" is a bare number and collides with the /blog/<n>/ pagination URLs. Rename the file.',
+    );
+  });
+
+  it("leaves a numeric project id alone — projects have no paginated listing", async () => {
+    entries.projects = [projectEntry("2026", "Numeric", "2026-01-01")];
+    expect((await getPublishedProjects()).map((p) => p.id)).toEqual(["2026"]);
+  });
+
+  // The guard runs on the entries that survive the draft filter, so a nested draft is
+  // checked exactly where it is reachable: under astro dev, which renders drafts. A
+  // production build never routes it, so it cannot be the thing that breaks a deploy.
+  it("rejects a nested draft under astro dev and ignores it in a production build", async () => {
+    entries.blog = [blogEntry("2026/wip", "WIP", "2026-01-01", true)];
+
+    vi.stubEnv("PROD", false);
+    await expect(getPublishedPosts()).rejects.toThrow(
+      /blog entry "2026\/wip" is in a subdirectory/,
+    );
+
+    vi.stubEnv("PROD", true);
+    expect(await getPublishedPosts()).toEqual([]);
+  });
+
+  it("accepts a flat hyphenated id in either collection", async () => {
+    entries.blog = [blogEntry("a-colour-system-that-passes", "Colour", "2026-01-01")];
+    entries.projects = [projectEntry("technoise-site", "Site", "2026-01-01")];
+    expect((await getPublishedPosts()).map((p) => p.id)).toEqual([
+      "a-colour-system-that-passes",
+    ]);
+    expect((await getPublishedProjects()).map((p) => p.id)).toEqual(["technoise-site"]);
+  });
+});

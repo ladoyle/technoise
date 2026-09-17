@@ -17,15 +17,6 @@ import { canonicalPath, pageTitle } from "../../lib/seo";
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
   const posts = await getPublishedPosts();
 
-  // The rest parameter puts page 2 at /blog/2/, so a post whose slug is a bare number
-  // would fight the pagination route for the same URL.
-  const numeric = posts.find((post) => /^\d+$/.test(post.id));
-  if (numeric) {
-    throw new Error(
-      `Post slug "${numeric.id}" is a bare number and collides with the /blog/<n>/ pagination URLs. Rename the file.`,
-    );
-  }
-
   return paginate(posts, {
     pageSize: PAGE_SIZE,
     props: { tags: collectTags(posts) },

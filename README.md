@@ -78,6 +78,9 @@ draft: false # optional, defaults to false
 
 Rules worth knowing before writing:
 
+- Content files sit directly in `src/content/blog/` or `src/content/projects/`, never in a
+  subdirectory. A filename becomes one URL segment, so `blog/2026/a-post.md` has nowhere to
+  live; the build fails naming the file.
 - A post's filename becomes its URL slug and may not be a bare number — it collides with the
   `/blog/<n>/` pagination routes and fails the build.
 - `draft: true` hides an entry from production builds only; `astro dev` still shows it.
