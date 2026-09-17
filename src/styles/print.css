@@ -1,20 +1,15 @@
 /*
   Imported by src/pages/resume.astro only, so these rules ship on that route and no
   other. There is no downloadable PDF to keep in sync because Ctrl+P is the PDF.
+
+  No token reset lives here. tokens.css scopes both dark-scheme blocks to
+  `@media screen`, so a reader whose OS is dark already prints the light defaults — a
+  `@media print { :root { … } }` reset would re-declare values already in force. It
+  would also not help if that scoping were lost: a bare `:root` loses to
+  `:root:not([data-theme="light"])` on specificity, and a media query adds none.
 */
 
 @media print {
-  /* Re-assert the light scheme in tokens, not hex: a reader whose OS is dark would
-     otherwise print cream text with the background dropped. */
-  :root {
-    --surface: var(--cream);
-    --surface-sunken: var(--cream-sunken);
-    --text: var(--ink);
-    --text-muted: var(--ink-muted);
-    --link: var(--signal-700);
-    --border: var(--slate);
-  }
-
   .site-header,
   .site-footer,
   .skip-link {
