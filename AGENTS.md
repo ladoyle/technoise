@@ -280,8 +280,16 @@ schema in `src/content.config.ts`:
 - `tags`: lowercase, hyphenated (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤24 characters each, 1–4 per
   entry. Stored and displayed in slug form so `"Astro"` and `"astro"` can't open two archives
   for one idea.
+- Entries sit directly in the collection directory — `src/content/blog/<slug>.md`, never
+  `src/content/blog/<dir>/<slug>.md`. The loader's `**/*.md` pattern collects nested files
+  and their ids keep the directory prefix, but an id becomes a single URL segment in
+  `/blog/<slug>/`, so Astro fails the build with `TypeError: Missing parameter: slug` and no
+  filename. `assertRoutableId()` in `src/lib/content.ts` catches it first and names the file.
 - A post's filename (its slug) may not be a bare number — it collides with the `/blog/<n>/`
-  pagination routes and fails the build with the colliding filename in the error.
+  pagination routes and fails the build with the colliding filename in the error. Both this
+  rule and the flat-directory one are enforced in `assertRoutableId()`, called from
+  `getPublishedPosts()` and `getPublishedProjects()` — the one path every route already takes.
+  Keep future slug rules there rather than adding a route-local guard.
 - `draft: true` hides an entry from production builds only; `astro dev` still shows it.
 - Astro renders raw HTML inside Markdown by default, so a `.md` file is as privileged as a
   component. Every file in `src/content/` today is repo-authored and reviewed; if content is
