@@ -2,15 +2,17 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   MissingSiteError,
   OG_IMAGE,
   SITE,
   STATIC_SITEMAP_ROUTES,
+  SubpathDeployError,
   absoluteUrl,
   assertMetaBudget,
+  assertRootDeploy,
   breadcrumbList,
   canonicalPath,
   escapeXml,
@@ -34,13 +36,53 @@ describe("absoluteUrl", () => {
     expect(absoluteUrl("/rss.xml", SITE_URL)).toBe("https://example.test/rss.xml");
   });
 
-  it("keeps the site's own subpath only when the caller's path is relative", () => {
-    // Documents the limit the dev report flagged: under a project-subpath deploy,
-    // `site` must carry the subpath AND Astro.url.pathname must already include it.
-    // A rooted literal such as STATIC_SITEMAP_ROUTES' "/blog/" drops the subpath.
-    const sub = new URL("https://example.test/technoise/");
-    expect(absoluteUrl("/technoise/blog/", sub)).toBe("https://example.test/technoise/blog/");
-    expect(absoluteUrl("/blog/", sub)).toBe("https://example.test/blog/");
+  it("refuses a `site` that carries a subpath instead of silently dropping it", () => {
+    // The configuration that used to emit https://example.test/blog/ for a site rooted
+    // at /sub/ — every canonical, <loc> and guid a 404, with nothing in the build to
+    // say so.
+    const sub = new URL("https://example.test/sub/");
+    expect(() => absoluteUrl("/blog/", sub)).toThrow(SubpathDeployError);
+    expect(() => absoluteUrl("/blog/", sub)).toThrow(/astro\.config\.mjs/);
+  });
+
+  it("refuses a configured `base`, which no rooted path here would ever pick up", () => {
+    vi.stubEnv("BASE_URL", "/sub/");
+    try {
+      expect(() => absoluteUrl("/blog/", SITE_URL)).toThrow(SubpathDeployError);
+      expect(() => absoluteUrl("/blog/", SITE_URL)).toThrow(/`base` in astro\.config\.mjs/);
+      // robots.txt is the criterion that cannot be fixed by prefixing: a crawler reads
+      // it at the origin root only, so the message has to name it.
+      expect(() => absoluteUrl("/blog/", SITE_URL)).toThrow(/robots\.txt/);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("builds normally once the base is back at the root", () => {
+    // Guards the guard: a throw on every call would fail the build the same way.
+    expect(import.meta.env.BASE_URL).toBe("/");
+    expect(absoluteUrl("/blog/", SITE_URL)).toBe("https://example.test/blog/");
+  });
+});
+
+describe("assertRootDeploy", () => {
+  it("accepts the only shape this site supports — root `site`, root `base`", () => {
+    expect(() => assertRootDeploy(SITE_URL, "/")).not.toThrow();
+  });
+
+  it("rejects every non-root base, with or without a trailing slash", () => {
+    expect(() => assertRootDeploy(SITE_URL, "/sub")).toThrow(SubpathDeployError);
+    expect(() => assertRootDeploy(SITE_URL, "/sub/")).toThrow(SubpathDeployError);
+    expect(() => assertRootDeploy(SITE_URL, "/a/b/")).toThrow(SubpathDeployError);
+  });
+
+  it("names the offending value, so the failure points at the line to edit", () => {
+    expect(() => assertRootDeploy(SITE_URL, "/sub/")).toThrow(/"\/sub\/"/);
+    expect(() => assertRootDeploy(new URL("https://example.test/sub/"), "/")).toThrow(/"\/sub\/"/);
+  });
+
+  it("treats an absent BASE_URL as the root, for callers outside a Vite build", () => {
+    expect(() => assertRootDeploy(SITE_URL, undefined)).not.toThrow();
   });
 });
 

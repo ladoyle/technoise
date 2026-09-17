@@ -3,7 +3,9 @@
 // title suffix or an escaping rule.
 //
 // No absolute hostname is written here. Every URL is derived from `site` in
-// astro.config.mjs, which makes a domain change a one-line edit.
+// astro.config.mjs, which makes a domain change a one-line edit. That host must serve
+// the site at its root — a subpath deploy is unsupported and fails the build; see
+// assertRootDeploy below.
 
 export const SITE = {
   name: "TechNoise",
@@ -54,10 +56,34 @@ export class MissingSiteError extends Error {
   }
 }
 
+export class SubpathDeployError extends Error {
+  constructor(detail: string) {
+    super(
+      `${detail} This site is built for a root deploy only: every URL here is a rooted path resolved against \`site\`, so a subpath is dropped from every canonical, og:image, sitemap <loc>, RSS link/guid and JSON-LD @id, and robots.txt lands off the origin root — the only place a crawler reads it. Serve the site at the root of its own host (docs/setup-guide.md Phase 5 attaches a custom domain), or teach src/lib/seo.ts to prefix the base before setting one.`,
+    );
+    this.name = "SubpathDeployError";
+  }
+}
+
+// Both halves of a subpath deploy are rejected, because neither works and both fail
+// silently: `new URL("/blog/", site)` discards a path already in `site`, and a
+// configured `base` never reaches these rooted literals at all. Failing the build is
+// the honest outcome until someone actually needs a subpath and prefixes the base here.
+export function assertRootDeploy(
+  site: URL,
+  base: string | undefined = import.meta.env.BASE_URL,
+): void {
+  if (base !== undefined && base !== "/") {
+    throw new SubpathDeployError(`\`base\` in astro.config.mjs is "${base}", not "/".`);
+  }
+  if (site.pathname !== "/") {
+    throw new SubpathDeployError(`\`site\` in astro.config.mjs carries the path "${site.pathname}".`);
+  }
+}
+
 export function absoluteUrl(path: string, site: URL | undefined): string {
   if (!site) throw new MissingSiteError();
-  // Resolved against `site` rather than concatenated, so a subpath deploy
-  // (site + a matching `base`) resolves the base-prefixed pathname correctly.
+  assertRootDeploy(site);
   return new URL(path, site).toString();
 }
 
