@@ -287,6 +287,15 @@ Non-negotiable on every change:
 - Comments explain *why*, never *what*. Default to none.
 - Do not add dependencies without flagging it in the handoff report — every dependency is a
   future upgrade and a supply-chain surface.
+- **`sharp` is a declared `devDependency`, not redundant with Astro.** It has two consumers:
+  Astro's default `astro:assets` image service (the `<Picture>` calls in `index.astro` and
+  `404.astro`) and `tests/brand-assets.test.ts`, which imports it directly to rasterise the
+  brand SVGs for the Issue #22 ink-floor guard. Before Issue #31 it was only present as
+  astro's *optional* transitive, so an Astro release inside `^7.3.2` that changed image
+  service would have dropped it and taken the whole brand-asset suite down as a vitest
+  *collection* error — a broken-harness message, not a brand regression. Its range tracks
+  astro's own `optionalDependencies.sharp` so the build and the test resolve one copy; bump
+  the two together, and don't tidy the declaration back out.
 - `astro.config.mjs` carries a Shiki transformer that strips Shiki's own inline colours from
   fenced code blocks so `prose.css` — not Shiki's theme — styles them, and keeps the
   `tabindex="0"` Astro puts on the resulting `<pre>` (required for a scrolling region to be

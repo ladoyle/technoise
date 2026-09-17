@@ -133,8 +133,11 @@ describe("brand SVG geometry the component CSS relies on", () => {
 // putting the margin back. This measures the rendered alpha bounding box the same way that
 // commit did, so a re-crop that reintroduces the defect fails here instead of shipping.
 //
-// sharp is Astro's own image service, already required for the `astro:assets` pipeline this
-// project builds with — a rasteriser here adds no dependency.
+// sharp is declared in devDependencies because this file imports it directly (Issue #31) —
+// it used to resolve only as Astro's optional transitive, so an Astro release that swapped
+// its image service would have taken these guards down as a collection error. The range
+// matches astro's own `optionalDependencies.sharp`, so the build and this test cannot
+// resolve to two different copies.
 const inkHeightFraction = async (dir: string, name: string): Promise<number> => {
   const { data, info } = await sharp(join(dir, name))
     .ensureAlpha()
