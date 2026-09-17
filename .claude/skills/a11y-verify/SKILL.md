@@ -21,8 +21,12 @@ the task also needs a dependency change inside the repo.
 ```sh
 mkdir -p "$SCRATCH_DIR/a11y-check" && cd "$SCRATCH_DIR/a11y-check"
 npm init -y
-PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright-core axe-core
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright-core axe-core pngjs
 ```
+
+`pngjs` is a pure-JS PNG decoder (no native bindings) used to read screenshot pixels when the
+script needs to sample a real rendered background — see "Text over an image or gradient"
+below.
 
 `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` is required or the install tries to fetch a browser
 build — this environment already has one.
@@ -66,6 +70,23 @@ page/component the current checklist item touches. It:
 
 Treat axe-core and Lighthouse as a floor, not a substitute for this — they will pass
 pages that still fail the posture rules in CLAUDE.md.
+
+## Text over an image or gradient
+
+When an element's own `background-color` resolves to transparent, the script no longer
+assumes it's sitting on the flat page color. It screenshots the real composite behind the
+element (with the element's own text ink temporarily hidden, so the sample isn't polluted by
+glyph anti-aliasing) and measures the actual pixels — because a transparent computed
+background does not mean "the flat page background is behind this," it means "look at
+whatever's actually there." A hero with a mascot image behind its heading is exactly this
+case: the old flat-fallback behavior reported the heading against `--cream` regardless of
+what part of the image sat behind it, which can read as a false pass over the image's
+lighter regions and hide a real failure over its darker ones.
+
+Output lines starting `[bg sampled ...]` mean the check measured a real composite, not a
+flat assumption — read those closely, especially near a threshold. `[bg fallback ...]` means
+sampling failed (typically a zero-size element) and the flat `--cream` assumption was used
+instead, same as before this existed.
 
 # Notes
 
