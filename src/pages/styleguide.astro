@@ -10,6 +10,10 @@
 // a defect, and an indexed swatch grid is not a page anyone searched for. noindex is
 // not unlinkable: the header and footer both link here.
 //
+// The swatch captions come from src/lib/palette.ts, never from literals here: the chip
+// renders live from the token, so a hand-typed hex or ratio beside it would go stale
+// against the very colour it labels. The ratios there are computed, not transcribed.
+//
 // This page shows orange more than once, and the exemption survives the narrative.
 // The "orange appears once per screen" rule governs a composed page, where orange
 // marks the one thing to do. Here the palette is the subject, not the chrome — the
@@ -23,23 +27,11 @@ import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import Pagination from "../components/Pagination.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
+import { SWATCHES } from "../lib/palette";
 
 // Literal props, never a collection query: the specimen sheet has to keep building
 // when src/content/ is empty.
 const specimenDate = new Date("2026-09-15T00:00:00Z");
-
-const colors = [
-  { token: "--surface", role: "Page", light: "cream #FDF9F3", dark: "ink #0C3242", ratio: "—" },
-  { token: "--surface-sunken", role: "Code, callouts", light: "#EFEDE8", dark: "#1F4250", ratio: "1.12:1 / 1.26:1 vs page" },
-  { token: "--text", role: "Body text", light: "ink #0C3242", dark: "cream #FDF9F3", ratio: "12.9:1" },
-  { token: "--text-muted", role: "Meta, captions", light: "#48646E", dark: "#CDD1D0", ratio: "6.0:1 / 8.8:1" },
-  { token: "--link", role: "Body links", light: "#0A6F94", dark: "#6EC9E8", ratio: "5.4:1 / 7.2:1" },
-  { token: "--accent-text", role: "Orange as text", light: "#B94614", dark: "#FF9F6B", ratio: "5.1:1 / 6.7:1" },
-  { token: "--accent-fill", role: "Primary button fill", light: "#F75E1A", dark: "#F75E1A", ratio: "3.1:1 / 4.2:1 vs page" },
-  { token: "--border", role: "Rules, hairlines", light: "#C2D1D8", dark: "#55727E", ratio: "1.5:1 / 2.6:1" },
-  { token: "--focus", role: "Focus ring", light: "#0C83AE", dark: "#6EC9E8", ratio: "4.1:1 / 7.2:1" },
-  { token: "--rule", role: "Quote rule", light: "#0C83AE", dark: "#6EC9E8", ratio: "4.1:1 / 7.2:1" },
-];
 
 const typeSteps = [
   { token: "--size-49", px: 49, use: "Home hero, desktop" },
@@ -103,7 +95,7 @@ const spaceSteps = [4, 8, 12, 16, 24, 32, 48, 64, 96];
     </Prose>
     <ul class="sg-swatches">
       {
-        colors.map((c) => (
+        SWATCHES.map((c) => (
           <li class="sg-swatch">
             <span class="sg-chip" style={`background: var(${c.token})`} aria-hidden="true" />
             <code>{c.token}</code>
