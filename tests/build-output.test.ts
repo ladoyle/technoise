@@ -79,6 +79,82 @@ describe("head budget", () => {
   });
 });
 
+// Issue #17: Astro compiles a page's scoped `.hero .button--ghost` to four compound
+// units, which outranks the shared `.button--ghost:hover` in global.css, so the hover
+// background silently never applied. Nothing in the type system or the build catches a
+// lost cascade, so the invariant is asserted here instead of the exact selector text:
+// whichever scoped rule sets the ghost CTA's hover background must still beat every
+// non-hover rule that sets the same property on the same element.
+function specificity(selector: string): [number, number, number] {
+  let rest = selector.trim();
+  const take = (re: RegExp) => {
+    const found = rest.match(re) ?? [];
+    rest = rest.replace(re, " ");
+    return found.length;
+  };
+  const attributes = take(/\[[^\]]*\]/g);
+  const ids = take(/#[\w-]+/g);
+  const pseudoElements = take(/::[\w-]+/g);
+  const pseudoClasses = take(/:[\w-]+(?:\([^)]*\))?/g);
+  const classes = take(/\.[\w-]+/g);
+  const elements = take(/[a-zA-Z][\w-]*/g);
+  return [ids, classes + attributes + pseudoClasses, elements + pseudoElements];
+}
+
+function outranks(a: [number, number, number], b: [number, number, number]): number {
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return 0;
+}
+
+describe("the hero's ghost CTA hover state", () => {
+  const ghostBackgroundRules = () => {
+    const home = pages.find((p) => p.path === "index.html");
+    expect(home, "dist/index.html").toBeDefined();
+    const css = [...home!.html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join("\n");
+    return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .map((m, order) => ({ selector: m[1].trim(), declarations: m[2], order }))
+      .filter((r) => r.selector.includes(".button--ghost") && /(^|;)\s*background\s*:/.test(r.declarations));
+  };
+
+  it("restates the hover background inside the hero's own scope", () => {
+    const hover = ghostBackgroundRules().filter((r) => r.selector.includes(":hover"));
+    expect(hover.length, "no scoped :hover background rule for .button--ghost on /").toBe(1);
+  });
+
+  it("is not outranked by the scoped opaque fill that caused issue #17", () => {
+    const rules = ghostBackgroundRules();
+    const hover = rules.filter((r) => r.selector.includes(":hover"));
+    const base = rules.filter((r) => !r.selector.includes(":hover"));
+    expect(base.length).toBeGreaterThan(0);
+
+    for (const h of hover) {
+      for (const b of base) {
+        const delta = outranks(specificity(h.selector), specificity(b.selector));
+        // A tie is only safe when the hover rule is also later in source order.
+        const wins = delta > 0 || (delta === 0 && h.order > b.order);
+        expect(wins, `"${h.selector}" (${specificity(h.selector)}) loses to "${b.selector}" (${specificity(b.selector)})`).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  it("paints that hover background from a token, not a literal colour", () => {
+    for (const rule of ghostBackgroundRules()) {
+      expect(rule.declarations, rule.selector).toMatch(/background\s*:\s*var\(--/);
+      expect(rule.declarations, rule.selector).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    }
+  });
+
+  it("keeps the shared ghost hover rule in the bundled stylesheet", () => {
+    const bundle = readdirSync(join(dist, "_astro"))
+      .filter((f) => f.endsWith(".css"))
+      .map((f) => readFileSync(join(dist, "_astro", f), "utf8"))
+      .join("\n");
+    expect(bundle).toMatch(/\.button--ghost:hover\{[^}]*background:var\(--surface-sunken\)/);
+  });
+});
+
 describe("routing contract", () => {
   it("writes every internal href with a trailing slash", () => {
     const offenders: string[] = [];
