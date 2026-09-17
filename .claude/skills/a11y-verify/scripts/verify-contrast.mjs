@@ -10,6 +10,7 @@
 import { chromium } from 'playwright-core';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { PNG } from 'pngjs';
 
 const require = createRequire(import.meta.url);
 const axeSource = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -47,6 +48,55 @@ function parseRgb(str) {
   const m = str?.match(/rgba?\(([^)]+)\)/);
   if (!m) return null;
   return m[1].split(',').slice(0, 3).map((n) => parseFloat(n.trim()));
+}
+
+// When an element's own background resolves to transparent, it isn't necessarily sitting
+// on the flat page color — it may be over a photo, a gradient, or another element's
+// background-image. Trusting PAGE_BACKGROUND_FALLBACK in that case can report a confident
+// wrong answer (this is exactly how a mascot-image hero passed a contrast check it should
+// have failed). Instead, screenshot the real composite behind the element and sample it.
+async function sampleRenderedBackground(page, el) {
+  const box = await el.boundingBox();
+  if (!box || box.width < 2 || box.height < 2) return null;
+
+  // Hide the element's own text ink first so the sample lands on the composite behind
+  // it, not on anti-aliased glyph pixels. Restored unconditionally below.
+  const prevColor = await el.evaluate((e) => {
+    const prev = e.style.color;
+    e.style.color = 'transparent';
+    return prev;
+  });
+
+  let buffer;
+  try {
+    // Inset from the edges to avoid border/outline/shadow bleed at the element's boundary.
+    const inset = Math.min(4, box.width / 4, box.height / 4);
+    const clip = {
+      x: box.x + inset,
+      y: box.y + inset,
+      width: Math.max(1, Math.round(box.width - inset * 2)),
+      height: Math.max(1, Math.round(box.height - inset * 2)),
+    };
+    buffer = await page.screenshot({ clip });
+  } finally {
+    await el.evaluate((e, prev) => {
+      e.style.color = prev;
+    }, prevColor);
+  }
+
+  const png = PNG.sync.read(buffer);
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let n = 0;
+  for (let i = 0; i < png.data.length; i += 4) {
+    r += png.data[i];
+    g += png.data[i + 1];
+    b += png.data[i + 2];
+    n++;
+  }
+  if (n === 0) return null;
+  return [Math.round(r / n), Math.round(g / n), Math.round(b / n)];
 }
 
 const browser = await chromium.launch({
@@ -88,8 +138,16 @@ for (const sel of selectors) {
     });
     const fg = parseRgb(color);
     let bg = parseRgb(backgroundColor);
+    let bgSource = 'computed';
     if (!bg || backgroundColor === 'rgba(0, 0, 0, 0)') {
-      bg = PAGE_BACKGROUND_FALLBACK;
+      const sampled = await sampleRenderedBackground(page, el);
+      if (sampled) {
+        bg = sampled;
+        bgSource = `sampled rgb(${sampled.join(', ')}) — computed style was transparent, this is the real composite`;
+      } else {
+        bg = PAGE_BACKGROUND_FALLBACK;
+        bgSource = 'fallback — assumed flat page background, could not sample (zero-size element)';
+      }
     }
     if (!fg || !bg) continue;
 
@@ -99,6 +157,9 @@ for (const sel of selectors) {
       (parseFloat(fontSize) >= 18.66 && parseFloat(fontWeight) >= 700);
     const min = isLarge ? 3 : 4.5;
 
+    if (bgSource !== 'computed') {
+      console.log(`  [bg ${bgSource}] ${sel}`);
+    }
     if (ratio < min) {
       console.log(
         `  FAIL ${sel}: ${ratio.toFixed(2)}:1 (needs ${min}:1) — ${color} on ${backgroundColor}, ${fontSize}/${fontWeight}`
