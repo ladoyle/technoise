@@ -210,6 +210,13 @@ const schema = [
     background: var(--surface);
   }
 
+  /* Restated inside the hero's scope because the rule above is scoped to (0,4,0) and
+     would otherwise outrank the shared (0,2,0) .button--ghost:hover in global.css,
+     leaving these two CTAs with no pointer feedback at all. */
+  .hero .button--ghost:hover {
+    background: var(--surface-sunken);
+  }
+
   .teaser__title {
     margin-block: var(--space-96) var(--space-24);
     font-size: var(--text-h2);
