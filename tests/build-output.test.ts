@@ -30,8 +30,8 @@ beforeAll(() => {
 }, 300_000);
 
 describe("the build output itself", () => {
-  it("contains the thirteen pages this phase generates", () => {
-    expect(pages.length).toBe(13);
+  it("contains the fourteen pages this phase generates", () => {
+    expect(pages.length).toBe(14);
   });
 });
 
@@ -109,5 +109,38 @@ describe("routing contract", () => {
     const styleguide = pages.find((p) => p.path === join("styleguide", "index.html"));
     expect(styleguide?.html).toContain('name="robots"');
     expect(styleguide?.html).toContain("noindex");
+  });
+});
+
+// Issue #15. The filename is the contract: GitHub Pages serves dist/404.html — that
+// exact name, at the deploy root — for any unmatched path, so a rename or a move is a
+// silent regression back to GitHub's generic error page. The chrome assertions are the
+// rest of the point: an error page without the site's own header, footer and a way home
+// strands the visitor outside the site.
+describe("the 404 page", () => {
+  const notFound = () => {
+    const page = pages.find((p) => p.path === "404.html");
+    expect(page, "no 404.html in the build output").toBeTruthy();
+    return page!.html;
+  };
+
+  it("is emitted at dist/404.html, the one path the host will serve it from", () => {
+    expect(existsSync(join(dist, "404.html"))).toBe(true);
+  });
+
+  it("renders the site's own header and footer, not a bespoke shell", () => {
+    const html = notFound();
+    expect(html).toContain('<header class="site-header"');
+    expect(html).toContain('<ul class="site-header__list"');
+    expect(html).toMatch(/<footer[^>]*class="site-footer"/);
+  });
+
+  it("offers a link back to the home page from its own content, not just the chrome", () => {
+    const main = notFound().match(/<main[\s\S]*?<\/main>/)?.[0] ?? "";
+    expect(main).toMatch(/href="\/"/);
+  });
+
+  it("is noindex: a status page is not content, and the sitemap must not list it", () => {
+    expect(notFound()).toContain('<meta name="robots" content="noindex, nofollow"');
   });
 });
