@@ -191,3 +191,46 @@ describe("the built styleguide prints what the module derived", () => {
     });
   }
 });
+
+// qa, Issue #33. The swatch array was not the page's only transcription: its prose still
+// names one hex and six ratios by hand, and those are the same class of claim — a stale
+// one is a conformance figure nobody re-measured. Every figure below is correct at this
+// HEAD (checked against an independent implementation of the WCAG formula), so this block
+// is a guard against the next token edit, not a fix. It pins them the only way prose can
+// be pinned: recompute from tokens.css and require the page to still say it.
+describe("the styleguide's prose figures are measurements too", () => {
+  const source = readFileSync(join(root, "src", "pages", "styleguide.astro"), "utf8");
+  const declared = new Set(Object.values(lightBases));
+
+  // token-name -> base, so the claim below names roles and the hex stays in tokens.css.
+  const claim = (light: string, dark: string) =>
+    contrastRatio(hexOf(resolve(light, "light")), hexOf(resolve(dark, "light")));
+
+  const PROSE_CLAIMS: [string, () => number, number][] = [
+    ["12.9:1", () => claim("--text", "--surface"), 1],
+    ["5.4:1", () => claim("--link", "--surface"), 1],
+    ["4.1:1", () => claim("--focus", "--surface"), 1],
+    ["11.6:1", () => claim("--text", "--surface-sunken"), 1],
+    // The button pair: label on fill, and the hover restatement, both light scheme.
+    ["4.2:1", () => contrastRatio(hexOf("ink"), hexOf(resolve("--accent-fill", "light"))), 1],
+    ["5.1:1", () => contrastRatio(hexOf("cream"), hexOf("pulse-700")), 1],
+  ];
+
+  it("spells no hex the light :root does not declare", () => {
+    const literals = [...source.matchAll(/#[0-9a-f]{6}\b/gi)].map((m) => m[0].toLowerCase());
+    expect(literals.length, "the page's prose names at least one hex").toBeGreaterThan(0);
+    for (const hex of literals) {
+      expect(declared, `${hex} in styleguide.astro is no longer a tokens.css value`).toContain(hex);
+    }
+  });
+
+  for (const [figure, compute, dp] of PROSE_CLAIMS) {
+    it(`still measures ${figure} for the pair its prose claims it for`, () => {
+      expect(`${compute().toFixed(dp)}:1`).toBe(figure);
+      const text = readFileSync(join(root, "dist", "styleguide", "index.html"), "utf8")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ");
+      expect(text, `the page no longer prints ${figure}`).toContain(figure);
+    });
+  }
+});
