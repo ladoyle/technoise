@@ -36,7 +36,9 @@ npm test             # vitest run — schema, publishing-rule, build-output, SEO
                       # discovery-output (sitemap/rss/robots), nav/route-resolution and
                       # workflow-permissions tests
                       # (tests/nav-contract.test.ts also carries the resume page's
-                      # privacy-regression assertions, not just nav contract tests)
+                      # privacy-regression assertions, not just nav contract tests; and
+                      # tests/build-output.test.ts also carries CSS-cascade/specificity
+                      # assertions for the hero ghost-CTA hover rule, not only markup checks)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
