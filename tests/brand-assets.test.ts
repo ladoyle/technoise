@@ -39,6 +39,7 @@ const BRAND_FILES = [
 
 type Svg = {
   name: string;
+  dir: string;
   source: string;
   light: Record<string, string>;
   dark: Record<string, string>;
@@ -54,8 +55,8 @@ const fillsIn = (block: string): Record<string, string> =>
     ]),
   );
 
-const svgs: Svg[] = BRAND_FILES.map((name) => {
-  const source = readFileSync(join(brandDir, name), "utf8");
+const parseSvg = (dir: string, name: string): Svg => {
+  const source = readFileSync(join(dir, name), "utf8");
 
   // The dark override is the only @media block in these files, so splitting on it
   // separates the default fills from the overridden ones without parsing CSS. Matched
@@ -73,13 +74,24 @@ const svgs: Svg[] = BRAND_FILES.map((name) => {
 
   return {
     name,
+    dir,
     source,
     light: fillsIn(source.slice(0, darkStart)),
     dark: fillsIn(source.slice(darkStart, darkEnd)),
     viewBox: [+box[1], +box[2], +box[3], +box[4]],
     declared: [+dim[1], +dim[2]],
   };
-});
+};
+
+const svgs: Svg[] = BRAND_FILES.map((name) => parseSvg(brandDir, name));
+
+// favicon.svg carries the same three hardcoded-hex classes, for the same reason (a <link
+// rel="icon"> URL cannot read the document's custom properties), and AGENTS.md names it in
+// the same exception — but it lives one directory up, so it stayed outside the list above
+// and outside every assertion here. A token edit mirrored into public/brand/ and not into
+// the favicon desynced silently, which is the exact failure the exception is written to
+// prevent. It is asserted alongside them now.
+const tokenTracked: Svg[] = [...svgs, parseSvg(join(root, "public"), "favicon.svg")];
 
 describe("brand SVG fills track tokens.css", () => {
   const expected = {
@@ -91,7 +103,7 @@ describe("brand SVG fills track tokens.css", () => {
     }),
   };
 
-  for (const svg of svgs) {
+  for (const svg of tokenTracked) {
     it(`${svg.name} uses the light-mode brand bases`, () => {
       expect(svg.light).toEqual(expected.light());
     });
@@ -103,7 +115,7 @@ describe("brand SVG fills track tokens.css", () => {
 });
 
 describe("brand SVG geometry the component CSS relies on", () => {
-  for (const svg of svgs) {
+  for (const svg of tokenTracked) {
     it(`${svg.name} declares a width/height matching its own viewBox`, () => {
       expect(svg.declared).toEqual([svg.viewBox[2], svg.viewBox[3]]);
     });
@@ -123,8 +135,8 @@ describe("brand SVG geometry the component CSS relies on", () => {
 //
 // sharp is Astro's own image service, already required for the `astro:assets` pipeline this
 // project builds with — a rasteriser here adds no dependency.
-const inkHeightFraction = async (name: string): Promise<number> => {
-  const { data, info } = await sharp(join(brandDir, name))
+const inkHeightFraction = async (dir: string, name: string): Promise<number> => {
+  const { data, info } = await sharp(join(dir, name))
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -157,18 +169,23 @@ describe("brand SVG viewBoxes stay cropped to their ink", () => {
   //   technoise-icon.svg               0.889   0.578
   //   technoise-logo-presentation.svg  0.883   0.720
   //   technoise-logo-full.svg          0.726   0.364
+  //   favicon.svg                      0.889   0.578
   //
   // logo-full's 0.726 is the real figure for that file. AGENTS.md's "~88% ink" describes
-  // the other two; the horizontal lockup kept ~14% margin per side on the block axis.
+  // the other three; the horizontal lockup kept ~14% margin per side on the block axis.
+  // The figures are stable to ~0.003 across raster heights (512 and 2048) and alpha
+  // thresholds (0, 16, 128), so the ~5 points of headroom is margin against a re-export,
+  // not against measurement noise.
   const floors: Record<string, number> = {
     "technoise-icon.svg": 0.84,
     "technoise-logo-presentation.svg": 0.83,
     "technoise-logo-full.svg": 0.68,
+    "favicon.svg": 0.84,
   };
 
-  for (const svg of svgs) {
+  for (const svg of tokenTracked) {
     it(`${svg.name} spends its viewBox height on ink, not transparent margin`, async () => {
-      expect(await inkHeightFraction(svg.name)).toBeGreaterThanOrEqual(floors[svg.name]);
+      expect(await inkHeightFraction(svg.dir, svg.name)).toBeGreaterThanOrEqual(floors[svg.name]);
     });
   }
 });
@@ -208,7 +225,7 @@ describe("the header and footer brand lockup", () => {
 });
 
 describe("brand SVGs stay inert assets", () => {
-  for (const svg of svgs) {
+  for (const svg of tokenTracked) {
     it(`${svg.name} carries no script, external reference or event handler`, () => {
       expect(svg.source).not.toMatch(/<script/i);
       expect(svg.source).not.toMatch(/<(foreignObject|image|use)\b/i);
