@@ -256,15 +256,30 @@ describe("public/ ships nothing the site references nowhere", () => {
 
   // technoise-icon.svg is the one served file src/ names nowhere: it is the master icon
   // that favicon.svg and favicon.ico are exported from, kept live and documented in
-  // AGENTS.md as one of the three brand SVGs. BRAND_FILES is that documented set, so it is
-  // the allowance — which also means a new brand file earns its exemption only by joining
-  // the token-sync, geometry and ink assertions above, not by sitting in the directory.
-  const referencedNowhere = new Set<string>(BRAND_FILES.map((name) => `/brand/${name}`));
+  // AGENTS.md as one of the three brand SVGs. It is exempt by name, not by being a brand
+  // file — exempting all of BRAND_FILES would also excuse the two logo SVGs, which src/
+  // does reference today, so a Header and Footer that stopped pointing at one would leave
+  // it shipping at a live URL with nothing red. The allowance still cannot drift outside
+  // the documented set; the assertion below is what holds it there.
+  const UNREFERENCED_BY_DESIGN = ["/brand/technoise-icon.svg"];
+
+  it("exempts only a file BRAND_FILES already guards", () => {
+    const undocumented = UNREFERENCED_BY_DESIGN.filter(
+      (path) => !BRAND_FILES.some((name) => path === `/brand/${name}`),
+    );
+
+    expect(
+      undocumented,
+      "an exemption must name a documented brand file, so it inherits the token-sync, " +
+        "geometry and ink guards above rather than escaping every check at once",
+    ).toEqual([]);
+  });
 
   it("serves no file that nothing in src/ references", () => {
+    const exempt = new Set(UNREFERENCED_BY_DESIGN);
     const orphans = walk(publicDir)
       .map(urlPath)
-      .filter((path) => !referencedNowhere.has(path) && !source.includes(path));
+      .filter((path) => !exempt.has(path) && !source.includes(path));
 
     expect(
       orphans,
