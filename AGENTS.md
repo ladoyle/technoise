@@ -34,6 +34,8 @@ npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
 npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
                       # discovery-output (sitemap/rss/robots) and nav/route-resolution tests
+                      # (tests/nav-contract.test.ts also carries the resume page's
+                      # privacy-regression assertions, not just nav contract tests)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -67,7 +69,8 @@ technoise/
 │  ├─ content/          blog/ and projects/ — one Markdown file per entry
 │  ├─ components/       reusable, from the component inventory below
 │  ├─ layouts/          page shells
-│  ├─ lib/              shared TypeScript helpers (publishing rules, formatting, SEO)
+│  ├─ lib/              shared TypeScript helpers (publishing rules, formatting, SEO),
+│  │                    plus resume.ts — content, not logic; see the privacy rule below
 │  ├─ pages/            routes, plus generated non-HTML endpoints (sitemap.xml.ts,
 │  │                    rss.xml.ts, robots.txt.ts)
 │  └─ styles/           tokens.css and global styles
@@ -82,6 +85,16 @@ re-cropping any of these three files means revisiting all three of those places,
 renders at the wrong size or off-center in its reserved box. `tests/brand-assets.test.ts`
 asserts the declared size matches each file's own `viewBox`, so a desync fails the suite
 instead of shipping quietly.
+
+`src/lib/resume.ts` is the first `src/lib/` module that holds content rather than logic — the
+resume's copy, dates and skills, not a helper. Its types are load-bearing for a standing
+privacy rule, not just for correctness: **`/resume/` may never publish a phone number or a
+city/state/other location, in its visible text, its JSON-LD, or its metadata.** The module's
+types carry no field either could occupy, and `tests/nav-contract.test.ts` asserts this at
+three layers — the built HTML, the parsed JSON-LD, and the exported `RESUME` object's own
+keys — so a location field added before anything renders it still fails the suite. This rule
+outlives the cycle that added it: treat any future edit to `resume.ts` or `resume.astro` as
+bound by it, not just the one that shipped the page.
 
 ---
 
@@ -216,6 +229,17 @@ Non-negotiable on every change:
   `tabindex="0"` Astro puts on the resulting `<pre>` (required for a scrolling region to be
   keyboard-reachable). Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false`
   without accounting for both.
+- **Route-scoped stylesheets are imported by the page that needs them, not by `BaseLayout` or
+  a shared component.** `src/styles/print.css` is the first of these, and the repo's first
+  `@media print` rules — imported only by `src/pages/resume.astro`, so the rules ship on that
+  route alone. A print block that resets tokens back to the light scheme (so a reader whose OS
+  is dark doesn't print cream-on-dropped-background) has to **out-specify or evade** the
+  dark-scheme block in `tokens.css`, not merely follow it in source order: media queries add
+  no specificity, so a bare `@media print { :root { … } }` loses to `:root:not([data-theme=
+  "light"])` regardless of which stylesheet a bundler emits last. `tokens.css` avoids the trap
+  by scoping both dark-scheme blocks to `@media screen`, so a print reset never has to
+  out-specify them in the first place — keep any future dark-scheme rule scoped the same way,
+  or a new route-scoped print stylesheet inherits the same inert reset.
 
 ### Page SEO
 
@@ -228,9 +252,10 @@ block) and owns nothing else a crawler or social client reads. A page passes:
 - `canonicalPath?` — omit it and the layout derives one from the page's own URL via
   `canonicalPath(Astro.url)`, so a new route is canonical by default, not by remembering.
 - `noindex?` — emits `noindex, nofollow` instead of the default
-  `index, follow, max-image-preview:large`. Used by `/styleguide/` and by `/resume/` while
-  it is a stub — both are also absent from `STATIC_SITEMAP_ROUTES`. Lifting `noindex` and
-  adding the route is the one-line change when either page has content that should be found.
+  `index, follow, max-image-preview:large`. `/styleguide/` is the only page that uses it, and
+  the only route absent from `STATIC_SITEMAP_ROUTES`. `/resume/` used to share both while it
+  was a stub; lifting `noindex` and adding the route was the one-line change that shipped
+  once the page had real content — the pattern to repeat for any future stub.
 - `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
   page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.

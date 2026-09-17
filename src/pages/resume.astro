@@ -1,70 +1,328 @@
 ---
-// A scaffold, not a resume. The nav and the home hero's third CTA need a destination
-// that returns 200; neither needs invented employers, dates or outcomes, which are
-// human input (setup-guide Part 5). Every section below is a heading and an honest
-// "not written yet" until that material arrives.
+// The resume as a document, not a landing page: one 720px column, four sections, and
+// the two contact channels the owner has published. Every string, date and profile
+// link comes from src/lib/resume.ts, so the visible sections and the structured data
+// below cannot disagree — and so the privacy rule that module's types enforce (no
+// phone number, no location) holds for this page's metadata too.
 //
-// noindex, and absent from STATIC_SITEMAP_ROUTES on purpose: an indexed empty page
-// costs the SEO floor and answers no search. When real content lands, drop the
-// `noindex` prop below and add "/resume/" to STATIC_SITEMAP_ROUTES in src/lib/seo.ts.
-// That is the whole change.
+// print.css is imported here and on no other route. Ctrl+P is the PDF, which is why
+// there is no download button and no committed resume file to drift from this page.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { pageTitle } from "../lib/seo";
+import TagPill from "../components/TagPill.astro";
+import { RESUME, formatMonth, profiles } from "../lib/resume";
+import { SITE, absoluteUrl, pageTitle } from "../lib/seo";
+import "../styles/print.css";
 
-const sections = ["Summary", "Experience", "Projects", "Skills", "Education"];
+const title = pageTitle("Luke Doyle — Resume");
+const description =
+  "Lead Software Engineer with 6+ years building distributed APIs and data pipelines serving millions of customers — experience, skills and education.";
+
+const home = absoluteUrl("/", Astro.site);
+// The same id the home page emits, so the site describes one person, not two.
+const personId = `${home}#person`;
+const resumeUrl = absoluteUrl("/resume/", Astro.site);
+
+const schema = [
+  {
+    "@type": "ProfilePage",
+    "@id": `${resumeUrl}#profilepage`,
+    url: resumeUrl,
+    name: title,
+    inLanguage: SITE.locale,
+    mainEntity: { "@id": personId },
+  },
+  {
+    "@type": "Person",
+    "@id": personId,
+    name: SITE.author.name,
+    url: home,
+    sameAs: SITE.author.sameAs,
+    jobTitle: RESUME.title,
+    email: `mailto:${RESUME.email}`,
+    knowsAbout: RESUME.skills.flatMap((group) => group.items),
+    alumniOf: RESUME.education.map((degree) => ({
+      "@type": "EducationalOrganization",
+      name: degree.institution,
+    })),
+  },
+];
 ---
 
-<BaseLayout
-  title={pageTitle("Resume")}
-  description="The resume sections — summary, experience, projects, skills and education — are scaffolded here and fill in as the material is written."
-  noindex
->
+<BaseLayout title={title} description={description} schema={schema}>
   <div class="wrap">
-    <h1 class="resume__title">Resume</h1>
-    <p class="resume__lede">
-      This page is scaffolding. Each section below is in place and stays empty until
-      the material behind it is written.
-    </p>
+    <header class="resume__masthead">
+      <p class="eyebrow">Resume</p>
+      <h1 class="resume__name">{RESUME.name}</h1>
+      <p class="resume__role-line">{RESUME.title}</p>
+      <p class="resume__focus">{RESUME.focus}</p>
+      <ul class="resume__contact">
+        <li><a href={`mailto:${RESUME.email}`}>{RESUME.email}</a></li>
+        {profiles.map((profile) => <li><a href={profile.href}>{profile.label}</a></li>)}
+      </ul>
+    </header>
 
-    {
-      sections.map((section) => (
-        <section class="resume__section">
-          <h2 class="resume__heading">{section}</h2>
-          <p class="resume__pending">Not written yet.</p>
-        </section>
-      ))
-    }
+    <section class="resume__section" aria-labelledby="summary">
+      <h2 class="resume__heading" id="summary">Summary</h2>
+      <p class="resume__summary">{RESUME.summary}</p>
+    </section>
+
+    <section class="resume__section" aria-labelledby="experience">
+      <h2 class="resume__heading" id="experience">Experience</h2>
+      <ol class="resume__roles">
+        {
+          RESUME.roles.map((role) => (
+            <li class="resume__role">
+              <h3 class="resume__role-title">{role.title}</h3>
+              <p class="resume__role-meta">
+                <span class="resume__org">{role.org}</span>
+                <span aria-hidden="true">·</span>
+                <span class="resume__dates">
+                  {role.periods.map((period, index) => (
+                    <Fragment>
+                      {index > 0 && ", "}
+                      <time datetime={period.start}>{formatMonth(period.start)}</time>
+                      <span class="visually-hidden"> to </span>
+                      <span aria-hidden="true"> – </span>
+                      {period.end ? (
+                        <time datetime={period.end}>{formatMonth(period.end)}</time>
+                      ) : (
+                        "Present"
+                      )}
+                    </Fragment>
+                  ))}
+                </span>
+              </p>
+              {role.bullets.length > 0 && (
+                <ul class="resume__bullets">
+                  {role.bullets.map((bullet) => (
+                    <li>{bullet}</li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))
+        }
+      </ol>
+      <p class="resume__more">
+        Projects are written up separately —{" "}
+        <a href="/projects/">see the project log <span aria-hidden="true">&rarr;</span></a>
+      </p>
+    </section>
+
+    <section class="resume__section" aria-labelledby="skills">
+      <h2 class="resume__heading" id="skills">Skills</h2>
+      <dl class="resume__skills">
+        {
+          RESUME.skills
+            .filter((group) => group.items.length > 0)
+            .map((group) => (
+              <div class="resume__skill-group">
+                <dt class="eyebrow">{group.label}</dt>
+                <dd>
+                  <ul class="resume__skill-list">
+                    {group.items.map((item) => (
+                      <li>
+                        <TagPill label={item} />
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            ))
+        }
+      </dl>
+    </section>
+
+    <section class="resume__section" aria-labelledby="education">
+      <h2 class="resume__heading" id="education">Education</h2>
+      <ul class="resume__education">
+        {
+          RESUME.education.map((degree) => (
+            <li class="resume__degree">
+              <h3 class="resume__role-title">{degree.credential}</h3>
+              <p class="resume__role-meta">
+                <span class="resume__org">{degree.institution}</span>
+                <span aria-hidden="true">·</span>
+                <span class="resume__dates">
+                  <time datetime={degree.period.start}>{formatMonth(degree.period.start)}</time>
+                  <span class="visually-hidden"> to </span>
+                  <span aria-hidden="true"> – </span>
+                  {degree.period.end ? (
+                    <time datetime={degree.period.end}>{formatMonth(degree.period.end)}</time>
+                  ) : (
+                    "Present"
+                  )}
+                </span>
+              </p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
   </div>
 </BaseLayout>
 
 <style>
-  .resume__title {
-    margin: 0;
+  .resume__masthead {
+    padding-block-end: var(--space-32);
+    /* The page's one orange, as a rule rather than a button: a document's reader
+       wants content in the first screen, not three controls. */
+    border-block-end: 2px solid var(--accent-fill);
+  }
+
+  .resume__name {
+    margin: var(--space-8) 0 0;
     font-size: var(--text-h1);
     font-weight: var(--weight-semibold);
     line-height: var(--lh-tight);
     letter-spacing: var(--tracking-tight);
+    overflow-wrap: break-word;
   }
 
-  .resume__lede {
-    margin: var(--space-16) 0 0;
-    color: var(--text);
+  .resume__role-line {
+    margin: var(--space-8) 0 0;
     font-size: var(--text-h3);
     line-height: var(--lh-body);
   }
 
+  .resume__focus {
+    margin: var(--space-8) 0 0;
+    color: var(--text-muted);
+    font-size: var(--size-16);
+  }
+
+  .resume__contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8) var(--space-16);
+    margin: var(--space-24) 0 0;
+    padding: 0;
+    font-size: var(--size-16);
+    list-style: none;
+  }
+
+  .resume__contact a {
+    display: inline-block;
+    padding-block: var(--space-4);
+    color: var(--link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .resume__contact a:hover {
+    text-decoration-thickness: 2px;
+  }
+
   .resume__heading {
-    margin-block: var(--space-48) var(--space-16);
+    margin-block: var(--space-64) var(--space-24);
     font-size: var(--text-h2);
     font-weight: var(--weight-semibold);
     line-height: var(--lh-tight);
     letter-spacing: var(--tracking-tight);
   }
 
-  .resume__pending {
+  /* Each entry draws its own top rule, so the run needs closing at the bottom — the
+     rhythm PostCard already sets on /blog/. */
+  .resume__roles,
+  .resume__education {
     margin: 0;
+    padding: 0;
+    border-block-end: var(--hairline) solid var(--border);
+    list-style: none;
+  }
+
+  .resume__role,
+  .resume__degree {
+    padding-block: var(--space-32);
+    border-block-start: var(--hairline) solid var(--border);
+  }
+
+  .resume__role-title {
+    margin: 0;
+    font-size: var(--text-h3);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    overflow-wrap: break-word;
+  }
+
+  .resume__role-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-4) var(--space-8);
+    margin: var(--space-8) 0 0;
+    font-size: var(--size-16);
+    line-height: var(--lh-tight);
+  }
+
+  .resume__org {
+    font-weight: var(--weight-medium);
+  }
+
+  .resume__dates {
     color: var(--text-muted);
+    font-size: var(--text-meta);
+  }
+
+  .resume__summary {
+    margin: 0;
+    font-size: var(--text-body);
+  }
+
+  .resume__bullets {
+    margin: var(--space-16) 0 0;
+    padding-inline-start: var(--space-24);
+    font-size: var(--text-body);
+  }
+
+  .resume__bullets li + li {
+    margin-block-start: var(--space-8);
+  }
+
+  .resume__bullets li::marker {
+    color: var(--text-muted);
+  }
+
+  .resume__more {
+    margin: var(--space-32) 0 0;
     font-size: var(--size-18);
+  }
+
+  .resume__more a {
+    color: var(--link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .resume__more a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .resume__skills {
+    display: grid;
+    gap: var(--space-24);
+    margin: 0;
+  }
+
+  /* .eyebrow supplies the label's type; this is only its rhythm. */
+  .resume__skill-group dt {
+    margin-block-end: var(--space-12);
+  }
+
+  .resume__skill-group dd {
+    margin: 0;
+  }
+
+  .resume__skill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 </style>

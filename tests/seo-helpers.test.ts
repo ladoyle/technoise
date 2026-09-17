@@ -249,7 +249,7 @@ describe("the constants the head block and the endpoints share", () => {
   });
 
   it("keeps the noindex styleguide out of the sitemap's static registry", () => {
-    expect([...STATIC_SITEMAP_ROUTES]).toEqual(["/", "/blog/", "/projects/"]);
+    expect([...STATIC_SITEMAP_ROUTES]).toEqual(["/", "/blog/", "/projects/", "/resume/"]);
     expect(STATIC_SITEMAP_ROUTES).not.toContain("/styleguide/");
   });
 });

@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { RESUME } from "../src/lib/resume";
+
 // D3/D4 turned the primary nav into a disclosure and cut /about/ from both navs for
 // one reason: a nav item that promises a 404 is worse than no nav item. Nothing in the
 // suite enforced that — the page count and the sitemap tests both stay green if someone
@@ -122,19 +124,92 @@ describe("the disclosure's accessible wiring", () => {
   });
 });
 
-describe("the resume stub stays honest while it is empty", () => {
-  it("is noindex, so an empty page cannot cost the SEO floor", () => {
-    const resume = pages.find((p) => p.path === join("resume", "index.html"));
-    expect(resume, "no resume page built").toBeTruthy();
-    expect(resume!.html).toMatch(/<meta name="robots" content="noindex, nofollow"/);
+// D10. The block that stood here asserted /resume/ was a stub: noindex, a five-heading
+// run including Projects, five "Not written yet." lines. All three are false now that
+// the page carries real content, so these assertions guard what replaced them.
+//
+// The privacy cases are why this block is not optional. /resume/ publishes a real
+// person's professional history under a standing requirement that no phone number and
+// no city or state ever reach the repo or the built site. Nothing in the type system
+// stops a later edit from adding a `location` to src/lib/resume.ts or a `telephone` to
+// the JSON-LD — these do. They read the built HTML, because the built HTML is what
+// ships, and the data module directly, because that layer fails without a build.
+
+const PHONE_SHAPED = /\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
+const FORBIDDEN_KEYS = [
+  "telephone",
+  "address",
+  "addressLocality",
+  "addressRegion",
+  "postalCode",
+  "PostalAddress",
+  "homeLocation",
+  "workLocation",
+];
+
+function resumePage(): string {
+  const resume = pages.find((p) => p.path === join("resume", "index.html"));
+  expect(resume, "no resume page built").toBeTruthy();
+  return resume!.html;
+}
+
+describe("the resume page keeps the contract its content is published under", () => {
+  it("is indexable, now that there is something worth finding", () => {
+    expect(resumePage()).toMatch(/<meta name="robots" content="index, follow, max-image-preview:large"/);
   });
 
-  it("invents no employer, date or outcome — every section reads 'Not written yet.'", () => {
-    const resume = pages.find((p) => p.path === join("resume", "index.html"))!;
-    const body = resume.html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? resume.html;
+  it("shows the four sections that have content, and no heading that promises more", () => {
+    const html = resumePage();
+    const body = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
     const headings = [...body.matchAll(/<h2[^>]*>([^<]*)<\/h2>/g)].map((m) => m[1].trim());
-    expect(headings).toEqual(["Summary", "Experience", "Projects", "Skills", "Education"]);
-    const pending = [...body.matchAll(/class="resume__pending"[^>]*>([^<]*)</g)].map((m) => m[1].trim());
-    expect(pending).toEqual(Array(5).fill("Not written yet."));
+    expect(headings).toEqual(["Summary", "Experience", "Skills", "Education"]);
+  });
+
+  it("publishes no phone number: no tel: href and no phone-shaped digit run", () => {
+    const html = resumePage();
+    expect(html).not.toContain("tel:");
+    expect(PHONE_SHAPED.exec(html)?.[0] ?? null).toBeNull();
+  });
+
+  it("puts no address, locality or telephone in the structured data", () => {
+    const ld = resumePage().match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
+    expect(ld, "no JSON-LD block on the resume page").toBeTruthy();
+    // Parse first: a key hidden behind a \u escape would slip a raw substring scan.
+    const graph = JSON.stringify(JSON.parse(ld!));
+    for (const key of FORBIDDEN_KEYS) {
+      expect(graph, `JSON-LD carries "${key}"`).not.toContain(key);
+    }
+    expect(PHONE_SHAPED.exec(graph)?.[0] ?? null).toBeNull();
+  });
+
+  it("ships no placeholder link — a profile with no URL renders no list item", () => {
+    expect(resumePage()).not.toContain('href="#"');
+  });
+
+  it("keeps the data module itself free of a location or a phone number", () => {
+    // Keys, not values: "Toyota mobile application" is a bullet, not a phone field, so
+    // a substring scan over the prose cries wolf. Field names are the surface a leak
+    // actually arrives through.
+    const keys = new Set<string>();
+    const walk = (value: unknown): void => {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === "object")
+        for (const [k, v] of Object.entries(value)) {
+          keys.add(k.toLowerCase());
+          walk(v);
+        }
+    };
+    walk(RESUME);
+    const forbidden = [
+      ...FORBIDDEN_KEYS.map((k) => k.toLowerCase()),
+      "location",
+      "locality",
+      "region",
+      "city",
+      "phone",
+      "tel",
+    ];
+    expect([...keys].filter((k) => forbidden.some((f) => k.includes(f)))).toEqual([]);
+    expect(PHONE_SHAPED.exec(JSON.stringify(RESUME))?.[0] ?? null).toBeNull();
   });
 });
