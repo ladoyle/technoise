@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,13 +20,10 @@ function htmlFiles(dir: string): string[] {
 let pages: { path: string; html: string }[] = [];
 
 beforeAll(() => {
-  // An empty dist/ is a real state — a failed build leaves one behind — so the
-  // presence of HTML is the condition, not the presence of the directory.
-  if (!existsSync(dist) || htmlFiles(dist).length === 0) {
-    execFileSync("npx", ["astro", "build"], { cwd: root, stdio: "ignore", timeout: 300_000 });
-  }
+  // dist/ is built once per run by tests/global-setup.ts. Reusing an existing dist/
+  // here meant a stale page count could be asserted against and reported green.
   pages = htmlFiles(dist).map((path) => ({ path: relative(dist, path), html: readFileSync(path, "utf8") }));
-}, 300_000);
+});
 
 describe("the build output itself", () => {
   it("contains the fourteen pages this phase generates", () => {

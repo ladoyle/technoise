@@ -7,12 +7,11 @@ export default getViteConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",
-    // build-output and discovery-output each shell out to `astro build` in this same
-    // directory. Run in parallel they race over dist/ and node_modules/.astro, and
-    // one of the two builds dies — a cold `npm test` failed 2 runs in 8 here, 6 in 8
-    // before the hero artwork slowed the build enough to de-synchronise them. The
-    // suite is dominated by those builds either way, so serialising the files costs
-    // almost nothing and makes a red result mean something.
-    fileParallelism: false,
+    // The one `astro build` the HTML-reading suites share. It lives here, not in their
+    // beforeAll hooks, so dist/ is built exactly once per run and always from this
+    // src/ — see tests/global-setup.ts. No test file shells out to a build any more,
+    // which is what `fileParallelism: false` used to guard against; the suites only
+    // read dist/, so they can run in parallel again.
+    globalSetup: ["./tests/global-setup.ts"],
   },
 });
