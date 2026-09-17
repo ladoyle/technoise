@@ -11,14 +11,19 @@
 // — rather than the arbitrary URL that happened to miss.
 //
 // The mascot appears here as page content, which AGENTS.md's third posture rule allows
-// on exactly three surfaces (home hero, About, 404). It is laid out the same way the
-// home hero lays it out — same scrim, same tokens — so the contrast of text over it is
-// the value already measured there rather than a second guess.
+// on exactly three surfaces (home hero, About, 404). This page carries its own
+// illustration rather than sharing the hero's: the hero art shows the mascot working
+// contentedly, which says "this site is fine" on the one page that says the opposite.
+// Scrim and tokens are still the hero's, so text contrast over the art is bounded the
+// same way it is there — but the crop anchor is deliberately not. The question mark is
+// the topmost ink in this frame, starting at 10.7% of its height, so the hero's
+// `50% 35%` would open the visible band below the glyph and cut away the one element
+// that makes the picture read as a 404.
 
 import { Picture } from "astro:assets";
 
 import BaseLayout from "../layouts/BaseLayout.astro";
-import art from "../assets/technoise-background.png";
+import art from "../assets/technoise-404-background.png";
 ---
 
 <BaseLayout
@@ -75,7 +80,7 @@ import art from "../assets/technoise-background.png";
     inline-size: 100%;
     block-size: 100%;
     object-fit: cover;
-    object-position: 50% 35%;
+    object-position: 50% 18%;
   }
 
   .notfound::after {
