@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
 // The brand SVGs under public/brand/ are the one place outside tokens.css that spells
@@ -12,7 +13,8 @@ import { describe, expect, it } from "vitest";
 // header and footer CSS depends on: each file's declared width/height must match its own
 // viewBox (block-size + inline-size:auto derives the rendered width from that ratio), and
 // the <img> width/height attributes must match the presentation file, because those
-// attributes are what reserves the box before the SVG arrives.
+// attributes are what reserves the box before the SVG arrives. A fourth geometry fact —
+// how much of each viewBox is actually ink — is pinned further down, for Issue #22.
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const brandDir = join(root, "public", "brand");
@@ -104,6 +106,69 @@ describe("brand SVG geometry the component CSS relies on", () => {
   for (const svg of svgs) {
     it(`${svg.name} declares a width/height matching its own viewBox`, () => {
       expect(svg.declared).toEqual([svg.viewBox[2], svg.viewBox[3]]);
+    });
+  }
+});
+
+// Issue #22 reported the wordmark missing from the header and footer logos while the robot
+// and the tagline still read. The cause was never colour: the traced files framed the
+// artwork on the original PNG canvases, so most of each viewBox was transparent margin.
+// The header and footer fix block-size and let inline-size derive, so margin on the block
+// axis is the axis that costs rendered size — technoise-logo-full.svg spent 63.6% of its
+// viewBox height on nothing, leaving the wordmark's thin strokes sub-pixel at the 24-32px
+// the components ask for, while the bolder robot and the wider-set tagline survived. 4b1d414
+// re-cropped all three to their alpha bounds and fixed it; nothing stopped a re-export from
+// putting the margin back. This measures the rendered alpha bounding box the same way that
+// commit did, so a re-crop that reintroduces the defect fails here instead of shipping.
+//
+// sharp is Astro's own image service, already required for the `astro:assets` pipeline this
+// project builds with — a rasteriser here adds no dependency.
+const inkHeightFraction = async (name: string): Promise<number> => {
+  const { data, info } = await sharp(join(brandDir, name))
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { width, height, channels } = info;
+  let first = -1;
+  let last = -1;
+
+  // Row occupancy is all the block axis needs, so stop at the first lit pixel in a row.
+  // The threshold discounts antialiasing fringe, which would otherwise read as ink.
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * channels + channels - 1] > 16) {
+        if (first < 0) first = y;
+        last = y;
+        break;
+      }
+    }
+  }
+
+  if (first < 0) throw new Error(`${name} rasterises to nothing`);
+  return (last - first + 1) / height;
+};
+
+describe("brand SVG viewBoxes stay cropped to their ink", () => {
+  // Floors sit ~5 points under what each file measures today, which is loose enough to
+  // absorb rasteriser drift and tight enough that every pre-4b1d414 framing fails:
+  //
+  //   file                             today   before 4b1d414
+  //   technoise-icon.svg               0.889   0.578
+  //   technoise-logo-presentation.svg  0.883   0.720
+  //   technoise-logo-full.svg          0.726   0.364
+  //
+  // logo-full's 0.726 is the real figure for that file. AGENTS.md's "~88% ink" describes
+  // the other two; the horizontal lockup kept ~14% margin per side on the block axis.
+  const floors: Record<string, number> = {
+    "technoise-icon.svg": 0.84,
+    "technoise-logo-presentation.svg": 0.83,
+    "technoise-logo-full.svg": 0.68,
+  };
+
+  for (const svg of svgs) {
+    it(`${svg.name} spends its viewBox height on ink, not transparent margin`, async () => {
+      expect(await inkHeightFraction(svg.name)).toBeGreaterThanOrEqual(floors[svg.name]);
     });
   }
 });
