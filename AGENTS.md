@@ -34,12 +34,15 @@ npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
 npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
-                      # discovery-output (sitemap/rss/robots), nav/route-resolution and
-                      # workflow-permissions tests
+                      # discovery-output (sitemap/rss/robots), nav/route-resolution,
+                      # workflow-permissions and ci-workflow tests
                       # (tests/nav-contract.test.ts also carries the resume page's
-                      # privacy-regression assertions, not just nav contract tests; and
+                      # privacy-regression assertions, not just nav contract tests;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
-                      # assertions for the hero ghost-CTA hover rule, not only markup checks)
+                      # assertions for the hero ghost-CTA hover rule, not only markup checks;
+                      # and tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
+                      # run steps — workflow-permissions.test.ts asserts how a workflow is
+                      # permitted, this one asserts that it actually runs the gates)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -49,8 +52,8 @@ foreground dev server blocking a turn.
 Astro's content loader caches parsed entries in `node_modules/.astro/data-store.json`, not
 in `.astro/`. Deleting or renaming a file in `src/content/` and re-running `npm run build`
 can still emit its page from that cache — clear it with `rm -rf node_modules/.astro` (a
-plain `rm -rf .astro dist` is not enough). CI is unaffected: the deploy workflow always
-installs into a clean `node_modules`.
+plain `rm -rf .astro dist` is not enough). CI is unaffected: both workflows always install
+into a clean `node_modules`.
 
 `vitest.config.ts` sets `fileParallelism: false`. Two suites (`build-output.test.ts`,
 `discovery-output.test.ts`) each shell out to `astro build` in the repo root; run in
@@ -100,6 +103,14 @@ keys — so a location field added before anything renders it still fails the su
 outlives the cycle that added it: treat any future edit to `resume.ts` or `resume.astro` as
 bound by it, not just the one that shipped the page.
 
+`.github/workflows/ci.yml` runs this suite on every pull request, but that makes CI *report*
+the failure, not *gate* the merge, until the repo owner marks `verify` (the job `ci.yml`
+defines) as a required status check on `master` — Settings → Branches → branch protection
+rule for `master` → Require status checks to pass before merging → select `verify`. That
+setting is a GitHub repo setting, not something in this repository, so no agent can make it.
+Until it's made, a red `verify` still permits a human to merge past this rule, same as any
+other check in `ci.yml`.
+
 `.github/workflows/deploy.yml` follows two binding conventions, both born from Issue #14
 (a `pages: write` + `id-token: write` grant sitting at workflow level, readable by every job
 including one running third-party code):
@@ -119,7 +130,9 @@ including one running third-party code):
 `tests/brand-assets.test.ts` plays for the brand-SVG hex exception: the rule holds because a
 test goes red, not because a reviewer remembers. It parses every file under
 `.github/workflows/`, so a workflow added later inherits the rule instead of quietly
-escaping it.
+escaping it. `ci.yml` (Issue #21) is the first workflow added after this rule existed, and it
+inherits it without a carve-out: `permissions: {}` at workflow level, `contents: read` on its
+one job, same shape as `deploy.yml`'s `build` job.
 
 ---
 
