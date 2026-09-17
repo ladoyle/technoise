@@ -122,6 +122,21 @@ describe("routable-id guard", () => {
     expect((await getPublishedProjects()).map((p) => p.id)).toEqual(["2026"]);
   });
 
+  // The guard runs on the entries that survive the draft filter, so a nested draft is
+  // checked exactly where it is reachable: under astro dev, which renders drafts. A
+  // production build never routes it, so it cannot be the thing that breaks a deploy.
+  it("rejects a nested draft under astro dev and ignores it in a production build", async () => {
+    entries.blog = [blogEntry("2026/wip", "WIP", "2026-01-01", true)];
+
+    vi.stubEnv("PROD", false);
+    await expect(getPublishedPosts()).rejects.toThrow(
+      /blog entry "2026\/wip" is in a subdirectory/,
+    );
+
+    vi.stubEnv("PROD", true);
+    expect(await getPublishedPosts()).toEqual([]);
+  });
+
   it("accepts a flat hyphenated id in either collection", async () => {
     entries.blog = [blogEntry("a-colour-system-that-passes", "Colour", "2026-01-01")];
     entries.projects = [projectEntry("technoise-site", "Site", "2026-01-01")];
