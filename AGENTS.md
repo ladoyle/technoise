@@ -35,14 +35,19 @@ npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
 npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
                       # discovery-output (sitemap/rss/robots), nav/route-resolution,
-                      # workflow-permissions, test-harness-contract and ci-workflow tests
+                      # workflow-permissions, test-harness-contract, ci-workflow and
+                      # dependency-contract tests (12 files)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
                       # assertions for the hero ghost-CTA hover rule, not only markup checks;
-                      # and tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
+                      # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
-                      # permitted, this one asserts that it actually runs the gates)
+                      # permitted, this one asserts that it actually runs the gates; and
+                      # tests/dependency-contract.test.ts pins devDependencies.sharp to the
+                      # range the installed astro declares for its own image service, and
+                      # asserts the lockfile holds exactly one sharp, not one marked
+                      # "optional: true")
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -287,6 +292,19 @@ Non-negotiable on every change:
 - Comments explain *why*, never *what*. Default to none.
 - Do not add dependencies without flagging it in the handoff report — every dependency is a
   future upgrade and a supply-chain surface.
+- **`sharp` is a declared `devDependency`, not redundant with Astro.** It has two consumers:
+  Astro's default `astro:assets` image service (the `<Picture>` calls in `index.astro` and
+  `404.astro`) and `tests/brand-assets.test.ts`, which imports it directly to rasterise the
+  brand SVGs for the Issue #22 ink-floor guard. Before Issue #31 it was only present as
+  astro's *optional* transitive, so an Astro release inside `^7.3.2` that changed image
+  service would have dropped it and taken the whole brand-asset suite down as a vitest
+  *collection* error — a broken-harness message, not a brand regression. Its range tracks
+  astro's own `optionalDependencies.sharp` so the build and the test resolve one copy; bump
+  the two together, and don't tidy the declaration back out. `tests/dependency-contract.test.ts`
+  is what makes the range-matching rule binding — the same role `tests/brand-assets.test.ts`
+  plays for the brand-SVG hex exception and `tests/workflow-permissions.test.ts` plays for the
+  deploy-workflow rules: the coupling holds because a test goes red, not because a reviewer
+  remembers to check.
 - `astro.config.mjs` carries a Shiki transformer that strips Shiki's own inline colours from
   fenced code blocks so `prose.css` — not Shiki's theme — styles them, and keeps the
   `tabindex="0"` Astro puts on the resulting `<pre>` (required for a scrolling region to be
