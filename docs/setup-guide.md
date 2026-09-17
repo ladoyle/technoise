@@ -148,9 +148,12 @@ Problem  → Approach  → Stack  → What was hard  → What I'd do differently
 Screenshots
 ```
 
-**Resume** — web-native first, PDF second. Sticky "Download PDF" button. Sections: summary,
-experience, projects, skills, education. A print stylesheet makes Ctrl+P produce a clean
-document, which means the PDF and the page can never drift apart.
+**Resume** — done. Web-native only, no "Download PDF" button and no committed
+`resume.pdf`: a route-scoped print stylesheet (`src/styles/print.css`) makes Ctrl+P produce
+the clean document instead, so there is no separate asset that can drift from the page.
+Sections shipped: summary, experience, skills, education (no separate Projects section — the
+page points to `/projects/` instead of repeating it). No phone number or city/state anywhere
+on the page, in its structured data, or in its metadata — a hard constraint, not an omission.
 
 **About** — bio, mascot illustration, contact, elsewhere links.
 
@@ -193,8 +196,8 @@ technoise/
 │  └─ styles/
 ├─ public/
 │  ├─ brand/             logo source files, committed
-│  ├─ favicon files
-│  └─ resume.pdf
+│  └─ favicon files
+│     (no resume.pdf — the print stylesheet is the PDF; see Part 1's Resume layout)
 ├─ .github/workflows/
 ├─ .nvmrc
 ├─ README.md
@@ -340,7 +343,9 @@ tier; build-time image optimization; nothing.
 - [ ] Works at 320px and in dark mode
 - [ ] Search Console verified, sitemap submitted, key pages requested
 - [ ] Bing verified
-- [ ] Resume PDF downloads and matches the web version
+- [x] Resume prints a clean document via the route-scoped print stylesheet — no separate
+      PDF asset exists to drift from the web version (decided against; see Part 1's Resume
+      layout)
 - [ ] README has the build, dev, and deploy commands
 
 ---
@@ -349,7 +354,9 @@ tier; build-time image optimization; nothing.
 
 The site can be built without these, but it can't be filled:
 
-- Resume source material — roles, dates, responsibilities, measurable outcomes
+- Resume source material — roles, dates, responsibilities, measurable outcomes —
+  **supplied and shipped**; `/resume/` is real content, not a scaffold, with the owner's
+  phone number and location deliberately withheld per their own instruction
 - Project list — name, one-line pitch, stack, demo URL, repo URL, screenshots
 - 2–3 blog post topics with your rough notes
 - Positioning sentence for the home hero: what you build and who it's for

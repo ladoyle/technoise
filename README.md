@@ -16,10 +16,11 @@ and Twitter card tags, and a JSON-LD graph; `/sitemap.xml`, `/rss.xml` and `/rob
 generated at build, and shared links render a committed 1200×630 OG card instead of a grey
 placeholder (`docs/setup-guide.md` Phase 4). The home page is a real front door — mascot
 hero, one heading, one lede, three calls to action, latest posts and projects — with a
-primary nav that collapses behind a labelled toggle below 768px. `/resume/` exists as an
-honest, `noindex` scaffold: five section headings, each still reading "Not written yet."
-About and 404 are not built yet — they, and real resume content, need positioning copy,
-work history and project details that only the site owner can supply (see
+primary nav that collapses behind a labelled toggle below 768px. `/resume/` is real content —
+summary, experience, skills and education, indexable and in the sitemap — with the owner's
+phone number and location deliberately excluded from the page, its structured data, and its
+metadata (see `AGENTS.md`'s note on `src/lib/resume.ts`). About and 404 are not built yet —
+they need positioning copy and project details that only the site owner can supply (see
 `docs/setup-guide.md` Part 5).
 
 ## Running locally
