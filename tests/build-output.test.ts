@@ -273,4 +273,30 @@ describe("the 404 page", () => {
   it("is noindex: a status page is not content, and the sitemap must not list it", () => {
     expect(notFound()).toContain('<meta name="robots" content="noindex, nofollow"');
   });
+
+  // The two pages read as one asset with one crop for most of their history, and the
+  // cheapest way to "tidy" this change away is to point both imports back at one file.
+  // The illustrations say opposite things — the hero's mascot is working contentedly —
+  // so the split is the feature, not an accident of two similar files.
+  const home = () => pages.find((p) => p.path === "index.html")!.html;
+  const heroAsset = /technoise-background\.[\w-]+\.(?:avif|webp|png)/;
+  const notFoundAsset = /technoise-404-background\.[\w-]+\.(?:avif|webp|png)/;
+
+  it("draws its art from its own illustration, never the home hero's", () => {
+    expect(notFound()).toMatch(notFoundAsset);
+    expect(notFound()).not.toMatch(heroAsset);
+  });
+
+  it("leaves the hero on the file the hero already had", () => {
+    expect(home()).toMatch(heroAsset);
+    expect(home()).not.toMatch(notFoundAsset);
+  });
+
+  // The question mark is the topmost ink in this frame (10.7% of its height), so the
+  // hero's 35% anchor opens the visible band below the glyph and cuts away the one
+  // element that makes the picture read as a 404.
+  it("crops that illustration from its own anchor, deliberately not the hero's", () => {
+    expect(notFound()).toMatch(/object-position:\s*50% 18%/);
+    expect(home()).toMatch(/object-position:\s*50% 35%/);
+  });
 });
