@@ -130,10 +130,11 @@
   any width without changing an OS setting, and so a later ThemeToggle is a pure
   addition rather than a token rewrite. Keep them in sync.
 
-  Both are scoped to `screen`: a route that resets these tokens for `@media print`
-  (see src/styles/print.css) does so on a bare `:root` selector, which only out-specifies
-  an unscoped dark block by also winning the media query, not the cascade. Scoping dark
-  to screen means print never has to out-specify it in the first place.
+  Both are scoped to `screen`, and that is the whole of what keeps `@media print` on the
+  light scheme — src/styles/print.css resets no token, because it does not have to. Drop
+  the `screen` here and a dark-OS reader prints cream text on a dropped background, with
+  no fix available from a print stylesheet: a reset on a bare `:root` loses to
+  `:root:not([data-theme="light"])` on specificity, and a media query adds none.
 */
 @media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {

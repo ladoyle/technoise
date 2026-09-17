@@ -13,7 +13,7 @@ The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/set
 | | |
 |---|---|
 | Generator | Astro 7 (static output; one justified JS island — see below) |
-| Node | `>=22.12.0`, pinned in `.nvmrc` |
+| Node | floor `>=22.12.0` in `engines`; `.nvmrc` names the major line (`24`) both workflows build on — `ci.yml` via `node-version-file`, `deploy.yml` via an explicit `node-version` input to `withastro/action`, pinned to `.nvmrc` by `tests/ci-workflow.test.ts` |
 | Package manager | npm, lockfile committed |
 | Host | GitHub Pages via `.github/workflows/deploy.yml` on push to `master` |
 | CI | `.github/workflows/ci.yml` — `npm ci`, `npx astro check`, `npm test` on every pull request and every push to `master` |
@@ -33,17 +33,21 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
-                      # discovery-output (sitemap/rss/robots), nav/route-resolution,
-                      # workflow-permissions, test-harness-contract, ci-workflow,
-                      # dependency-contract and palette-tokens tests (13 files)
+npm test             # vitest run — schema, publishing-rule, content-helper, build-output,
+                      # SEO-helper, discovery-output (sitemap/rss/robots),
+                      # nav/route-resolution, brand-asset, workflow-permissions,
+                      # test-harness-contract, ci-workflow, dependency-contract and
+                      # palette-tokens tests (13 files)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
-                      # assertions for the hero ghost-CTA hover rule, not only markup checks;
+                      # assertions for the hero ghost-CTA hover rule, and asserts every
+                      # dark-scheme CSS rule in the shipped output stays `@media screen`-
+                      # scoped, not only markup checks;
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
-                      # permitted, this one asserts that it actually runs the gates;
+                      # permitted, this one asserts that it actually runs the gates — and
+                      # also pins deploy.yml's node-version input against .nvmrc;
                       # tests/dependency-contract.test.ts pins devDependencies.sharp to the
                       # range the installed astro declares for its own image service, and
                       # asserts the lockfile holds exactly one sharp, not one marked
@@ -85,6 +89,7 @@ a long-lived watch session to have a current `dist/`.
 ```
 technoise/
 ├─ .claude/agents/      designer, developer, qa, documenter, gatekeeper
+├─ .claude/skills/      a11y-verify, safe-install
 ├─ docs/                setup-guide.md — design plan and phase roadmap
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
@@ -99,7 +104,11 @@ technoise/
 │  │                    rss.xml.ts, robots.txt.ts)
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        the three live logo SVGs — anything here is published
+├─ public/fonts/        the self-hosted Inter woff2 that fonts.css loads
+├─ public/og/           the one committed Open Graph card (OG_IMAGE in src/lib/seo.ts)
+├─ public/favicon.*     .ico and .svg, both linked from BaseLayout's head
 ├─ archive/             versioned but never built or served — see the rule below
+├─ tests/               vitest suites, plus global-setup.ts — the one build they all read
 └─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
 
@@ -348,14 +357,14 @@ Non-negotiable on every change:
 - **Route-scoped stylesheets are imported by the page that needs them, not by `BaseLayout` or
   a shared component.** `src/styles/print.css` is the first of these, and the repo's first
   `@media print` rules — imported only by `src/pages/resume.astro`, so the rules ship on that
-  route alone. A print block that resets tokens back to the light scheme (so a reader whose OS
-  is dark doesn't print cream-on-dropped-background) has to **out-specify or evade** the
-  dark-scheme block in `tokens.css`, not merely follow it in source order: media queries add
-  no specificity, so a bare `@media print { :root { … } }` loses to `:root:not([data-theme=
-  "light"])` regardless of which stylesheet a bundler emits last. `tokens.css` avoids the trap
-  by scoping both dark-scheme blocks to `@media screen`, so a print reset never has to
-  out-specify them in the first place — keep any future dark-scheme rule scoped the same way,
-  or a new route-scoped print stylesheet inherits the same inert reset.
+  route alone. It carries no token reset, and needs none: `tokens.css` scopes both dark-scheme
+  blocks to `@media screen`, so a reader whose OS is dark already gets the light tokens under
+  `@media print` without anything print-side asking for them. A reset would have been inert
+  even before that scoping existed to rely on — media queries add no specificity, so a bare
+  `@media print { :root { … } }` loses to `:root:not([data-theme="light"])` regardless of
+  which stylesheet a bundler emits last. Keep any future dark-scheme rule scoped to
+  `@media screen`; `tests/build-output.test.ts`'s "the dark scheme stays off the printed page"
+  suite now enforces this by scanning every shipped CSS rule, not just convention.
 
 ### Page SEO
 
