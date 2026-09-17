@@ -66,7 +66,7 @@ const SOURCES: SwatchSource[] = [
   },
   {
     token: "--surface-sunken",
-    role: "Code, callouts",
+    role: "Code, pills, button states",
     bases: { light: "cream-sunken", dark: "ink-sunken" },
     ratioNote: "vs page",
     decimals: 2,
@@ -79,7 +79,6 @@ const SOURCES: SwatchSource[] = [
   },
   { token: "--text-muted", role: "Meta, captions", bases: { light: "ink-muted", dark: "cream-muted" } },
   { token: "--link", role: "Body links", bases: { light: "signal-700", dark: "signal-300" } },
-  { token: "--accent-text", role: "Orange as text", bases: { light: "pulse-700", dark: "pulse-300" } },
   {
     token: "--accent-fill",
     role: "Primary button fill",
