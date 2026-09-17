@@ -186,7 +186,7 @@ describe("the dark scheme stays off the printed page", () => {
       .map((f) => readFileSync(join(dist, "_astro", f), "utf8"));
     const inline = pages.flatMap((p) => [...p.html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]));
     return flattenCss([...bundles, ...inline].join("\n")).filter((r) =>
-      /--text\s*:\s*var\(--cream\)/.test(r.declarations),
+      /--text\s*:\s*var\(--cream-dim\)/.test(r.declarations),
     );
   };
 
@@ -194,7 +194,7 @@ describe("the dark scheme stays off the printed page", () => {
     // Without this the scoping assertion below passes vacuously on a renamed token.
     expect(
       darkSchemeRules().length,
-      "found no rule setting --text to --cream in the shipped CSS; the scoping assertion would pass on nothing",
+      "found no rule setting --text to --cream-dim in the shipped CSS; the scoping assertion would pass on nothing",
     ).toBeGreaterThanOrEqual(2);
   });
 
