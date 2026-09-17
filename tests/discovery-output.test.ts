@@ -78,6 +78,11 @@ describe("sitemap.xml", () => {
     const contradictions = pages.filter((p) => isNoindex(p.html) && listed.has(p.route)).map((p) => p.route);
     expect(contradictions).toEqual([]);
     expect(listed.has("/styleguide/")).toBe(false);
+    // Issue #15. Named as well as covered by the rule above: an indexed 404.html is
+    // a soft 404 in Search Console, and the general check only catches it for as
+    // long as the page keeps its noindex tag. Dropping both together would
+    // otherwise pass.
+    expect(listed.has("/404.html")).toBe(false);
   });
 
   it("lists each URL exactly once", () => {

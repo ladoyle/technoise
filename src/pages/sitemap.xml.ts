@@ -4,7 +4,8 @@
 //
 // MAINTENANCE: this file and STATIC_SITEMAP_ROUTES are the only record of what is in
 // the sitemap. A new route must be added to that registry or to the expansion below,
-// or it will never be listed. /styleguide/ is absent on purpose — it is noindex.
+// or it will never be listed. /styleguide/ and /404.html are absent on purpose — both
+// are noindex, and a noindex page listed here contradicts itself.
 //
 // Built from src/lib/content.ts's publishing rules rather than from getCollection, so
 // drafts fall out of a production build for free and the feed, the listings and this
