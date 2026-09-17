@@ -13,7 +13,7 @@ The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/set
 | | |
 |---|---|
 | Generator | Astro 7 (static output; one justified JS island — see below) |
-| Node | `>=22.12.0`, pinned in `.nvmrc` |
+| Node | floor `>=22.12.0` in `engines`; `.nvmrc` names the major line (`24`) both workflows build on — `ci.yml` via `node-version-file`, `deploy.yml` via an explicit `node-version` input to `withastro/action`, pinned to `.nvmrc` by `tests/ci-workflow.test.ts` |
 | Package manager | npm, lockfile committed |
 | Host | GitHub Pages via `.github/workflows/deploy.yml` on push to `master` |
 | CI | `.github/workflows/ci.yml` — `npm ci`, `npx astro check`, `npm test` on every pull request and every push to `master` |

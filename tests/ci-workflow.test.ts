@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const ciPath = join(root, ".github", "workflows", "ci.yml");
+const deployPath = join(root, ".github", "workflows", "deploy.yml");
 
 type Step = { uses?: string; run?: string; with?: Record<string, string> };
 type Workflow = {
@@ -31,6 +32,10 @@ const source = readFileSync(ciPath, "utf8");
 // YAML 1.2, matching what GitHub Actions reads. Under YAML 1.1 (PyYAML) the `on:` key
 // parses as the boolean `true` instead, so a YAML 1.1 parser would find no trigger here.
 const ci = parse(source) as Workflow;
+const deploy = parse(readFileSync(deployPath, "utf8")) as Workflow;
+
+const nvmrcMajor = (): string =>
+  readFileSync(join(root, ".nvmrc"), "utf8").trim().replace(/^v/, "");
 
 const runCommands = (): string[] =>
   (ci.jobs.verify.steps ?? [])
@@ -76,11 +81,23 @@ describe("CI workflow runs the checks on the path to production", () => {
   it("keeps .nvmrc satisfying the engines floor in package.json", () => {
     // Two files pin Node for different readers (CI via .nvmrc, npm via engines). They are
     // allowed to differ, but not to contradict — .nvmrc must not drift below the floor.
-    const nvmrc = readFileSync(join(root, ".nvmrc"), "utf8").trim().replace(/^v/, "");
     const engines = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).engines.node;
     const floor = /(\d+)\.(\d+)\.(\d+)/.exec(engines);
     expect(floor, `engines.node "${engines}" is not a plain >=x.y.z range`).not.toBeNull();
-    expect(Number(nvmrc.split(".")[0])).toBeGreaterThanOrEqual(Number(floor![1]));
+    expect(Number(nvmrcMajor().split(".")[0])).toBeGreaterThanOrEqual(Number(floor![1]));
+  });
+
+  it("builds the deployed artifact on the Node version .nvmrc names", () => {
+    // Gatekeeper audit G4: withastro/action runs its own actions/setup-node from its own
+    // `node-version` default (`"24"` at the pinned SHA — it matches .nvmrc today, but by
+    // coincidence, and a SHA bump can move it). Passing it explicitly means `verify` and
+    // the artifact that reaches Pages agree on a major. The action takes a version string,
+    // not a version file, so this is the second literal — pinned here rather than trusted.
+    const astroAction = (deploy.jobs.build.steps ?? []).find((step) =>
+      step.uses?.startsWith("withastro/action@"),
+    );
+    expect(astroAction, "deploy.yml no longer runs withastro/action").toBeDefined();
+    expect(String(astroAction?.with?.["node-version"])).toBe(nvmrcMajor());
   });
 
   it("references no secret", () => {
