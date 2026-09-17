@@ -90,3 +90,7 @@ See [`AGENTS.md`](AGENTS.md) for the full content-authoring contract.
 
 GitHub Pages, via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), on every
 push to `master`. No manual build step — the workflow installs, builds, and publishes.
+
+Only a root deploy is supported: `site` in `astro.config.mjs` must be an origin with no
+path, and Astro's `base` must stay unset or `/`. The build fails explicitly if either is
+set to a project subpath — see `AGENTS.md`'s "Page SEO" section.
