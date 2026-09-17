@@ -81,13 +81,17 @@ technoise/
 └─ .github/workflows/   deploy.yml
 ```
 
-`public/brand/*.svg`'s viewBoxes are trimmed to ~88% ink (no wasted transparent margin) —
-`.site-header__brand img`, `.site-footer__brand img` and the `<img width height>` pair
-(`918`/`835`, the presentation file's own extents) all assume that framing. Re-exporting or
-re-cropping any of these three files means revisiting all three of those places, or the mark
-renders at the wrong size or off-center in its reserved box. `tests/brand-assets.test.ts`
-asserts the declared size matches each file's own `viewBox`, so a desync fails the suite
-instead of shipping quietly.
+`public/brand/*.svg`'s viewBoxes are trimmed close to their ink bounds (no wasted transparent
+margin) — ~88% ink for `technoise-icon.svg` (0.889) and `technoise-logo-presentation.svg`
+(0.883), ~73% for `technoise-logo-full.svg` (0.726): the horizontal lockup carries more
+block-axis margin than the other two, and "~88%" does not describe it. `.site-header__brand
+img`, `.site-footer__brand img` and the `<img width height>` pair (`918`/`835`, the
+presentation file's own extents) all assume that framing. Re-exporting or re-cropping any of
+these three files means revisiting all three of those places, or the mark renders at the
+wrong size or off-center in its reserved box. `tests/brand-assets.test.ts` asserts the
+declared size matches each file's own `viewBox`, and floors each file's ink-to-viewBox height
+fraction against the figures above, so both a size desync and a re-crop that thins the ink
+back out fail the suite instead of shipping quietly.
 
 `src/lib/resume.ts` is the first `src/lib/` module that holds content rather than logic — the
 resume's copy, dates and skills, not a helper. Its types are load-bearing for a standing
@@ -206,13 +210,22 @@ button · Callout · Pagination · Breadcrumb · ThemeToggle · SEO head block �
 
 If a page needs a thirteenth component, question the page before adding it.
 
-**ThemeToggle has a hard prerequisite.** `Header.astro` and `Footer.astro` reference the brand
-SVGs by URL, so their dark-mode fills follow the OS `prefers-color-scheme` only — a `data-theme`
-attribute on `<html>` cannot reach inside a URL-referenced image. Whoever builds ThemeToggle
-must, in the same change, either inline these SVGs (so page-level `data-theme` CSS can target
-their classes) or serve scheme-specific files swapped by `data-theme`. Shipping ThemeToggle
-without doing one of those gives a user who OS-light/manually-dark an invisible, ink-on-ink
-wordmark in the header and footer — measured, not theoretical.
+**ThemeToggle has a prerequisite that is probably, but not fully, already satisfied.**
+`Header.astro` and `Footer.astro` reference the brand SVGs by URL, so in principle their
+dark-mode fills follow only the OS `prefers-color-scheme` — a `data-theme` attribute lives on
+the embedding document, not inside the referenced image, so it looks like it cannot reach in.
+In practice, `tokens.css` already pairs every scheme block with a `color-scheme` declaration
+(`:root[data-theme="dark"] { color-scheme: dark }`), and Chromium propagates the embedding
+document's *used* `color-scheme` into a URL-referenced SVG image — so `data-theme="dark"`
+with the OS in light mode correctly recolors the header and footer logos today. **Verified in
+Chromium 141 only.** Gecko and WebKit are unverified (neither is installed in this
+environment), and a dark mode implemented by filter/colour inversion rather than
+`color-scheme` — a Dark Reader-style browser extension, say — sets nothing the image document
+can see and would still produce an invisible, ink-on-ink wordmark. Whoever builds ThemeToggle
+must confirm this propagation across the browsers the site actually needs to support before
+relying on it; where it doesn't hold, fall back to inlining these SVGs (so page-level
+`data-theme` CSS can target their classes) or serving scheme-specific files swapped by
+`data-theme`.
 
 `Prose` forwards unrecognized props (`...rest`) onto its root `<div>`, not just `class`.
 Astro hands a child component its parent's scoped-style attribute as a prop, and the child
