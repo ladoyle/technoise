@@ -39,7 +39,11 @@ export const SITEMAP_PATH = "/sitemap.xml";
 
 // Routes with no collection entry behind them. A new static route must be added
 // here, or to the dynamic expansion in src/pages/sitemap.xml.ts, or it will not be
-// in the sitemap. /styleguide/ is the only deliberate exclusion: it is noindex.
+// in the sitemap. Two deliberate exclusions, both noindex, for different reasons:
+// /styleguide/ is real content nobody searched for, and /404.html is not content at
+// all — a static host cannot pair it with a real 404 status, so listing it would
+// register a soft 404. tests/discovery-output.test.ts enforces the general rule that
+// a sitemap entry and a noindex tag contradict each other.
 export const STATIC_SITEMAP_ROUTES: readonly string[] = [
   "/",
   "/blog/",

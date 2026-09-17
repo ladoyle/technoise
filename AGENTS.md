@@ -226,7 +226,9 @@ Non-negotiable on every change:
 - Keyboard-only navigation works; focus states are visible.
 - Layout holds at 320px and in dark mode.
 - Body text meets 4.5:1 contrast; large text 3:1.
-- Lighthouse mobile: Performance ≥ 90, Accessibility ≥ 95, SEO = 100.
+- Lighthouse mobile: Performance ≥ 90, Accessibility ≥ 95, SEO = 100 — this floor is for
+  indexable pages. `/404.html` scores SEO 69 by design: `is-crawlable` fails on its
+  deliberate `noindex`, and that is correct, not a defect to fix by removing it.
 - Zero client JS unless a feature genuinely requires an island.
 
 ---
@@ -274,10 +276,13 @@ block) and owns nothing else a crawler or social client reads. A page passes:
 - `canonicalPath?` — omit it and the layout derives one from the page's own URL via
   `canonicalPath(Astro.url)`, so a new route is canonical by default, not by remembering.
 - `noindex?` — emits `noindex, nofollow` instead of the default
-  `index, follow, max-image-preview:large`. `/styleguide/` is the only page that uses it, and
-  the only route absent from `STATIC_SITEMAP_ROUTES`. `/resume/` used to share both while it
-  was a stub; lifting `noindex` and adding the route was the one-line change that shipped
-  once the page had real content — the pattern to repeat for any future stub.
+  `index, follow, max-image-preview:large`. Two pages use it, and both are the only routes
+  absent from `STATIC_SITEMAP_ROUTES`, for different reasons: `/styleguide/` is real content
+  nobody searched for; `/404.html` is not content at all and a static host cannot pair it with
+  a real 404 status code, so an indexed `404.html` would be a soft 404. `/resume/` used to
+  share both while it was a stub; lifting `noindex` and adding the route was the one-line
+  change that shipped once the page had real content — the pattern to repeat for any future
+  stub.
 - `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
   page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.

@@ -1,0 +1,144 @@
+---
+// The site's own error page. GitHub Pages serves dist/404.html for any unmatched path
+// under the deploy root, so Astro's src/pages/404.astro convention is the whole
+// routing story — no config, no redirect rule. Issue #15: before this existed, a
+// mistyped or retired URL dropped the visitor onto GitHub's generic error page with
+// no header, no footer and no way back into the site.
+//
+// noindex, nofollow and absent from STATIC_SITEMAP_ROUTES: the document is a status
+// response, not content anyone searched for, and a static host cannot send a real 404
+// status alongside it. Its canonical is /404.html — the path the file actually occupies
+// — rather than the arbitrary URL that happened to miss.
+//
+// The mascot appears here as page content, which AGENTS.md's third posture rule allows
+// on exactly three surfaces (home hero, About, 404). It is laid out the same way the
+// home hero lays it out — same scrim, same tokens — so the contrast of text over it is
+// the value already measured there rather than a second guess.
+
+import { Picture } from "astro:assets";
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import art from "../assets/technoise-background.png";
+---
+
+<BaseLayout
+  title="Page not found — TechNoise"
+  description="That page is not here. Head back to the home page, or pick up the blog and the project log from where they start."
+  canonicalPath="/404.html"
+  noindex
+>
+  <section class="notfound">
+    <Picture
+      src={art}
+      alt=""
+      widths={[640, 960, 1280, 1536]}
+      sizes="100vw"
+      formats={["avif", "webp"]}
+      loading="eager"
+      class="notfound__art"
+    />
+
+    <div class="wrap wrap--wide notfound__inner">
+      <div class="notfound__text">
+        <p class="notfound__status">404</p>
+        <h1 class="notfound__title">That page is not here</h1>
+        <p class="notfound__lede">
+          The address may be mistyped, or the page may have moved since it was linked.
+          Nothing is broken on your end.
+        </p>
+        <p class="notfound__actions">
+          <a class="button" href="/">Back to the home page</a>
+          <a class="button button--ghost" href="/blog/">Read the blog</a>
+          <a class="button button--ghost" href="/projects/">See the projects</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Same construction as the home hero: the art is flush under the header rather
+     than floating in a band of page colour, and the two negative-z-index layers stay
+     inside this section's own stacking context. */
+  .notfound {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin-block-start: calc(var(--space-48) * -1);
+    padding-block: var(--space-64);
+  }
+
+  .notfound__art {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: 50% 35%;
+  }
+
+  .notfound::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--surface);
+    opacity: var(--scrim-opacity);
+  }
+
+  /* No --text-muted over the scrim: it measures 3.5:1 on the worst composite and
+     fails. Everything in here is full --text. */
+  .notfound__text {
+    max-width: var(--content);
+  }
+
+  .notfound__status {
+    margin: 0 0 var(--space-8);
+    color: var(--text);
+    font-size: var(--size-16);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .notfound__title {
+    margin: 0;
+    font-size: var(--text-hero);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .notfound__lede {
+    margin: var(--space-24) 0 0;
+    color: var(--text);
+    font-size: var(--text-h3);
+    line-height: var(--lh-body);
+  }
+
+  .notfound__actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    margin: var(--space-32) 0 0;
+  }
+
+  /* A ghost label over the bare scrim is 3.1:1 and fails; an opaque surface fill
+     under it restores 5.4:1 light and 7.2:1 dark. */
+  .notfound .button--ghost {
+    background: var(--surface);
+  }
+
+  @media (min-width: 48em) {
+    .notfound {
+      padding-block: var(--space-96);
+    }
+
+    .notfound__actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+  }
+</style>
