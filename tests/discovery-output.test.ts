@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,9 +29,9 @@ let robots = "";
 let locs: string[] = [];
 
 beforeAll(() => {
-  // Always build. Reusing an existing dist/ meant a tree left behind by another
-  // branch could be asserted against and reported green.
-  execFileSync("npx", ["astro", "build"], { cwd: root, stdio: "ignore", timeout: 300_000 });
+  // The build this used to run itself now happens once per run in
+  // tests/global-setup.ts, for the same reason: reusing an existing dist/ meant a tree
+  // left behind by another branch could be asserted against and reported green.
   pages = htmlFiles(dist).map((path) => ({
     // dist/blog/index.html -> /blog/
     route: `/${relative(dist, path).replace(/index\.html$/, "").split(/[\\/]/).join("/")}`,
@@ -42,7 +41,7 @@ beforeAll(() => {
   feed = readFileSync(join(dist, "rss.xml"), "utf8");
   robots = readFileSync(join(dist, "robots.txt"), "utf8");
   locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-}, 300_000);
+});
 
 const isNoindex = (html: string) => /<meta name="robots" content="noindex/.test(html);
 const pathOf = (loc: string) => new URL(loc).pathname;
