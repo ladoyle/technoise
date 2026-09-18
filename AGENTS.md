@@ -41,9 +41,11 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
-                      # assertions for the hero ghost-CTA hover rule, and asserts every
+                      # assertions for the hero ghost-CTA hover rule, asserts every
                       # dark-scheme CSS rule in the shipped output stays `@media screen`-
-                      # scoped, not only markup checks;
+                      # scoped, and asserts the 404 page and the home hero each resolve to
+                      # their own hashed art derivatives (never the other's) and keep their
+                      # own `object-position`, not only markup checks;
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
                       # permitted, this one asserts that it actually runs the gates — and
@@ -245,8 +247,9 @@ undocumented path.
    CTA is the correct, intended count, not a violation.
 2. **Cream is the page, never white.** Pure white next to `#FDF9F3` reads as a rendering bug.
 3. **The mascot is a guest, not wallpaper.** This applies to the mascot as *page content or
-   illustration* — home hero, About, and 404 only (`src/assets/technoise-background.png` and
-   anything like it stays confined to those three pages). It does not apply to the mascot as
+   illustration* — home hero, About, and 404 only (`src/assets/technoise-background.png` for
+   the home hero, `src/assets/technoise-404-background.png` for `/404.html`, and anything like
+   them stays confined to those three pages). It does not apply to the mascot as
    *part of the fixed brand lockup*: the header and footer logos (`public/brand/*.svg`) and the
    favicon render on every page, exactly as any site's logo and favicon would. That's not
    wallpaper, it's signage — the distinction is illustration-of-the-page vs. identity-of-the-
