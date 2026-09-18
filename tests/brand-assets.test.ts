@@ -276,6 +276,59 @@ describe("the header's inlined brand mark", () => {
   });
 });
 
+// The suite above reads index.html, and "brand SVGs stay inert assets" further down reads the
+// source files. Neither covers what actually changed about the threat model: the mark is no
+// longer an isolated image document, it is markup a <Fragment set:html> splices into the page
+// on every route. A source file that stays inert and a build that inlines it are two claims,
+// and only the second one is what a browser executes — so this walks the built pages and
+// checks the injected region itself. It also pins the token rule at the one layer a var()
+// cannot reach back into: a re-export that moves a fill from a class onto a presentation
+// attribute would still be a valid SVG, would still pass every geometry check, and would
+// paint a hardcoded hex on every page in both schemes.
+describe("the header's inlined mark ships inert and tokenised on every page", () => {
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = join(dir, entry.name);
+      return entry.isDirectory() ? walk(full) : full.endsWith(".html") ? [full] : [];
+    });
+
+  const pages = walk(join(root, "dist"));
+
+  it("builds pages to check", () => {
+    expect(pages.length).toBeGreaterThan(1);
+  });
+
+  for (const page of pages) {
+    const label = relative(join(root, "dist"), page).split(sep).join(posix.sep);
+
+    it(`/${label} injects no script, handler or external reference with the mark`, () => {
+      const brand = /<a class="site-header__brand"[\s\S]*?<\/a>/.exec(readFileSync(page, "utf8"));
+      expect(brand, `${label} renders no .site-header__brand`).not.toBeNull();
+
+      // The opening <a> carries href and class legitimately; everything after it is the
+      // injected SVG markup, which must carry neither.
+      const injected = brand![0].slice(brand![0].indexOf(">") + 1);
+
+      expect(injected).not.toMatch(/<(script|style|foreignObject|image|use|animate|set)\b/i);
+      expect(injected).not.toMatch(/\son[a-z]+\s*=/i);
+      expect(injected).not.toMatch(/(xlink:)?href\s*=/i);
+      expect(injected).not.toMatch(/url\(\s*['"]?(https?:|\/\/)/i);
+      expect(injected).not.toMatch(/javascript:/i);
+    });
+
+    it(`/${label} paints the mark from tokens, never a hex of its own`, () => {
+      const brand = /<a class="site-header__brand"[\s\S]*?<\/a>/.exec(readFileSync(page, "utf8"));
+      const injected = brand![0].slice(brand![0].indexOf(">") + 1);
+
+      expect(injected, "a fill hex inlined into the page escapes tokens.css entirely").not.toMatch(
+        /#[0-9a-fA-F]{3,8}\b/,
+      );
+      expect(injected).not.toMatch(/\s(fill|stroke)="(?!none\b)[^"]/i);
+      expect(injected).toMatch(/class="tn-(ink|signal|pulse)"/);
+    });
+  }
+});
+
 // Every fill rule Header.astro writes for the inlined mark, resolved through tokens.css and
 // compared against what the source SVGs declare for themselves. The two must agree in both
 // schemes: this is a like-for-like reproduction of the files' own colours, so a token edit,
