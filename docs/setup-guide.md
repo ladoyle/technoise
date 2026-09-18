@@ -31,34 +31,106 @@ maintenance and you don't mind Go templates.
 
 ### Decision 2: Host
 
-| | Cloudflare Pages | GitHub Pages | Netlify |
+| | GitHub Pages | Cloudflare Pages | Netlify |
 |---|---|---|---|
 | Price | $0 | $0 | $0 |
-| Bandwidth | Unmetered | 100 GB/mo soft cap | 100 GB/mo |
-| Builds | 500/month | 10/hour soft cap | 300 build min/mo |
-| Site size | 20,000 files, 25 MiB per file | 1 GB recommended | — |
-| Repo can be private | Yes | No — free tier is public repos only | Yes |
-| Custom domain + SSL | Free | Free | Free |
+| Bandwidth | 100 GB/mo soft cap | Unmetered | 100 GB/mo |
+| Builds | 10/hour soft cap | 500/month | 300 build min/mo |
+| Site size | 1 GB recommended | 20,000 files, 25 MiB per file | — |
+| Repo can be private | No — free tier is public repos only | Yes | Yes |
+| Custom domain + SSL | Free (GitHub-provisioned Let's Encrypt) | Free | Free |
+| Build runs in | A workflow in this repo | Vendor build image, dashboard-configured | Vendor build image |
 | Credit card to start | No | No | No |
-| Overage behavior | Static assets never bill | Throttling, not a bill | Prompts upgrade |
+| Overage behavior | Throttling, not a bill | Static assets never bill | Prompts upgrade |
 
-**Recommendation: Cloudflare Pages.** Unmetered bandwidth removes the one scenario that
-makes a free host fail — a post gets traffic and the site goes down or bills you. It also
-keeps DNS, registrar, and analytics in one dashboard.
+**Recommendation: GitHub Pages.** Two costs come with it and both are accepted knowingly.
+First, the repo must be public — the free tier serves public repos only, which is already a
+stated requirement elsewhere in this guide. Second, bandwidth is a 100 GB/mo soft cap rather
+than unmetered; for a text-and-SVG site with one committed OG image that is not a real
+constraint, and the documented failure mode is throttling, never a bill.
 
-**The one thing to avoid:** anything dynamic on Cloudflare Pages runs as a Function, and
-Functions bill against the Workers free plan at 100,000 requests/day with 10 ms CPU per request. A purely static site never touches that. Keep it static
-and this stays $0 permanently.
+What actually motivated the choice is where the build runs: a workflow this repository owns,
+not a vendor build image configured through a dashboard. That is what makes the deploy's
+permissions scopeable per job and its third-party actions pinnable to full commit SHAs — the
+two `deploy.yml` conventions AGENTS.md makes binding. A dashboard-configured build cannot be
+reviewed in a pull request; this one can. The implementation is
+`.github/workflows/deploy.yml`, which runs on every push to `master` and on manual
+`workflow_dispatch`.
 
-### Decision 3: Registrar
+**The one thing to avoid:** GitHub Pages serves static files and nothing else — no
+server-side execution, no redirect rules, no custom response headers, no environment-based
+configuration. Anything dynamic means leaving this host, not paying for an add-on on it. The
+one redirect the host does perform for you: with the custom domain set and both hostnames'
+DNS pointing at Pages, GitHub redirects between the apex and `www` itself, which is how the
+apex-or-`www` decision in Phase 5 gets enforced without a redirect rule to write. Keep the
+site static and this stays $0 permanently.
+
+### Decision 3: Registrar and DNS
+
+The host is GitHub Pages (Decision 2), and that settles nothing about who sells the domain or
+whose nameservers answer for it. A Pages custom domain is wired entirely with ordinary DNS
+records plus one setting in the repo, so the registrar and the authoritative DNS provider can
+be anyone — Cloudflare included. Keeping the domain and the zone at Cloudflare while GitHub
+serves the origin is a normal, supported arrangement, not a compromise.
 
 Buy the domain at Cloudflare Registrar, which passes through the wholesale registry fee plus the $0.18 ICANN fee with no markup and no renewal premium — currently $10.44/yr for a .com. Note for budgeting: Verisign raises the wholesale .com fee on 1 November 2026, taking the at-cost total to about $11.15.
 
 Avoid `.io`, `.ai`, `.tech`, `.dev` unless you want the domain to cost more than everything
 else combined — .io runs $50/yr and .ai $80/yr at cost.
 
-Skip this and use `username.github.io` if you want $0.00 total. The tradeoff is that you
-can never move the URL without losing accumulated search ranking.
+That advice is currently being overridden: `astro.config.mjs` already sets
+`site: 'https://technoise.dev'`, a `.dev` — one of the TLDs the paragraph above warns about.
+Either the override is deliberate or the hostname needs revisiting, and that is a human
+decision, not something this guide settles. Before treating Part 3's ledger total as
+accurate, check the registrar's current at-cost renewal price for `.dev` and reconcile it
+with the `.com` figure that ledger line is built on. One hard consequence comes with the
+choice either way: the whole `.dev` TLD is on the HSTS preload list, so browsers refuse plain
+HTTP for it unconditionally — the site is HTTPS-only from the very first request, with no
+HTTP fallback while a certificate provisions.
+
+**Wiring the custom domain to GitHub Pages** takes three things, all of them independent of
+who the registrar is:
+
+1. A `CNAME` file in `public/`, containing the bare custom domain on one line and nothing
+   else — no scheme, no trailing slash, no second hostname. Astro copies `public/` verbatim
+   into the build output, so the file lands at the root of what gets published.
+2. The DNS records below, created at whatever provider holds the zone.
+3. The same domain entered in the repo's Settings → Pages → Custom domain. Add the file *and*
+   set the field — not one or the other — so the configuration survives regardless of which
+   one the platform treats as authoritative.
+
+```
+Apex (technoise.dev)      A     185.199.108.153
+                          A     185.199.109.153
+                          A     185.199.110.153
+                          A     185.199.111.153
+                          AAAA  2606:50c0:8000::153
+                          AAAA  2606:50c0:8001::153
+                          AAAA  2606:50c0:8002::153
+                          AAAA  2606:50c0:8003::153
+www.technoise.dev         CNAME ladoyle.github.io.
+```
+
+These are GitHub's documented addresses, but GitHub has changed them historically — re-check
+the list against GitHub's own Pages custom-domain documentation before creating the records,
+and use what that page says if it disagrees with this block.
+
+If the zone lives at Cloudflare, every one of these records must be **DNS-only (grey cloud),
+not proxied (orange cloud)**. This is the single most likely way a correct-looking setup
+fails: a proxied record intercepts the HTTP-01 challenge GitHub uses to issue the
+certificate, so issuance never completes, and a proxied record combined with Cloudflare's
+"Flexible" SSL mode produces a redirect loop against a host that already redirects to HTTPS.
+If a CAA record exists on the zone, it must permit `letsencrypt.org`.
+
+Skip the domain entirely and you can have $0.00 total, but the free path has a specific
+shape: it must be a **user page** — a repo named `<username>.github.io`, served at
+`https://<username>.github.io/` — not the project URL this repo gets by default,
+`https://<username>.github.io/technoise/`. The reason is that this site supports a root
+deploy only. `assertRootDeploy()` in `src/lib/seo.ts` fails the build on a `site` carrying a
+path or a non-`/` `base`, and every internal link and asset reference is a rooted path, so
+served under `/technoise/` the CSS, fonts, brand SVGs and navigation all 404. The tradeoff of
+taking the free URL is unchanged: you can never move the URL later without losing accumulated
+search ranking.
 
 ---
 
@@ -199,6 +271,7 @@ technoise/
 │  └─ styles/
 ├─ public/
 │  ├─ brand/             the three live logo SVGs, committed
+│  ├─ CNAME              does not exist yet — pending the custom-domain wiring; see Phase 5
 │  └─ favicon files
 │     (no resume.pdf — the print stylesheet is the PDF; see Part 1's Resume layout)
 ├─ .github/workflows/
@@ -215,7 +288,8 @@ Each phase ends in something verifiable. Don't start the next one until the curr
 actually done.
 
 ### Phase 1 — Repo and local build (1 evening) — done
-1. Create the GitHub repo. Public unless you have a reason otherwise.
+1. Create the GitHub repo, public — required, not a default: GitHub Pages on the free tier
+   serves public repos only.
 2. Scaffold the generator, pin the Node version in `.nvmrc`, commit the lockfile.
 3. Confirm the dev server runs and the production build produces a static output folder.
 4. First commit.
@@ -247,7 +321,9 @@ edits. Verified.
    `src/lib/seo.ts` and the endpoint files for the reasoning (an integration can't know
    this repo's own `noindex` rules, and `@astrojs/sitemap` doesn't emit `/sitemap.xml`).
 3. `robots.txt` generated at `src/pages/robots.txt.ts`, not a static file in `public/` —
-   it needs an absolute sitemap URL and the hostname isn't settled (Part 0 Decision 3).
+   it needs an absolute sitemap URL. The hostname is set once in `astro.config.mjs` and
+   derived from there by `src/lib/seo.ts`, so it is never written as a literal anywhere in
+   `src/` and changing it stays a one-line edit (Part 0 Decision 3: Registrar and DNS).
 4. JSON-LD: `WebSite` + `Person` on home, `BlogPosting` on posts, `CreativeWork` on
    projects, `BreadcrumbList` on posts, projects and tag archives. `Person` on About is
    deferred until that page exists (Part 5) — it's a two-line addition when it's built.
@@ -258,29 +334,74 @@ edits. Verified.
 descriptions, and canonicals — no duplicates. Verified.
 
 ### Phase 5 — Deploy (1 evening)
-1. Push to GitHub.
-2. In Cloudflare Pages, connect the repo, set the build command and output directory.
-3. First deploy lands on a `*.pages.dev` URL. Verify it there before touching DNS.
-4. Buy the domain at Cloudflare Registrar.
-5. Attach the custom domain in Pages. DNS and SSL are automatic when the domain is in the
-   same Cloudflare account.
-6. **Choose apex or `www` and 301 the other.** Pick one now; changing it later splits your
-   search ranking across two hostnames.
-7. Confirm HTTPS is enforced and the `.pages.dev` URL isn't independently indexable.
+1. Push to `master`. That triggers `.github/workflows/deploy.yml`, which installs, builds and
+   uploads the artifact in its `build` job and publishes it from its `deploy` job. There is
+   no build command or output directory to configure anywhere — `withastro/action` supplies
+   both.
+2. Enable Pages: repo Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+   Until this is set the `deploy` job has nothing to publish to.
+3. Confirm the run is green in the Actions tab and the `github-pages` environment shows a
+   deployment URL.
+4. Buy the domain (Decision 3) if it isn't bought.
+5. Add `public/CNAME` containing the bare domain.
+6. Enter the same domain under Settings → Pages → Custom domain.
+7. **Choose apex or `www` and let the other redirect.** The apex is canonical:
+   `astro.config.mjs` already names `https://technoise.dev`, which makes it the zero-change
+   option, and GitHub Pages serves an apex domain directly. Point `www` at Pages with the
+   `CNAME` record so GitHub redirects it to the apex. Pick one now; changing it later splits
+   your search ranking across two hostnames.
+8. Create the DNS records at whatever provider holds the zone — the canonical list, the
+   DNS-only/proxy caveat and the CAA note are all in Decision 3.
+9. Wait for GitHub's DNS check to pass, then tick **Enforce HTTPS**. Certificate issuance can
+   take up to 24 hours; on a `.dev` domain there is no HTTP fallback in the meantime (see
+   Decision 3), so the domain is simply unreachable in a browser until the certificate lands.
+   That is expected, not a broken deploy — don't start changing things.
+10. After the cutover, confirm no second indexable origin persists: once the custom domain is
+    set, GitHub serves `<username>.github.io/<repo>` as a redirect to it. Check that rather
+    than assuming it.
+
+**What can and cannot be verified before DNS.** This repo is `ladoyle/technoise`, a project
+repo, so the default Pages URL is `https://ladoyle.github.io/technoise/` — a project subpath.
+The site will **not** render correctly there: `site` is the custom domain and every asset and
+link is a rooted path, so under `/technoise/` the CSS, fonts, brand SVGs and nav all 404.
+That is the documented consequence of the root-deploy-only design (`assertRootDeploy()` in
+`src/lib/seo.ts`), not a deploy fault. Pre-DNS verification is therefore limited to what is
+actually verifiable: the workflow ran green, the artifact uploaded, the `deploy` job
+published, and the default URL returns HTML rather than a 404. Page-level verification waits
+until the custom domain resolves.
+
+**Adding `public/CNAME` is a code change that trips a standing test.**
+`tests/brand-assets.test.ts`'s "public/ ships nothing the site references nowhere" suite
+enumerates `public/` and fails on any file whose rooted URL path appears nowhere in `src/` —
+and a `CNAME` file is by definition referenced nowhere in `src/`. Its `UNREFERENCED_BY_DESIGN`
+list cannot absorb the file as-is either: a second assertion in the same suite holds every
+exemption to a file `BRAND_FILES` already guards. So whoever adds `public/CNAME` widens that
+guard deliberately — an exemption category for host-configuration files `src/` cannot
+reference by design — and updates the `AGENTS.md` paragraph documenting the `public/` rule in
+the same change. Weakening or deleting the assertion is not an acceptable substitute; the
+guard exists because four orphaned PNGs shipped for months (Issue #32). Neither the file nor
+the test change is part of this documentation pass.
 
 **Done when:** the custom domain serves over HTTPS and every internal link uses it.
 
 ### Phase 6 — Indexing (30 minutes, then waiting)
 1. **Google Search Console** → add property → **Domain** property (not URL prefix) → it
-   gives you a TXT record → add it in Cloudflare DNS → verify. Domain properties cover every
-   subdomain and both protocols, which saves grief later.
+   gives you a TXT record → add it at your DNS provider (Cloudflare DNS, or wherever the zone
+   lives — DNS is decoupled from the host; see Decision 3) → verify. Domain properties cover
+   every subdomain and both protocols, which saves grief later.
 2. Submit `https://yourdomain/sitemap.xml` under Sitemaps. Confirm it reports "Success" and a
    page count matching reality.
 3. URL Inspection → Request Indexing for home, `/blog/`, `/projects/`, `/resume/`, `/about/`.
 4. **Bing Webmaster Tools** → add site → import from Search Console. Two minutes, covers Bing
    and every engine downstream of it.
 5. Run Lighthouse on mobile. Target Performance ≥ 90, Accessibility ≥ 95, SEO = 100.
-6. Add Cloudflare Web Analytics — free, no cookie banner required, no visitor data sold.
+6. Analytics is an **open decision** — no tool is chosen, nothing is implemented, and a
+   separate proposal will settle it. The recommendation that used to sit here — Cloudflare's
+   own web-analytics product — lapsed with the host change rather than being dropped
+   silently. It was free and required no cookie banner because Cloudflare proxied every
+   request; with GitHub Pages serving the origin and Cloudflare (if used at all) doing DNS
+   only, it is no longer in the request path. GitHub Pages provides no built-in analytics of
+   its own.
 
 **Done when:** Search Console shows the sitemap read successfully and at least the homepage
 indexed.
@@ -292,8 +413,12 @@ of real inbound links (GitHub profile, LinkedIn, dev.to crossposts, HN or Reddit
 where genuinely relevant) does more than any technical tweak at this stage.
 
 ### Phase 7 — Per-post routine (5 minutes)
-Write Markdown → push → Cloudflare rebuilds → confirm the URL appears in `sitemap.xml` →
-Request Indexing in Search Console.
+Write Markdown → push to `master` → `.github/workflows/deploy.yml` rebuilds and redeploys →
+confirm the URL appears in `sitemap.xml` → Request Indexing in Search Console.
+
+A push to `master` starts `ci.yml` and `deploy.yml` as independent workflows. The deploy does
+not wait for `astro check` and the test suite, so a red `verify` publishes anyway. Catching a
+problem *before* it deploys means opening a pull request — that is what `ci.yml` runs on.
 
 ### Phase 8 — Monthly (15 minutes)
 Search Console coverage report → fix errors. Check for dependency security advisories.
@@ -305,11 +430,14 @@ Confirm the build still passes. Once a year: renew the domain, upgrade the major
 
 ```
 domain (.com, at cost)     $10.44/yr  → ~$11.15/yr after 1 Nov 2026
-hosting (Cloudflare Pages) $0
-DNS + SSL                  $0
-analytics                  $0
+                                      (configured hostname is a .dev — confirm its
+                                       at-cost price before trusting this total)
+hosting (GitHub Pages)     $0
+DNS + SSL                  $0         (SSL: GitHub-provisioned certificate;
+                                       DNS: whichever provider holds the zone)
+analytics                  $0         (pending — no tool chosen)
 Search Console / Bing      $0
-GitHub (public repo)       $0
+GitHub (public repo)       $0         (required — the free Pages tier serves public repos)
 ────────────────────────────────────
 TOTAL                      ~$10–11/yr
 ```
@@ -327,9 +455,9 @@ tier; build-time image optimization; nothing.
 ## Part 4 — Launch checklist
 
 - [x] Every page has a unique title (≤60 chars) and description (≤155 chars)
-- [ ] Canonical URLs are absolute and use the chosen hostname — absolute: done; the
-      hostname itself is still `https://technoise.dev` in `astro.config.mjs`, unconfirmed
-      against the GitHub Pages deploy target. A human must settle this before Phase 5.
+- [ ] Canonical URLs are absolute and use the chosen hostname — absolute: done; this guide
+      and the repo now agree on GitHub Pages, and `https://technoise.dev` in
+      `astro.config.mjs` is the intended custom domain. Unticked until it actually resolves.
 - [ ] OG image renders correctly in a social preview debugger — image is built and
       committed (1200×630, cream field, no crop); not run against a debugger, which needs
       a publicly reachable URL and the site isn't deployed yet
@@ -338,8 +466,15 @@ tier; build-time image optimization; nothing.
 - [ ] RSS validates — parses under a real XML parser with the required channel elements,
       `xmlns:atom` and `atom:link rel="self"`; the W3C Feed Validation Service itself
       wasn't reachable in this environment to run the last mile of this check
-- [ ] Apex/`www` decision made, other one 301s
-- [ ] HTTPS enforced
+- [ ] `public/CNAME` created — it does not exist yet, and adding it also means widening the
+      `public/` reference guard in `tests/brand-assets.test.ts` and the `AGENTS.md` paragraph
+      that documents it, in the same change (see Phase 5)
+- [ ] DNS records created at the provider holding the zone, and the domain entered under
+      Settings → Pages → Custom domain — neither is done
+- [ ] Apex/`www` decision made, other one redirects — GitHub Pages issues that redirect
+      itself once both hostnames point at it, so there is no redirect rule to write
+- [ ] HTTPS enforced — Settings → Pages → Enforce HTTPS, available once GitHub's DNS check
+      passes and the certificate is issued
 - [ ] 404 page works on the live host, not just locally
 - [ ] Lighthouse mobile: Perf ≥ 90, A11y ≥ 95, SEO = 100
 - [ ] Keyboard-only navigation works, focus states visible
@@ -363,9 +498,13 @@ The site can be built without these, but it can't be filled:
 - Project list — name, one-line pitch, stack, demo URL, repo URL, screenshots
 - 2–3 blog post topics with your rough notes
 - Positioning sentence for the home hero: what you build and who it's for
-- Preferred domain name, and a backup
+- Preferred domain name, and a backup — `technoise.dev` is already configured in
+  `astro.config.mjs`, so what's needed is confirmation of it (and the backup), not a fresh
+  choice
 - Contact preference: email, form, or social only
-- Whether the repo is public or private (it decides GitHub Pages eligibility, not Cloudflare)
+- Nothing to decide on repo visibility: the repo is public and must stay public, because
+  GitHub Pages on the free tier serves public repos only. Making it private takes the site
+  offline
 
 Project details, work history, and opinions won't be invented — bring notes and they'll get
 shaped into the site's voice.
