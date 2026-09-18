@@ -127,13 +127,17 @@ const assetTracked: Svg[] = [...tokenTracked, faviconDark];
 
 // --text resolves to --cream-dim rather than raw --cream in dark because cream emitted from
 // a dark screen reads as glare; the wordmark is the element that escaped that judgement
-// until now. Read from tokens.css, never written as a literal, so a token edit still fails.
+// until now. The robot's two fills take the -dim pair for the same reason, one step further:
+// they are the 300s walked 40% toward their own -700s, so the mark reads wordmark-first
+// rather than neon. They are deliberately *not* --signal-300/--pulse-300, which remain the
+// link, rule, focus and hover tints — do not unify these back. Read from tokens.css, never
+// written as a literal, so a token edit still fails.
 const expected = {
   light: () => ({ "tn-ink": token("ink"), "tn-signal": token("signal"), "tn-pulse": token("pulse") }),
   dark: () => ({
     "tn-ink": token("cream-dim"),
-    "tn-signal": token("signal-300"),
-    "tn-pulse": token("pulse-300"),
+    "tn-signal": token("signal-300-dim"),
+    "tn-pulse": token("pulse-300-dim"),
   }),
 };
 
