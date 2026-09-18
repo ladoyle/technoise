@@ -20,6 +20,15 @@
   /* Derived tints — sRGB blends of the bases above, no new hues. */
   --signal-300: #6ec9e8;
   --pulse-300: #ff9f6b;
+  /*
+    The 300s dimmed 40% toward --signal-700 / --pulse-700 — along each hue's own ramp,
+    not toward --ink, which neutralises the orange into brown. For the brand mark's
+    robot alone: the wordmark already took --cream-dim because cream emitted from a dark
+    screen glares, and the robot kept the undimmed tints and read as neon beside it.
+    Never a link, rule, focus or hover colour — those stay on the 300s above.
+  */
+  --signal-300-dim: #46a5c6;
+  --pulse-300-dim: #e37b48;
   --ink-muted: #48646e;
   --ink-sunken: #1f4250;
   --ink-border: #55727e;

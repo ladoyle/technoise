@@ -30,6 +30,8 @@ export const BASES = {
   slate: "#c2d1d8",
   "signal-300": "#6ec9e8",
   "pulse-300": "#ff9f6b",
+  "signal-300-dim": "#46a5c6",
+  "pulse-300-dim": "#e37b48",
   "ink-muted": "#48646e",
   "ink-sunken": "#1f4250",
   "ink-border": "#55727e",
