@@ -193,38 +193,137 @@ describe("brand SVG viewBoxes stay cropped to their ink", () => {
   }
 });
 
-describe("the header and footer brand lockup", () => {
-  const components = [
-    { label: "Header.astro", source: header },
-    { label: "Footer.astro", source: footer },
+const presentation = svgs.find((s) => s.name === "technoise-logo-presentation.svg")!;
+const full = svgs.find((s) => s.name === "technoise-logo-full.svg")!;
+
+// Footer.astro still renders the lockup the way both components used to: a <picture> whose
+// <source>/<img> point at public/brand/ by URL. Header.astro no longer does — it inlines the
+// same two files (see the suites below it) — so these three assertions are the footer's
+// alone now, not a shared loop over both components.
+describe("the footer brand lockup", () => {
+  // The markup only. A component's frontmatter comment is free to name the very tags these
+  // assertions grep for — Footer.astro's now does, explaining what the header stopped doing
+  // — and a regex that reads the comment as markup fails on prose.
+  const markup = footer.slice(footer.indexOf("\n---", 3) + 4);
+
+  it("references brand files that exist", () => {
+    const refs = [...markup.matchAll(/["'](\/brand\/[^"']+)["']/g)].map((m) => m[1]);
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) {
+      expect(existsSync(join(root, "public", ref)), `Footer.astro points at a missing ${ref}`).toBe(true);
+    }
+  });
+
+  it("reserves the box with the presentation file's intrinsic size", () => {
+    const img = /<img[\s\S]*?>/.exec(markup);
+    expect(img, "Footer.astro renders no <img>").not.toBeNull();
+    const width = /\swidth="(\d+)"/.exec(img![0]);
+    const height = /\sheight="(\d+)"/.exec(img![0]);
+    expect([Number(width?.[1]), Number(height?.[1])]).toEqual(presentation.declared);
+  });
+
+  it("swaps sources on the one 48em breakpoint, not a second one", () => {
+    const medias = [...markup.matchAll(/media="\(min-width:\s*([^)]+)\)"/g)].map((m) => m[1].trim());
+    expect(medias.length).toBeGreaterThan(0);
+    expect(new Set(medias)).toEqual(new Set(["48em"]));
+    expect(tokens).toContain("@media (min-width: 48em)");
+  });
+});
+
+// The header inlines both lockups instead of referencing them, because the fills of a
+// URL-referenced image resolve inside that image — from its own prefers-color-scheme block,
+// which a forced-dark filter or a non-Chromium engine may never evaluate, leaving the mark
+// at light-mode #0c3242 on a dark --surface that is also #0c3242. Inlining moves the fills
+// into the page's cascade, and that move is what these assertions guard: the duplication
+// they pin is no longer hex-in-a-file against tokens.css, it is var()-in-Header.astro
+// against the hex those same files still declare for every other consumer.
+describe("the header's inlined brand mark", () => {
+  const marks = [
+    { variant: "stacked", svg: presentation },
+    { variant: "wide", svg: full },
   ];
 
-  const presentation = svgs.find((s) => s.name === "technoise-logo-presentation.svg")!;
+  it("reads both lockups from public/brand/ rather than restating their markup", () => {
+    for (const { svg } of marks) {
+      expect(
+        header,
+        `Header.astro no longer imports ${svg.name}; public/brand/ must stay the one source of truth`,
+      ).toContain(`../../public/brand/${svg.name}?raw`);
+    }
+  });
 
-  for (const { label, source } of components) {
-    it(`${label} references brand files that exist`, () => {
-      const refs = [...source.matchAll(/["'](\/brand\/[^"']+)["']/g)].map((m) => m[1]);
-      expect(refs.length).toBeGreaterThan(0);
-      for (const ref of refs) {
-        expect(existsSync(join(root, "public", ref)), `${label} points at a missing ${ref}`).toBe(true);
-      }
-    });
+  const rendered = () => readFileSync(join(root, "dist", "index.html"), "utf8");
 
-    it(`${label} reserves the box with the presentation file's intrinsic size`, () => {
-      const img = /<img[\s\S]*?>/.exec(source);
-      expect(img, `${label} renders no <img>`).not.toBeNull();
-      const width = /\swidth="(\d+)"/.exec(img![0]);
-      const height = /\sheight="(\d+)"/.exec(img![0]);
-      expect([Number(width?.[1]), Number(height?.[1])]).toEqual(presentation.declared);
-    });
+  for (const { variant, svg } of marks) {
+    it(`renders the ${variant} mark on ${svg.name}'s own viewBox, not a hand-typed one`, () => {
+      const tag = new RegExp(`<svg data-mark="${variant}"[^>]*>`).exec(rendered());
+      expect(tag, `the built header renders no [data-mark="${variant}"] svg`).not.toBeNull();
 
-    it(`${label} swaps sources on the one 48em breakpoint, not a second one`, () => {
-      const medias = [...source.matchAll(/media="\(min-width:\s*([^)]+)\)"/g)].map((m) => m[1].trim());
-      expect(medias.length).toBeGreaterThan(0);
-      expect(new Set(medias)).toEqual(new Set(["48em"]));
-      expect(tokens).toContain("@media (min-width: 48em)");
+      const viewBox = /\sviewBox="([^"]+)"/.exec(tag![0])?.[1].trim().split(/\s+/).map(Number);
+      const width = /\swidth="([\d.]+)"/.exec(tag![0])?.[1];
+      const height = /\sheight="([\d.]+)"/.exec(tag![0])?.[1];
+
+      expect(viewBox).toEqual(svg.viewBox);
+      expect([Number(width), Number(height)]).toEqual([svg.viewBox[2], svg.viewBox[3]]);
     });
   }
+
+  it("strips each file's own <style>, so nothing competes with the page's cascade", () => {
+    const brand = /<a class="site-header__brand"[\s\S]*?<\/a>/.exec(rendered());
+    expect(brand, "the built header renders no .site-header__brand").not.toBeNull();
+    expect(brand![0]).not.toMatch(/<style/i);
+    expect(brand![0]).toMatch(/class="tn-(ink|signal|pulse)"/);
+  });
+});
+
+// Every fill rule Header.astro writes for the inlined mark, resolved through tokens.css and
+// compared against what the source SVGs declare for themselves. The two must agree in both
+// schemes: this is a like-for-like reproduction of the files' own colours, so a token edit,
+// a re-export, or a var() swapped for its neighbour in Header.astro all surface here rather
+// than as a mark that renders in the wrong hue — or, in dark mode, in none.
+describe("the header's inlined fills track the same tokens the source files do", () => {
+  const style = header.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  const fillRules = [...style.matchAll(/([^{}]+)\{\s*fill:\s*var\(--([a-z0-9-]+)\)\s*;?\s*\}/g)]
+    .map((m) => ({ selector: m[1].trim().replace(/\s+/g, " "), token: m[2] }))
+    .filter((rule) => /\.tn-[a-z]+/.test(rule.selector));
+
+  const fillsOf = (rules: typeof fillRules): Record<string, string> =>
+    Object.fromEntries(rules.map((rule) => [/\.(tn-[a-z]+)/.exec(rule.selector)![1], token(rule.token)]));
+
+  // A dark rule is one qualified by the document element, the shape tokens.css uses for
+  // both of its own dark blocks. Grouping by that prefix rather than merging every dark
+  // rule into one object is what keeps the [data-theme] twin from passing on the media
+  // block's values.
+  const darkGroups = new Map<string, typeof fillRules>();
+  for (const rule of fillRules.filter((r) => r.selector.includes(":root"))) {
+    const prefix = rule.selector.slice(0, rule.selector.indexOf(".site-header__brand")).trim();
+    darkGroups.set(prefix, [...(darkGroups.get(prefix) ?? []), rule]);
+  }
+
+  it("paints the light scheme in the brand bases", () => {
+    const light = fillRules.filter((rule) => !rule.selector.includes(":root"));
+    expect(fillsOf(light)).toEqual(presentation.light);
+  });
+
+  it("paints every dark-scheme selector in the dark tints, so the mark is never ink on ink", () => {
+    expect(darkGroups.size, "Header.astro overrides the mark's fills in no dark scheme").toBeGreaterThan(0);
+    for (const [prefix, rules] of darkGroups) {
+      expect(fillsOf(rules), prefix).toEqual(presentation.dark);
+    }
+  });
+
+  it("keeps every dark override on screen, so the printed mark stays light", () => {
+    for (const [prefix] of darkGroups) {
+      const at = style.indexOf(prefix.split(" ")[0]);
+      expect(style.slice(Math.max(0, at - 200), at), prefix).toMatch(/@media screen/);
+    }
+  });
+
+  it("reproduces the same pairs the two source files agree on", () => {
+    expect(full.light).toEqual(presentation.light);
+    expect(full.dark).toEqual(presentation.dark);
+  });
 });
 
 // Everything above walks a known list forward: a file this suite already names must exist and
