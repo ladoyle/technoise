@@ -31,6 +31,25 @@ beforeAll(() => {
   pages = htmlFiles(dist).map((path) => ({ path: relative(dist, path), html: readFileSync(path, "utf8") }));
 });
 
+// Astro inlines this page's scoped styles into a single minified <style> block rather
+// than a separate _astro/*.css bundle, so the print rule lives in the HTML text itself.
+// Extracts the brace-balanced body of the first at-rule whose prelude (including its
+// opening brace, e.g. "@media print{") appears in `css`.
+function atRuleBody(css: string, prelude: string): string | null {
+  const start = css.indexOf(prelude);
+  if (start === -1) return null;
+  const bodyStart = start + prelude.length;
+  let depth = 1;
+  for (let i = bodyStart; i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    else if (css[i] === "}") {
+      depth--;
+      if (depth === 0) return css.slice(bodyStart, i);
+    }
+  }
+  return null;
+}
+
 // A href resolves if the build emitted either a directory index for it or a real file.
 function resolves(href: string): boolean {
   const clean = href.split(/[#?]/)[0];
@@ -183,6 +202,51 @@ describe("the resume page keeps the contract its content is published under", ()
 
   it("ships no placeholder link — a profile with no URL renders no list item", () => {
     expect(resumePage()).not.toContain('href="#"');
+  });
+
+  // D9/D10. The icons are decoration bolted onto three links that are the page's whole
+  // point of contact, and the `CONTACT_ICONS[label] && …` guard in resume.astro is the
+  // one branch in this change. Two ways it can regress silently: an icon-only link if
+  // the label span is ever dropped (the glyph is aria-hidden, so the link would then
+  // have no accessible name at all), and an unmapped label rendering a guessed or
+  // broken glyph instead of falling through to plain text. Neither shows up in
+  // `astro check` — both are attribute values and template branches.
+  it("keeps every contact link's visible text label beside its glyph", () => {
+    const html = resumePage();
+    const list = html.match(/<ul class="resume__contact"[^>]*>([\s\S]*?)<\/ul>/)?.[1];
+    expect(list, "no resume contact list built").toBeTruthy();
+    const items = [...list!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => m[1]);
+    expect(items.length).toBe(3);
+    for (const item of items) {
+      const label = item.match(/<span class="resume__contact-label"[^>]*>([^<]*)<\/span>/)?.[1]?.trim();
+      expect(label, `contact item has no visible label: ${item}`).toBeTruthy();
+      const icons = [...item.matchAll(/<svg[^>]*class="resume__icon"[\s\S]*?<\/svg>/g)];
+      expect(icons.length, `expected one glyph beside "${label}"`).toBe(1);
+      expect(icons[0][0]).toContain('aria-hidden="true"');
+      expect(icons[0][0]).toContain('focusable="false"');
+      expect(icons[0][0]).toContain('viewBox="0 0 16 16"');
+      expect(icons[0][0]).toContain('fill="currentColor"');
+      // The && guard renders nothing for an unmapped label; it must never print itself
+      // as text. Tags are stripped first, or focusable="false" trips this.
+      expect(item.replace(/<[^>]*>/g, " ")).not.toMatch(/\bfalse\b/);
+      // A glyph is a path, never a hex fill of its own: the icons take --link via
+      // currentColor, which is what keeps them inside the token rule.
+      expect(icons[0][0]).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    }
+    expect(items[0]).toContain(`mailto:${RESUME.email}`);
+  });
+
+  it("hides the glyphs on paper, and only on the route that ships them", () => {
+    const html = resumePage();
+    const print = atRuleBody(html, "@media print{");
+    expect(print, "resume page ships no @media print block").toContain(".resume__icon");
+    expect(print).toMatch(/\.resume__icon\{[^}]*display:\s*none/);
+    for (const page of pages) {
+      if (page.path === join("resume", "index.html")) continue;
+      expect(page.html, `${page.path} carries a print rule that belongs to /resume/`).not.toContain(
+        "resume__icon",
+      );
+    }
   });
 
   it("keeps the data module itself free of a location or a phone number", () => {
