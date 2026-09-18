@@ -36,8 +36,8 @@ npx astro check      # type and template diagnostics
 npm test             # vitest run — schema, publishing-rule, content-helper, build-output,
                       # SEO-helper, discovery-output (sitemap/rss/robots),
                       # nav/route-resolution, brand-asset, workflow-permissions,
-                      # test-harness-contract, ci-workflow, dependency-contract and
-                      # palette-tokens tests (13 files, 286 tests)
+                      # test-harness-contract, ci-workflow, dependency-contract,
+                      # palette-tokens and a11y-verify-script tests (14 files, 289 tests)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests — its
                       # phone-shape scan strips <svg>…</svg> from the visible HTML first,
@@ -73,9 +73,16 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # tests/dependency-contract.test.ts pins devDependencies.sharp to the
                       # range the installed astro declares for its own image service, and
                       # asserts the lockfile holds exactly one sharp, not one marked
-                      # "optional: true"; and tests/palette-tokens.test.ts reads tokens.css
+                      # "optional: true"; tests/palette-tokens.test.ts reads tokens.css
                       # and re-derives every ratio the styleguide prints, so it also carries
-                      # that page's own prose-figure assertions, not just src/lib/palette.ts's)
+                      # that page's own prose-figure assertions, not just src/lib/palette.ts's;
+                      # and tests/a11y-verify-script.test.ts is the first suite to cover a file
+                      # under .claude/skills/ — verify-contrast.mjs is exercised by no build or
+                      # check path otherwise, so it pins the repo's one page.screenshot() call
+                      # to clip-only (no fullPage), pins scrollIntoViewIfNeeded() ahead of
+                      # boundingBox() in sampleRenderedBackground(), and asserts no catch there
+                      # coexists with the "zero-size element" fallback message, all via static
+                      # source reads, no browser, no build)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
