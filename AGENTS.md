@@ -37,7 +37,7 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # SEO-helper, discovery-output (sitemap/rss/robots),
                       # nav/route-resolution, brand-asset, workflow-permissions,
                       # test-harness-contract, ci-workflow, dependency-contract and
-                      # palette-tokens tests (13 files)
+                      # palette-tokens tests (13 files, 286 tests)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests — its
                       # phone-shape scan strips <svg>…</svg> from the visible HTML first,
@@ -55,7 +55,17 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # brand file's own declared colours, in both schemes; another walks
                       # every built page's injected header markup asserting it ships inert
                       # (no script, handler or external reference) and still tokenised (no
-                      # hex, no fill/stroke presentation attribute);
+                      # hex, no fill/stroke presentation attribute); it also carries a second
+                      # SVG parser (parseFlatSvg, for a file with no internal dark block) and
+                      # a third tracked list (assetTracked, alongside tokenTracked and
+                      # BRAND_FILES) that folds public/favicon-dark.svg into the geometry,
+                      # ink-floor and inertness loops; a "the two-file favicon" suite asserts
+                      # favicon.svg still carries its internal dark block on purpose and that
+                      # favicon-dark.svg is favicon.svg with only its <style> replaced, no
+                      # @media of its own; and a "BaseLayout hands the scheme choice to the
+                      # document" suite reads dist/index.html and pins the three icon links'
+                      # hrefs, media and order — the first assertion in this file about the
+                      # document's <head> rather than about an asset;
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
                       # permitted, this one asserts that it actually runs the gates — and
@@ -119,11 +129,33 @@ technoise/
 ├─ public/brand/        the three live logo SVGs — anything here is published
 ├─ public/fonts/        the self-hosted Inter woff2 that fonts.css loads
 ├─ public/og/           the one committed Open Graph card (OG_IMAGE in src/lib/seo.ts)
-├─ public/favicon.*     .ico and .svg, both linked from BaseLayout's head
+├─ public/favicon.*     .ico plus two scheme-scoped SVGs — three files, three links, see below
 ├─ archive/             versioned but never built or served — see the rule below
 ├─ tests/               vitest suites, plus global-setup.ts — the one build they all read
 └─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
+
+`public/favicon.*` is three files, not "an .ico and a .svg": `favicon.ico`, `favicon.svg`
+(light fills as its defaults, plus its own internal `@media (prefers-color-scheme: dark)`
+override) and `favicon-dark.svg` (the dark fills stated unconditionally, no media query of its
+own). `BaseLayout.astro`'s `<head>` links all three, in this order: `.ico` (no `media`) →
+`favicon-dark.svg` (`media="(prefers-color-scheme: dark)"`) → `favicon.svg`
+(`media="(prefers-color-scheme: light)"`). Two things about this look like cleanup targets and
+are not:
+
+- **`favicon.svg` keeps its internal dark `@media` block on purpose.** It is a fallback for an
+  engine that ignores the `media` attribute on a `<link rel="icon">` but still honours a
+  `prefers-color-scheme` query inside the referenced SVG (documented Gecko behaviour, not
+  independently verified here — neither Gecko nor WebKit is installed in this environment).
+  Stripping it would trade the bug this cycle fixed in Chromium for an equivalent one in
+  Firefox.
+- **The link order — dark before light — is load-bearing, not arbitrary.** An engine that
+  ignores `media` entirely and falls through to the last declared icon must land on
+  `favicon.svg`, the file that still self-adapts internally, never on `favicon-dark.svg`
+  alone: that file measures 1.20:1 on a light surface, since it has no light rules at all.
+
+Reference by URL, not inlined, so both SVGs sit under the hex exception in "Color tokens"
+below, the same as the three `public/brand/` files.
 
 `archive/` exists because `public/` does not mean "kept" — it means "deployed": anything
 under it is copied verbatim into `dist/` and published at a guessable URL on the canonical
@@ -229,16 +261,22 @@ where a test reads `tokens.css` at test time and fails the suite on drift. Two i
 today.
 
 The first is the three brand SVGs in `public/brand/` (`technoise-icon.svg`,
-`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus `public/favicon.svg`.
-They're referenced by `<img src>` / `<link>` URL, not inlined, so they cannot read this page's
-CSS custom properties — each file carries its own fills as literal hex, three classes
-(`.tn-ink`, `.tn-signal`, `.tn-pulse`) with a `prefers-color-scheme: dark` override that must
-byte-match `--ink`/`--signal`/`--pulse` in light mode and `--cream`/`--signal-300`/
-`--pulse-300` in dark. `tests/brand-assets.test.ts` reads `tokens.css` at test time and
-asserts the match — that test, not a code review, is what keeps this exception honest. Don't
-"fix" the hardcoded hex in these files without re-running it; a token edit that isn't mirrored
-here silently desyncs to an ink-on-ink wordmark in dark mode (measured 1.00:1 — invisible, not
-just off-color).
+`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus the two-file favicon,
+`public/favicon.svg` and `public/favicon-dark.svg` (see the repo layout section below for why
+the favicon is two files). They're referenced by `<img src>` / `<link>` URL, not inlined, so
+they cannot read this page's CSS custom properties — each file carries its own fills as
+literal hex, three classes (`.tn-ink`, `.tn-signal`, `.tn-pulse`) that must byte-match
+`--ink`/`--signal`/`--pulse` in light mode and `--cream-dim`/`--signal-300`/`--pulse-300` in
+dark — **`--cream-dim`, not raw `--cream`**: the brand wordmark used to burn at `--cream`'s
+12.91:1 in dark mode while every other piece of chrome on the page was already dimmed to
+`--cream-dim`'s 10.72:1, and it now takes the same value for the same reason `--text` does
+(cream emitted from a dark screen reads as glare, not extra contrast). Four of the five files
+gate the dark triple behind a `prefers-color-scheme: dark` override; `favicon-dark.svg` states
+it unconditionally, with no media query of its own. `tests/brand-assets.test.ts` reads
+`tokens.css` at test time and asserts the match — that test, not a code review, is what keeps
+this exception honest. Don't "fix" the hardcoded hex in these files without re-running it; a
+token edit that isn't mirrored here silently desyncs to an ink-on-ink wordmark in dark mode
+(measured 1.00:1 — invisible, not just off-color).
 
 The second is `src/lib/palette.ts`, the module behind `/styleguide/`'s swatch captions. A
 caption prints a hex string and a computed WCAG ratio; neither can be a `var()`, so the
@@ -306,17 +344,24 @@ gradients, no shadow deeper than a hairline.
   the footer. Gutters 24px mobile, 48px desktop.
 
 `48em` is the site's one responsive hinge, reused deliberately rather than adding a second
-breakpoint to reason about. It carries three responsibilities: `Header.astro`'s nav collapse,
-`Footer.astro`'s three-column grid, and each component's own brand-logo swap — but the two
-components no longer implement that third responsibility the same way. `Footer.astro` still
-swaps its lockup via a `<picture><source media="(min-width: 48em)">` HTML attribute, as both
-components did since `7e3924d`. `Header.astro` now inlines both lockups (see the hex-exception
-section above) and swaps them with a `@media (min-width: 48em)` CSS block over its
-`[data-mark="stacked"]`/`[data-mark="wide"]` elements instead, so a future change to the
-breakpoint value has to be made in a CSS media query in `Header.astro` and `tokens.css`, *and*,
-separately, the HTML `media` attribute in `Footer.astro` — two languages, not one shared
-attribute. `tests/brand-assets.test.ts` pins the footer's `<source media>` value to `48em`; it
-carries no equivalent pin for the header's CSS-side value today.
+breakpoint to reason about. It carries four responsibilities: `Header.astro`'s nav collapse,
+`Footer.astro`'s inner grid (a two-row `1fr auto` at and above the hinge — brand and the nav
+run share row one, the colophon spans row two — not three columns; below it, a single-column
+grid), `Footer.astro`'s nav axis (a stacked column of full-width, block-display links below
+the hinge; one horizontal `flex-direction: row` run with `inline-block` links above it — the
+inversion exists because the three-column layout could not hold a horizontal five-link run
+plus the colophon at 768px without both wrapping badly), and each component's own brand-logo
+swap — but the two components no longer implement that last responsibility the same way.
+`Footer.astro` still swaps its lockup via a `<picture><source media="(min-width: 48em)">` HTML
+attribute, as both components did since `7e3924d`. `Header.astro` now inlines both lockups
+(see the hex-exception section above) and swaps them with a `@media (min-width: 48em)` CSS
+block over its `[data-mark="stacked"]`/`[data-mark="wide"]` elements instead, so a future
+change to the breakpoint value has to be made in a CSS media query in `Header.astro` and
+`tokens.css`, *and*, separately, in the footer's own `@media (min-width: 48em)` grid/nav-axis
+block, *and*, separately again, the HTML `media` attribute on the footer's `<picture><source>`
+— three CSS sites plus one HTML attribute, not one shared value. `tests/brand-assets.test.ts`
+pins the footer's `<source media>` value to `48em`; it carries no equivalent pin for the
+header's or the footer's CSS-side values today.
 
 ### Component inventory
 
