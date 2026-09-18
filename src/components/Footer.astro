@@ -86,12 +86,14 @@ const nav = [
     padding-block: var(--space-64);
   }
 
-  /* A secondary appearance: one spacing step under the header's 48px either side of
-     the hinge. The mark's apparent size still changes across it, because the file
-     swaps from the stacked lockup to the horizontal one. */
+  /* The same 48px box as the header's mark, either side of the hinge. It used to sit one
+     spacing step under, which read as small rather than as secondary — and the scale has
+     no step between 32 and 48, so matching the header is the only on-scale way up. The
+     mark's apparent size still changes across the hinge, because the file swaps from the
+     stacked lockup to the horizontal one. */
   .site-footer__brand img {
     inline-size: auto;
-    block-size: var(--space-32);
+    block-size: var(--space-48);
   }
 
   /* Two columns turn a five-rung ladder into three rows without a second breakpoint.
