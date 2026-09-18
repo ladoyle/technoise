@@ -39,13 +39,23 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # test-harness-contract, ci-workflow, dependency-contract and
                       # palette-tokens tests (13 files)
                       # (tests/nav-contract.test.ts also carries the resume page's
-                      # privacy-regression assertions, not just nav contract tests;
+                      # privacy-regression assertions, not just nav contract tests — its
+                      # phone-shape scan strips <svg>…</svg> from the visible HTML first,
+                      # since the header's inlined brand mark puts viewBox coordinates on
+                      # every page, including /resume/, that can otherwise look phone-shaped;
                       # tests/build-output.test.ts also carries CSS-cascade/specificity
                       # assertions for the hero ghost-CTA hover rule, asserts every
                       # dark-scheme CSS rule in the shipped output stays `@media screen`-
                       # scoped, and asserts the 404 page and the home hero each resolve to
                       # their own hashed art derivatives (never the other's) and keep their
                       # own `object-position`, not only markup checks;
+                      # tests/brand-assets.test.ts also reads dist/**/*.html now, not just
+                      # the source SVGs under public/brand/ — one suite resolves the header's
+                      # inlined-mark var() rules through tokens.css and pins them to each
+                      # brand file's own declared colours, in both schemes; another walks
+                      # every built page's injected header markup asserting it ships inert
+                      # (no script, handler or external reference) and still tokenised (no
+                      # hex, no fill/stroke presentation attribute);
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
                       # permitted, this one asserts that it actually runs the gates — and
@@ -69,8 +79,9 @@ plain `rm -rf .astro dist` is not enough). CI is unaffected: both workflows alwa
 into a clean `node_modules`.
 
 `tests/global-setup.ts` runs `astro build` exactly once per vitest invocation, before any
-test file loads; the three HTML-reading suites (`build-output.test.ts`,
-`discovery-output.test.ts`, `nav-contract.test.ts`) only ever `readFileSync` out of `dist/`.
+test file loads; the five HTML-reading suites (`build-output.test.ts`,
+`discovery-output.test.ts`, `nav-contract.test.ts`, `brand-assets.test.ts` and
+`palette-tokens.test.ts`) only ever `readFileSync` out of `dist/`.
 `vitest.config.ts` no longer sets `fileParallelism: false` — the race that setting guarded
 against (two suites each shelling out to `astro build` concurrently) no longer exists, since
 no suite builds for itself. **A test file must never run `astro build` itself** — it reads
@@ -126,14 +137,19 @@ file that must be served but only after `astro:assets` processes it.
 `public/brand/*.svg`'s viewBoxes are trimmed close to their ink bounds (no wasted transparent
 margin) — ~88% ink for `technoise-icon.svg` (0.889) and `technoise-logo-presentation.svg`
 (0.883), ~73% for `technoise-logo-full.svg` (0.726): the horizontal lockup carries more
-block-axis margin than the other two, and "~88%" does not describe it. `.site-header__brand
-img`, `.site-footer__brand img` and the `<img width height>` pair (`918`/`835`, the
-presentation file's own extents) all assume that framing. Re-exporting or re-cropping any of
-these three files means revisiting all three of those places, or the mark renders at the
-wrong size or off-center in its reserved box. `tests/brand-assets.test.ts` asserts the
-declared size matches each file's own `viewBox`, and floors each file's ink-to-viewBox height
-fraction against the figures above, so both a size desync and a re-crop that thins the ink
-back out fail the suite instead of shipping quietly.
+block-axis margin than the other two, and "~88%" does not describe it. `.site-footer__brand
+img` and its `<img width height>` pair (`918`/`835`, the presentation file's own extents)
+assume that framing — `Footer.astro` still references the files by URL and hand-copies their
+extents. `Header.astro` no longer works this way: it inlines both lockups at build time (see
+the hex-exception section below) and sizes `.site-header__brand [data-mark]` from each file's
+own `viewBox`, read at import time rather than hand-copied, so a re-export cannot desync the
+header's box the way it still can the footer's. Re-exporting or re-cropping any of these three
+files still means revisiting the footer's hand-copied `918`/`835` pair, or its mark renders at
+the wrong size or off-center in its reserved box. `tests/brand-assets.test.ts` asserts the
+footer's declared size matches the presentation file's own `viewBox`, asserts the header's
+rendered `viewBox`/`width`/`height` matches each source file's own, and floors each file's
+ink-to-viewBox height fraction against the figures above, so both a size desync and a re-crop
+that thins the ink back out fail the suite instead of shipping quietly.
 
 `src/lib/resume.ts` is the first `src/lib/` module that holds content rather than logic — the
 resume's copy, dates and skills, not a helper. Its types are load-bearing for a standing
@@ -241,6 +257,22 @@ is exported from, served live but named nowhere in `src/`, and a second assertio
 exemption list to files `BRAND_FILES` already guards, so it cannot grow to cover an
 undocumented path.
 
+`tests/brand-assets.test.ts` carries a fourth guard, of a different shape than the three
+above: **`Header.astro`'s inlined brand mark holds no hex of its own — it fills `.tn-ink`/
+`.tn-signal`/`.tn-pulse` with `var(--ink)`/`var(--signal)`/`var(--pulse)` (and their dark
+counterparts) straight from `tokens.css` — but that duplicates, as `var()` names rather than
+hex, the same class-to-colour pairs the three brand SVGs above still hand-declare as literal
+hex for every URL-referenced consumer.** One suite resolves each of `Header.astro`'s `fill:
+var(--…)` rules through `tokens.css` and asserts the result equals the presentation file's own
+declared pair, in both the light rules and every dark-scheme grouping, so a token edit, a
+re-export, or a `var()` swapped for its neighbour in `Header.astro` surfaces as a failing test
+rather than a wrong-hued or ink-on-ink mark. A second suite walks every built page's injected
+`.site-header__brand` markup and asserts it ships both inert (no `<script>`, handler or
+external reference) and still tokenised (no hex, no `fill`/`stroke` presentation attribute) —
+because a re-export that moved a fill from a class onto a presentation attribute would still
+be a valid, inert SVG and would still pass every geometry check, while painting a hardcoded
+colour on every page in both schemes.
+
 ### The three posture rules
 
 1. **Orange appears once per screen.** It is the "do this" color. Three orange things on a
@@ -274,13 +306,17 @@ gradients, no shadow deeper than a hairline.
   the footer. Gutters 24px mobile, 48px desktop.
 
 `48em` is the site's one responsive hinge, reused deliberately rather than adding a second
-breakpoint to reason about. It now carries three responsibilities: `Header.astro`'s nav
-collapse, `Footer.astro`'s three-column grid, and — since `7e3924d` — both components'
-`<picture><source media="(min-width: 48em)">` brand-logo swap. That third one lives in an HTML
-attribute, not a CSS media query, so a future change to the breakpoint value has to be made in
-both languages across `Header.astro`, `Footer.astro` and `tokens.css`.
-`tests/brand-assets.test.ts` pins the `<source media>` value to `48em`, so a mismatch fails the
-suite instead of drifting silently.
+breakpoint to reason about. It carries three responsibilities: `Header.astro`'s nav collapse,
+`Footer.astro`'s three-column grid, and each component's own brand-logo swap — but the two
+components no longer implement that third responsibility the same way. `Footer.astro` still
+swaps its lockup via a `<picture><source media="(min-width: 48em)">` HTML attribute, as both
+components did since `7e3924d`. `Header.astro` now inlines both lockups (see the hex-exception
+section above) and swaps them with a `@media (min-width: 48em)` CSS block over its
+`[data-mark="stacked"]`/`[data-mark="wide"]` elements instead, so a future change to the
+breakpoint value has to be made in a CSS media query in `Header.astro` and `tokens.css`, *and*,
+separately, the HTML `media` attribute in `Footer.astro` — two languages, not one shared
+attribute. `tests/brand-assets.test.ts` pins the footer's `<source media>` value to `48em`; it
+carries no equivalent pin for the header's CSS-side value today.
 
 ### Component inventory
 
@@ -291,22 +327,29 @@ button · Callout · Pagination · Breadcrumb · ThemeToggle · SEO head block �
 
 If a page needs a thirteenth component, question the page before adding it.
 
-**ThemeToggle has a prerequisite that is probably, but not fully, already satisfied.**
-`Header.astro` and `Footer.astro` reference the brand SVGs by URL, so in principle their
-dark-mode fills follow only the OS `prefers-color-scheme` — a `data-theme` attribute lives on
-the embedding document, not inside the referenced image, so it looks like it cannot reach in.
-In practice, `tokens.css` already pairs every scheme block with a `color-scheme` declaration
-(`:root[data-theme="dark"] { color-scheme: dark }`), and Chromium propagates the embedding
-document's *used* `color-scheme` into a URL-referenced SVG image — so `data-theme="dark"`
-with the OS in light mode correctly recolors the header and footer logos today. **Verified in
-Chromium 141 only.** Gecko and WebKit are unverified (neither is installed in this
-environment), and a dark mode implemented by filter/colour inversion rather than
-`color-scheme` — a Dark Reader-style browser extension, say — sets nothing the image document
-can see and would still produce an invisible, ink-on-ink wordmark. Whoever builds ThemeToggle
-must confirm this propagation across the browsers the site actually needs to support before
-relying on it; where it doesn't hold, fall back to inlining these SVGs (so page-level
-`data-theme` CSS can target their classes) or serving scheme-specific files swapped by
-`data-theme`.
+**ThemeToggle has a prerequisite that is now half-satisfied, not probably-satisfied.**
+`Header.astro`'s brand mark no longer depends on this at all: it inlines both lockups and
+paints their fills through the same `tokens.css` cascade as every other page element (see the
+hex-exception section above), so a `data-theme` attribute on the document reaches it exactly
+the way it reaches body text — no propagation into a referenced image document required.
+`Footer.astro` still references the brand SVGs by URL, so its dark-mode fills still follow
+only the mechanism described below, and it is the remaining half of this prerequisite.
+
+In principle, referencing by URL means the footer's dark-mode fills follow only the OS
+`prefers-color-scheme` — a `data-theme` attribute lives on the embedding document, not inside
+the referenced image, so it looks like it cannot reach in. In practice, `tokens.css` already
+pairs every scheme block with a `color-scheme` declaration (`:root[data-theme="dark"] {
+color-scheme: dark }`), and Chromium propagates the embedding document's *used*
+`color-scheme` into a URL-referenced SVG image — so `data-theme="dark"` with the OS in light
+mode correctly recolors the footer logo today. **Verified in Chromium 141 only.** Gecko and
+WebKit are unverified (neither is installed in this environment), and a dark mode implemented
+by filter/colour inversion rather than `color-scheme` — a Dark Reader-style browser extension,
+say — sets nothing the image document can see and would still produce an invisible, ink-on-ink
+footer wordmark, the same failure the header has already shed. Whoever builds ThemeToggle must
+confirm this propagation across the browsers the site actually needs to support before relying
+on it for the footer; where it doesn't hold, `Header.astro` is now the pattern to follow —
+inline the SVGs so page-level `data-theme` CSS can target their classes — rather than serving
+scheme-specific files swapped by `data-theme`.
 
 `Prose` forwards unrecognized props (`...rest`) onto its root `<div>`, not just `class`.
 Astro hands a child component its parent's scoped-style attribute as a prop, and the child
