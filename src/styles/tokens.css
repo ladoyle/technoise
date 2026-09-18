@@ -23,7 +23,8 @@
   --ink-muted: #48646e;
   --ink-sunken: #1f4250;
   --ink-border: #55727e;
-  --cream-muted: #cdd1d0;
+  --cream-dim: #e5e5e1; /* cream + 10% ink */
+  --cream-muted: #b5bdbe; /* cream + 30% ink */
   --cream-sunken: #efede8;
 
   /* Semantic roles — the only color names a component may use. */
@@ -135,13 +136,19 @@
   the `screen` here and a dark-OS reader prints cream text on a dropped background, with
   no fix available from a print stylesheet: a reset on a bare `:root` loses to
   `:root:not([data-theme="light"])` on specificity, and a media query adds none.
+
+  --text is --cream-dim rather than raw --cream on purpose, and the asymmetry with the
+  light scheme (10.72:1 here against 12.91:1 there) is the point: the same ratio emitted
+  from a dark screen rather than reflected off a light one reads as glare. The scrim sits
+  higher here than in light for the same reason — dimming the text alone would drop the
+  home hero's worst composited pixel to 6.13:1, under the 6.5:1 the styleguide states.
 */
 @media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --surface: var(--ink);
     --surface-sunken: var(--ink-sunken);
-    --text: var(--cream);
+    --text: var(--cream-dim);
     --text-muted: var(--cream-muted);
     --link: var(--signal-300);
     --rule: var(--signal-300);
@@ -151,7 +158,7 @@
     --accent-on-fill-hover: var(--ink);
     --select-bg: var(--ink-border);
     --select-fg: var(--cream);
-    --scrim-opacity: 0.82;
+    --scrim-opacity: 0.86;
   }
 }
 
@@ -160,7 +167,7 @@
     color-scheme: dark;
     --surface: var(--ink);
     --surface-sunken: var(--ink-sunken);
-    --text: var(--cream);
+    --text: var(--cream-dim);
     --text-muted: var(--cream-muted);
     --link: var(--signal-300);
     --rule: var(--signal-300);
@@ -170,7 +177,7 @@
     --accent-on-fill-hover: var(--ink);
     --select-bg: var(--ink-border);
     --select-fg: var(--cream);
-    --scrim-opacity: 0.82;
+    --scrim-opacity: 0.86;
   }
 }
 

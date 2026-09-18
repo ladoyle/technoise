@@ -198,8 +198,13 @@ value anywhere else.
 | Borders / muted UI | `--slate` | `#C2D1D8` | 1.5:1 | Decorative only |
 
 Dark mode (ink becomes the page, via `prefers-color-scheme`): links lighten to `#6EC9E8`
-(7.2:1 on ink), accents to `#FF9F6B` (6.7:1 on ink). Both are tints of the brand bases —
-do not introduce new hues.
+(7.2:1 on ink), accents to `#FF9F6B` (6.7:1 on ink). Body text uses `--cream-dim` (`#E5E5E1`,
+10.72:1 on ink) rather than raw `--cream`, and muted text uses `--cream-muted` (`#B5BDBE`,
+7.09:1 on ink) — both dimmed below light mode's 12.9:1 body figure on purpose: the same ratio
+emitted from a dark screen reads as glare, not just contrast. The home hero's scrim opacity
+rises to 0.86 in dark mode (from 0.72 in light) for the same reason — dimming the text alone
+would have dropped the worst composited pixel under the 6.5:1 floor `/styleguide/` states. All
+four dark-mode tints are derived from the brand bases — do not introduce new hues.
 
 **"Never hardcode a hex value" has a pattern of exception, not a single one:** a hex literal
 is tolerated outside `tokens.css` only where a `var()` genuinely cannot reach — a `<img src>`/

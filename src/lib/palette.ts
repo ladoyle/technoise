@@ -33,7 +33,8 @@ export const BASES = {
   "ink-muted": "#48646e",
   "ink-sunken": "#1f4250",
   "ink-border": "#55727e",
-  "cream-muted": "#cdd1d0",
+  "cream-dim": "#e5e5e1",
+  "cream-muted": "#b5bdbe",
   "cream-sunken": "#efede8",
 } as const;
 
@@ -74,7 +75,7 @@ const SOURCES: SwatchSource[] = [
   {
     token: "--text",
     role: "Body text",
-    bases: { light: "ink", dark: "cream" },
+    bases: { light: "ink", dark: "cream-dim" },
     showBaseName: true,
   },
   { token: "--text-muted", role: "Meta, captions", bases: { light: "ink-muted", dark: "cream-muted" } },
