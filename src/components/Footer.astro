@@ -2,9 +2,15 @@
 // Three blocks on the wide column: brand, navigation, colophon. Stacked below the
 // breakpoint, side by side above it.
 //
-// The brand repeats the header's logo pair on the same 48em hinge, and inherits the
-// same caveat: an external SVG's dark mode follows the OS prefers-color-scheme only,
-// not a future manual ThemeToggle. See Header.astro for the full rationale.
+// The brand repeats the header's logo pair on the same 48em hinge, at the same 48px, but
+// not by the same mechanism: these are still <img src> references to public/brand/, so the
+// mark's dark mode comes from the prefers-color-scheme block inside the file rather than
+// from this page's cascade. That is the caveat Header.astro used to share and no longer
+// does — it inlines the same two files so their fills resolve through tokens.css. The
+// footer therefore still carries the risk the header shed: an engine or a forced-dark
+// filter that never evaluates the media query inside a referenced image renders this mark
+// in light-mode ink on a dark surface. It was not reported, and fixing it was out of scope
+// for the cycle that fixed the header; see Header.astro for the pattern if it is.
 //
 // TODO(human input): an "Elsewhere" block — GitHub, LinkedIn, contact — is absent on
 // purpose. Those URLs are human input (setup-guide Part 5: contact preference and
