@@ -56,6 +56,11 @@ function parseRgb(str) {
 // wrong answer (this is exactly how a mascot-image hero passed a contrast check it should
 // have failed). Instead, screenshot the real composite behind the element and sample it.
 async function sampleRenderedBackground(page, el) {
+  // boundingBox() reports viewport-relative coordinates, and so does a screenshot clip —
+  // so the element has to actually be inside the viewport before either is meaningful.
+  // Un-scrolled, a below-the-fold element (the footer, on most pages) yields a box whose
+  // y sits past the viewport's bottom edge and page.screenshot throws on the clip.
+  await el.scrollIntoViewIfNeeded();
   const box = await el.boundingBox();
   if (!box || box.width < 2 || box.height < 2) return null;
 
@@ -77,6 +82,8 @@ async function sampleRenderedBackground(page, el) {
       width: Math.max(1, Math.round(box.width - inset * 2)),
       height: Math.max(1, Math.round(box.height - inset * 2)),
     };
+    // Viewport screenshot on purpose: `fullPage: true` would reinterpret this clip in
+    // document coordinates and silently sample the top of the page instead of the element.
     buffer = await page.screenshot({ clip });
   } finally {
     await el.evaluate((e, prev) => {
