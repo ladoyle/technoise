@@ -186,7 +186,12 @@ describe("the resume page keeps the contract its content is published under", ()
   it("publishes no phone number: no tel: href and no phone-shaped digit run", () => {
     const html = resumePage();
     expect(html).not.toContain("tel:");
-    expect(PHONE_SHAPED.exec(html)?.[0] ?? null).toBeNull();
+    // Vector geometry is stripped first, and only for this scan. The header's brand mark is
+    // inlined on every page, so its viewBox and path data are now in this HTML — "124 211
+    // 1319" is phone-shaped to a regex and is a coordinate list to a reader. The rule this
+    // guards is about text, JSON-LD and metadata; the JSON-LD assertion below is unstripped,
+    // and `tel:` above is checked against the whole document.
+    expect(PHONE_SHAPED.exec(html.replace(/<svg[\s\S]*?<\/svg>/g, ""))?.[0] ?? null).toBeNull();
   });
 
   it("puts no address, locality or telephone in the structured data", () => {
