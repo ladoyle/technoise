@@ -251,7 +251,7 @@ const isCurrent = (href: string) =>
 
   @media screen and (prefers-color-scheme: dark) {
     :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-ink) {
-      fill: var(--cream);
+      fill: var(--cream-dim);
     }
 
     :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-signal) {
@@ -265,7 +265,7 @@ const isCurrent = (href: string) =>
 
   @media screen {
     :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-ink) {
-      fill: var(--cream);
+      fill: var(--cream-dim);
     }
 
     :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-signal) {
