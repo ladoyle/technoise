@@ -394,9 +394,9 @@ tier; build-time image optimization; nothing.
       `aria-expanded` in sync throughout
 - [x] Works at 320px and in dark mode — zero horizontal overflow and zero axe-core
       violations at 320×640 in both light and dark, and at 1440×900 dark
-- [ ] Search Console verified, sitemap submitted, key pages requested — domain property
-      verified via TXT record at the registrar (confirmed by the site owner); sitemap
-      submission and per-page indexing requests not yet confirmed, see Phase 6 above
+- [x] Search Console verified, sitemap submitted, key pages requested — confirmed by the
+      site owner: domain property verified via TXT record, sitemap submitted, indexing
+      requested
 - [x] Bing verified — confirmed by the site owner (imported from Search Console)
 - [x] Resume prints a clean document via the route-scoped print stylesheet — no separate
       PDF asset exists to drift from the web version (decided against; see Part 1's Resume
