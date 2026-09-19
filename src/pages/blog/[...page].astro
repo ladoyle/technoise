@@ -35,7 +35,7 @@ const title =
 // A sentence of its own rather than a dangling " — page 2" clause, which reads as
 // truncation in a search snippet.
 const suffix = page.currentPage > 1 ? ` Page ${page.currentPage}.` : "";
-const description = `Notes on building this site: the generator choice, the colour tokens, and the rules the design system runs on.${suffix}`;
+const description = `Notes on current software, patterns, and projects: code examples, lessons learned, and the AI systems built along the way.${suffix}`;
 
 // Google dropped rel=prev/next as an indexing signal in 2019; Bing still reads it,
 // and it costs two tags. The canonical stays self-referential either way — pointing
@@ -48,7 +48,7 @@ const linkRel = (href: string | undefined): string | undefined =>
   title={title}
   description={description}
   heading="Blog"
-  lede="Notes on how this site is built — the decisions, the measurements behind them, and what they cost."
+  lede="Notes on the software technologies and patterns shaping the work — code from real projects, lessons learned, best practices, and the AI systems built along the way."
   tags={tags}
   prevPath={linkRel(page.url.prev)}
   nextPath={linkRel(page.url.next)}
