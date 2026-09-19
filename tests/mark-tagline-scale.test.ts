@@ -7,31 +7,30 @@ import { describe, expect, it } from "vitest";
 
 // Why this file exists.
 //
-// tests/mark-tint-contract.test.ts floors --signal-300-dim at WCAG 1.4.11's 3:1 rather than
-// at the 4.5:1 text minimum. That relaxation rests on two *geometric* premises, neither of
-// which any other suite measured:
+// tests/mark-tint-contract.test.ts floors --signal-300-dim — the "HEAR THE FUTURE" logotype
+// tagline's dark fill, and after the mascot-scheme-freeze cycle the mark's only dark fill
+// besides the wordmark — at WCAG 1.4.11's 3:1 rather than at the 4.5:1 text minimum, and
+// floors it against --ink. Both halves of that are *geometric* claims, and no other suite
+// measures them:
 //
-//   1. The only part of .tn-signal that touches the page surface is the "HEAR THE FUTURE"
-//      logotype tagline, and at the block-size both the header and the footer pin it renders
-//      as texture, not as words. SC 1.4.3 exempts logotype text from the contrast minimum at
-//      any size, so this is belt-and-braces — but the *reason* the site was willing to take
-//      the exemption is the rendered size, and a re-export could change it.
-//   2. The face field and the headphones never abut the page at all — every boundary pixel
-//      either of them has meets the --cream-dim outline instead. That is not context any
-//      more: mark-tint-contract.test.ts now floors both fills at 3:1 *against that outline*,
-//      which is only the right pair of colours if the enclosure is total. So this suite
-//      measures both sides — 0% page adjacency and ~100% ink adjacency — and a re-export that
-//      opened the outline anywhere fails here rather than silently leaving the mark's one
-//      real non-text floor pointed at a colour it no longer abuts.
+//   1. The tagline renders as texture, not as words, at the block-size both the header and
+//      the footer pin. SC 1.4.3 exempts logotype text from the contrast minimum at any size,
+//      so this is belt-and-braces — but the *reason* the site was willing to take the
+//      exemption is the rendered size, and a re-export could change it.
+//   2. The tagline is page-adjacent, and the mascot's fills are not. Every boundary pixel the
+//      tagline has meets the page; every boundary pixel the face field and the headphones
+//      have meets the .tn-ink outline that encloses them. That is what makes --ink the right
+//      surface to floor the tagline against, and it is the whole of why the mascot's own
+//      frozen fills are read against the page directly.
 //
-// The two premises underwrite one floor each: premise 1 the ceiling on how dark the fills may
-// go (the page-adjacent tagline against --ink), premise 2 the floor on how light they may be
-// (the enclosed fills against the outline).
-//
-// Both premises lived only in a source comment and a git-ignored report. This suite measures
-// them, so a re-export that enlarges the tagline or opens the outline fails here instead of
-// silently invalidating a relaxed accessibility floor. Same role tests/brand-assets.test.ts
-// plays for the brand-SVG hex exception: the rule holds because a test goes red.
+// One thing measured here inverted its meaning in the freeze cycle without changing its
+// value. The enclosure figure — ~100% of each mascot fill's boundary meets .tn-ink — used to
+// prove those fills were read against a *--cream-dim* outline, which is what set a floor on
+// how light they could be. There is no cream outline in dark mode any more: .tn-ink is frozen
+// at the page colour, so the enclosure now proves the opposite-facing fact, that the fills
+// are surrounded by something indistinguishable from the page and are therefore read against
+// the page at 3.143:1 and 4.238:1. Same measurement, opposite conclusion — do not read the
+// number as a lightness floor any more.
 //
 // Everything is derived from the shipped sources — the SVGs, and the block-size the two
 // components declare. No figure is transcribed from a report.
@@ -44,11 +43,7 @@ const STACKED = join(brand, "technoise-logo-presentation.svg");
 const WIDE = join(brand, "technoise-logo-full.svg");
 
 // Files that carry no tagline: the mark alone, at favicon sizes.
-const TAGLINE_FREE = [
-  join(brand, "technoise-icon.svg"),
-  join(publicDir, "favicon.svg"),
-  join(publicDir, "favicon-dark.svg"),
-];
+const TAGLINE_FREE = [join(brand, "technoise-icon.svg"), join(publicDir, "favicon.svg")];
 
 // Supersample factor. Every figure below is reported in CSS px after dividing by it.
 const SCALE = 24;
@@ -65,11 +60,23 @@ const markBlockSize = (): number => {
 
 type Component = { minX: number; maxX: number; minY: number; maxY: number; pixels: number[] };
 
+/** Every tn- class the file actually paints with, read off its own markup. */
+const classesIn = (source: string): string[] => [
+  ...new Set([...source.matchAll(/class="(tn-[a-z-]+)"/g)].map((m) => m[1])),
+];
+
 /**
  * Rasterise one class out of a brand SVG at the size it actually ships at, with every other
  * class suppressed. The later .${cls} rule wins over the blanket `none`, so exactly one
- * class paints. Every drawable element in all five files carries one of the three classes,
- * so nothing leaks into the mask unclassed.
+ * class paints.
+ *
+ * The suppression list is derived from the file, never hardcoded. It was a hardcoded triple
+ * until the lockups grew .tn-wordmark and .tn-tagline, at which point the two new classes
+ * matched no rule in the replacement <style>, fell back to SVG's default fill — black — and
+ * painted into every mask this helper produced. That failure mode is the dangerous one for
+ * this suite: an enclosure or adjacency figure measured against a polluted mask is a wrong
+ * number, not a red test. Deriving the list means a sixth class inherits the suppression
+ * instead of silently joining the measurement.
  */
 const isolate = async (file: string, cls: string): Promise<{ mask: Uint8Array; width: number; height: number }> => {
   const source = readFileSync(file, "utf8");
@@ -80,7 +87,9 @@ const isolate = async (file: string, cls: string): Promise<{ mask: Uint8Array; w
   const height = markBlockSize() * SCALE;
   const width = Math.round((height * vbWidth) / vbHeight);
 
-  const style = `<style>.tn-ink{fill:none}.tn-signal{fill:none}.tn-pulse{fill:none}.${cls}{fill:#000}</style>`;
+  const painted = classesIn(source);
+  const suppressed = painted.map((name) => `.${name}{fill:none}`).join("");
+  const style = `<style>${suppressed}.${cls}{fill:#000}</style>`;
   const isolated = source.replace(/<style>[\s\S]*?<\/style>/, style);
 
   const { data, info } = await sharp(Buffer.from(isolated))
@@ -168,60 +177,76 @@ describe("the logotype tagline stays texture at the size the mark ships at", () 
   // fresh argument rather than inherited.
   const TEXTURE_CEILING = 6;
 
-  it("the stacked lockup's tagline renders well under the texture ceiling", async () => {
-    const { mask, width, height } = await isolate(STACKED, "tn-signal");
-    const glyphs = taglineGlyphs(components(mask, width, height));
+  // Measured on .tn-tagline, which *is* the glyphs. Before the split the tagline shared
+  // .tn-signal with the face field and had to be separated out of the mask by height, so the
+  // FIELD_VS_GLYPH_SPLIT heuristic decided what the ceiling applied to. Now the class decides,
+  // and every shape in the mask is in scope — a glyph that grew past the split would have
+  // quietly left the old measurement rather than failing it.
+  it.each([
+    ["stacked", STACKED],
+    ["wide", WIDE],
+  ])("the %s lockup's tagline renders well under the texture ceiling", async (_label, file) => {
+    const { mask, width, height } = await isolate(file, "tn-tagline");
+    const shapes = components(mask, width, height);
 
-    expect(glyphs.length).toBeGreaterThan(0);
-    for (const glyph of glyphs) {
-      expect(heightInCssPx(glyph)).toBeLessThan(TEXTURE_CEILING);
-    }
-  });
-
-  it("the wide lockup's tagline renders well under the texture ceiling", async () => {
-    const { mask, width, height } = await isolate(WIDE, "tn-signal");
-    const glyphs = taglineGlyphs(components(mask, width, height));
-
-    expect(glyphs.length).toBeGreaterThan(0);
-    for (const glyph of glyphs) {
-      expect(heightInCssPx(glyph)).toBeLessThan(TEXTURE_CEILING);
+    expect(shapes.length).toBeGreaterThan(0);
+    for (const shape of shapes) {
+      expect(heightInCssPx(shape)).toBeLessThan(TEXTURE_CEILING);
     }
   });
 
   // Stated in mark-tint-contract.test.ts's header as a reason the non-text floor was never in
-  // question for these three. If a re-export ever folded the tagline into the icon, it would
-  // ship at 16px in a tab strip, where none of the reasoning above applies.
+  // question for these two. If a re-export ever folded the tagline into the icon, it would
+  // ship at 16px in a tab strip, where none of the reasoning above applies. Asserted on the
+  // class rather than on a raster: after the split, "carries no tagline" is exactly "declares
+  // no .tn-tagline", which is both stronger and cheaper than measuring shapes.
   it.each(TAGLINE_FREE)("%s carries no tagline at all", async (file) => {
+    const source = readFileSync(file, "utf8");
+    expect(classesIn(source)).toEqual(["tn-ink", "tn-signal", "tn-pulse"]);
+    expect(source).not.toContain("tn-tagline");
+
+    // …and .tn-signal in these files is the face field alone, with no glyph-scale shape
+    // beside it. This is what would catch a tagline re-added under the old shared class.
     const { mask, width, height } = await isolate(file, "tn-signal");
     const shapes = components(mask, width, height);
-
     expect(taglineGlyphs(shapes)).toHaveLength(0);
     expect(fieldShapes(shapes)).toHaveLength(1);
   });
+
+  // The helper below suppresses every class the file names. An element carrying none would
+  // take SVG's default fill — black — and paint into every mask, which is how a wrong number
+  // gets produced instead of a red test.
+  it.each([STACKED, WIDE, ...TAGLINE_FREE])("%s paints nothing unclassed", (file) => {
+    const source = readFileSync(file, "utf8");
+    const drawn = [...source.matchAll(/<(path|circle|rect|ellipse|polygon|polyline|line)\b[^>]*>/g)];
+
+    expect(drawn.length).toBeGreaterThan(0);
+    for (const [element] of drawn) {
+      expect(element, "every drawable element must carry a tn- class").toMatch(/class="tn-[a-z-]+"/);
+    }
+  });
 });
 
-describe("the mascot's fills never meet the page directly", () => {
+describe("what each fill is actually adjacent to", () => {
   // 4-neighbourhood: a fill pixel with an orthogonal neighbour that belongs to no class is
   // touching the page surface; one whose neighbour carries .tn-ink is touching the outline.
-  // Both are counted, because mark-tint-contract.test.ts floors these fills against the
-  // outline — a claim that only holds while the enclosure is total.
-  const pageAdjacency = async (file: string, cls: string, only?: "field" | "glyphs") => {
-    const [self, ink, other] = await Promise.all([
-      isolate(file, cls),
-      isolate(file, "tn-ink"),
-      isolate(file, cls === "tn-signal" ? "tn-pulse" : "tn-signal"),
-    ]);
+  // Every *other* class the file paints is subtracted too, and as a set rather than as one
+  // named sibling — with five classes in the lockups, "the other one" is no longer a single
+  // file-wide answer, and a neighbour left out of the set would be miscounted as page.
+  const pageAdjacency = async (file: string, cls: string) => {
+    const painted = classesIn(readFileSync(file, "utf8"));
+    const self = await isolate(file, cls);
+    const ink = await isolate(file, "tn-ink");
+    const others = [];
+    for (const name of painted) {
+      if (name === cls || name === "tn-ink") continue;
+      others.push(await isolate(file, name));
+    }
     const { width, height } = self;
 
-    let pixels: number[];
-    if (only) {
-      const shapes = components(self.mask, width, height);
-      const picked = only === "field" ? fieldShapes(shapes) : taglineGlyphs(shapes);
-      pixels = picked.flatMap((shape) => shape.pixels);
-    } else {
-      pixels = [];
-      for (let i = 0; i < width * height; i += 1) if (self.mask[i]) pixels.push(i);
-    }
+    const pixels: number[] = [];
+    for (let i = 0; i < width * height; i += 1) if (self.mask[i]) pixels.push(i);
+    expect(pixels.length, `${cls} paints nothing in ${file}`).toBeGreaterThan(0);
 
     let boundary = 0;
     let touchingPage = 0;
@@ -245,28 +270,25 @@ describe("the mascot's fills never meet the page directly", () => {
         const next = ny * width + nx;
         if (self.mask[next]) continue;
         boundary += 1;
-        if (ink.mask[next]) touchingInk += 1;
-        else if (!other.mask[next]) touchingPage += 1;
+        if (cls !== "tn-ink" && ink.mask[next]) touchingInk += 1;
+        else if (!others.some((other) => other.mask[next])) touchingPage += 1;
       }
     }
     return { boundary, touchingPage, touchingInk };
   };
 
-  // The fraction of a fill's boundary that meets .tn-ink. 1.00 today for every fill in every
+  // The fraction of a fill's boundary that meets .tn-ink. 1.00 today for both fills in every
   // file; the 0.99 allowance is for rasteriser drift along an antialiased edge, not for a
-  // region of open outline. What it pins is the colour pair mark-tint-contract.test.ts's
-  // lightness floor measures: --signal-300-dim / --pulse-300-dim against --cream-dim.
+  // region of open outline. Read it as "the mascot's coloured fills never touch the page" —
+  // which, with .tn-ink frozen at the page colour in dark mode, is why they are nonetheless
+  // read against --ink at 3.143:1 and 4.238:1.
   const ENCLOSURE = 0.99;
 
-  it("the face field is fully enclosed by the outline in the stacked lockup", async () => {
-    const { boundary, touchingPage, touchingInk } = await pageAdjacency(STACKED, "tn-signal", "field");
-    expect(boundary).toBeGreaterThan(0);
-    expect(touchingPage).toBe(0);
-    expect(touchingInk / boundary).toBeGreaterThanOrEqual(ENCLOSURE);
-  });
-
-  it("the face field is fully enclosed by the outline in the wide lockup", async () => {
-    const { boundary, touchingPage, touchingInk } = await pageAdjacency(WIDE, "tn-signal", "field");
+  it.each([
+    ["stacked", STACKED],
+    ["wide", WIDE],
+  ])("the %s lockup's face field is wholly enclosed by the outline", async (_label, file) => {
+    const { boundary, touchingPage, touchingInk } = await pageAdjacency(file, "tn-signal");
     expect(boundary).toBeGreaterThan(0);
     expect(touchingPage).toBe(0);
     expect(touchingInk / boundary).toBeGreaterThanOrEqual(ENCLOSURE);
@@ -279,10 +301,18 @@ describe("the mascot's fills never meet the page directly", () => {
     expect(touchingInk / boundary).toBeGreaterThanOrEqual(ENCLOSURE);
   });
 
-  // The counterpart, asserted rather than assumed: the tagline *is* page-adjacent. That is
-  // what makes it — and only it — the shape the 3:1-on-the-page floor is actually about.
-  it("the tagline, by contrast, is read against the page", async () => {
-    const { touchingPage } = await pageAdjacency(STACKED, "tn-signal", "glyphs");
-    expect(touchingPage).toBeGreaterThan(0);
+  // The counterpart, and the premise the tagline's whole floor rests on: .tn-tagline meets
+  // the page on its entire boundary and the outline on none of it. Asserted in both
+  // directions — "greater than zero" would also pass for a tagline that had crept inside the
+  // outline on most of its perimeter, which would put it against a colour the floor is not
+  // measured for.
+  it.each([
+    ["stacked", STACKED],
+    ["wide", WIDE],
+  ])("the %s lockup's tagline is read against the page, and only the page", async (_label, file) => {
+    const { boundary, touchingPage, touchingInk } = await pageAdjacency(file, "tn-tagline");
+    expect(boundary).toBeGreaterThan(0);
+    expect(touchingInk).toBe(0);
+    expect(touchingPage / boundary).toBeGreaterThanOrEqual(ENCLOSURE);
   });
 });
