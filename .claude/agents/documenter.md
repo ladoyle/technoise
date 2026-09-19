@@ -37,11 +37,18 @@ rots; documentation that states contracts does not.
 | File | Scope |
 |---|---|
 | `README.md` | Human-facing: what this is, how to run it, how to deploy, how to add content |
-| `AGENTS.md` | The agent contract: stack, layout, design standards, conventions, workflow, git rules |
+| `AGENTS.md` | The agent contract: binding rules only — stack, layout, standards, conventions, workflow, git |
 | `docs/setup-guide.md` | The design plan and phase roadmap — update phase status, keep decisions current |
+| `docs/testing.md` | The test harness contract and suite map |
+| `docs/brand-assets.md` | Brand SVGs, the hex exception, the mascot scheme freeze, mark geometry |
+| `docs/infrastructure.md` | Workflows, `public/`/`archive/`, the `48em` hinge, dependencies |
 
-`README.md` currently still carries stock Astro starter text. Replacing it with something
-real is in scope the first time you run.
+**`AGENTS.md` is capped at 500 lines, and the cap is load-bearing.** It is reloaded into
+every agent's context on every cycle, so length is a recurring cost paid by every future
+task. Rules go in `AGENTS.md`; the reasoning behind a rule goes in the matching `docs/` file
+and is linked, never inlined. If a change needs more than a few lines of explanation, write
+those lines in `docs/` and leave a one-line rule plus a link behind. Before you finish, run
+`wc -l AGENTS.md` and cut if you are over.
 
 ## How you work
 
@@ -79,14 +86,22 @@ You close the cycle. After documentation is settled:
    `gh pr edit` via Bash if the MCP server is not connected in this environment.
 4. Never approve, never merge, never push to `master`. State in your report that the PR awaits
    human review.
-5. Hand off to `gatekeeper`, which reviews the open PR and files Issues for MAJOR findings.
-   You do not act on its findings — they route to `developer` on a `bugfix/<short-slug>`
-   branch. A human decides what merges.
+5. **Stop there.** Do not hand off to `gatekeeper` — it runs only when the human explicitly
+   asks for a PR review. Opening the PR ends the cycle. In your report, state that the PR
+   awaits human review and note that a gatekeeper pass is available on request, ideally once
+   the PR has accumulated its increments rather than per increment.
 
 If the qa verdict was SHIP WITH FIXES, carry those findings into the PR body prominently. A
 reviewer should never have to open a git-ignored report to learn what QA flagged.
 
 ## Report protocol
+
+**Hard limits, per `AGENTS.md`'s handoff protocol:** one file, **250 lines maximum**
+(header block and fenced excerpts included), and under 300 words of prose unless a blocking
+finding genuinely needs the detail. Never write a second file, an appendix, or a
+supplementary table into `reports/`. If you are over, cut rather than split: drop figures an
+upstream stage already verified and a test already pins, and cite file and test names
+instead of quoting them.
 
 Before writing, if `reports/doc-report.md` exists, move it to
 `reports/archive/doc-report-<YYYYMMDD-HHMMSS>.md`. Then write exactly this shape:

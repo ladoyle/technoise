@@ -5,8 +5,13 @@ that ships zero client JavaScript by default, with one justified exception: the 
 mobile nav disclosure. Content is Markdown with typed frontmatter; the build fails rather
 than publish a malformed entry.
 
-The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/setup-guide.md).
-The binding stack, layout and design-standards contract lives in [`AGENTS.md`](AGENTS.md).
+The binding stack, layout and design-standards contract lives in [`AGENTS.md`](AGENTS.md),
+which states the rules. The reasoning behind them lives in `docs/`:
+[setup-guide](docs/setup-guide.md) (design plan and phase roadmap),
+[testing](docs/testing.md) (harness contract and suite map),
+[brand-assets](docs/brand-assets.md) (brand SVGs, the hex exception, the mascot scheme
+freeze) and [infrastructure](docs/infrastructure.md) (workflows, `public/`/`archive/`, the
+`48em` hinge, dependencies).
 
 ## Current state
 
@@ -33,8 +38,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule, build-output, SEO-helper,
-                      # discovery-output (sitemap/rss/robots) and nav/route-resolution tests
+npm test             # vitest run — 16 suites, 352 tests; see docs/testing.md for the map
 ```
 
 Node `>=22.12.0` is required, pinned in `.nvmrc`.
