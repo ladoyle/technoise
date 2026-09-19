@@ -31,7 +31,6 @@ export const BASES = {
   "signal-300": "#6ec9e8",
   "pulse-300": "#ff9f6b",
   "signal-300-dim": "#2386a9",
-  "pulse-300-dim": "#cb5c2a",
   "ink-muted": "#48646e",
   "ink-sunken": "#1f4250",
   "ink-border": "#55727e",
