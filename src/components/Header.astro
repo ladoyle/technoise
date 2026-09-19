@@ -2,6 +2,8 @@
 import presentationSvg from "../../public/brand/technoise-logo-presentation.svg?raw";
 import fullSvg from "../../public/brand/technoise-logo-full.svg?raw";
 
+import { brandMark } from "../lib/brand-mark";
+
 // The brand is the committed logo SVG rather than live text, and it is inlined here
 // rather than referenced by URL. Referenced, the mark's dark mode could only come from
 // the prefers-color-scheme override inside the file itself — which the embedding page's
@@ -23,7 +25,8 @@ import fullSvg from "../../public/brand/technoise-logo-full.svg?raw";
 //
 // The files under public/brand/ stay the single source of truth: both marks are read
 // here at build time, viewBox and all, so a re-export cannot desync a hand-copied path
-// or dimension. Footer.astro still references the same two files by URL.
+// or dimension. Footer.astro reads them the same way, through the same lib/brand-mark
+// helper, so neither component can drift from the files or from the other.
 //
 // The two marks swap on the same 48em breakpoint as the nav collapse below, by the same
 // display technique as the toggle's own icons, so the header still has exactly one
@@ -38,28 +41,6 @@ import fullSvg from "../../public/brand/technoise-logo-full.svg?raw";
 // from HTML and CSS: <details>/<summary> was the zero-JS candidate and loses on all
 // three. The cost is bounded — below 48em only, and with JS off the toggle never
 // appears and the whole list renders stacked, which is exactly the old behaviour.
-
-type Mark = { viewBox: string; width: string; height: string; body: string };
-
-const brandMark = (file: string, source: string): Mark => {
-  const viewBox = /viewBox="([^"]+)"/.exec(source)?.[1];
-  const styleEnd = source.indexOf("</style>");
-  const svgEnd = source.lastIndexOf("</svg>");
-  const box = viewBox?.trim().split(/\s+/) ?? [];
-
-  // A build-time throw rather than a silent fallback: a brand SVG that stops matching
-  // this shape must stop the build, not render a mark with no geometry.
-  if (!viewBox || box.length !== 4 || styleEnd < 0 || svgEnd < 0) {
-    throw new Error(`public/brand/${file} is not the expected single-<style> brand SVG`);
-  }
-
-  return {
-    viewBox,
-    width: box[2],
-    height: box[3],
-    body: source.slice(styleEnd + "</style>".length, svgEnd),
-  };
-};
 
 const marks = {
   stacked: brandMark("technoise-logo-presentation.svg", presentationSvg),

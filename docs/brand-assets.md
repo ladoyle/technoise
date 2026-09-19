@@ -120,44 +120,46 @@ into a per-pixel measurement. Its `isolate()` helper derives the set of classes 
 from each file's own class attributes rather than naming three, so a sixth class inherits
 suppression instead of polluting every mask.
 
-## Geometry: viewBox trim and the footer's hand-copied extents
+## Geometry: viewBox trim, and the hand-copied-extents footgun that's gone
 
 `public/brand/*.svg`'s viewBoxes are trimmed close to their ink bounds — ~88% ink for
 `technoise-icon.svg` (0.889) and `technoise-logo-presentation.svg` (0.883), ~73% for
 `technoise-logo-full.svg` (0.726). The horizontal lockup carries more block-axis margin than
 the other two, and "~88%" does not describe it.
 
-`.site-footer__brand img` and its `<img width height>` pair (`918`/`835`, the presentation
-file's own extents) assume that framing — `Footer.astro` still references the files by URL
-and hand-copies their extents. **Re-exporting or re-cropping any of these files means
-revisiting that pair**, or the footer's mark renders at the wrong size or off-center.
+Both `Header.astro` and `Footer.astro` inline the two lockups at build time (via the shared
+`src/lib/brand-mark.ts` helper) and size their `[data-mark]` elements from each file's own
+`viewBox`, read at import time. Neither component hand-copies a dimension. Until
+`footer-mark-inline`, the footer sized its mark from a hand-copied `<img width height>` pair
+(`918`/`835`) that a re-export could silently desync from the source file; that mechanism no
+longer exists, so re-exporting or re-cropping a brand SVG no longer requires revisiting any
+component's markup for a stale extent.
 
-`Header.astro` no longer works this way: it inlines both lockups at build time and sizes
-`.site-header__brand [data-mark]` from each file's own `viewBox`, read at import time rather
-than hand-copied, so a re-export cannot desync the header's box the way it still can the
-footer's.
+`tests/brand-assets.test.ts` asserts both components' rendered `viewBox`/`width`/`height`
+match each source file's own, and floors each file's ink-to-viewBox height fraction against
+the figures above — so a size desync or a re-crop that thins the ink back out fails the
+suite.
 
-`tests/brand-assets.test.ts` asserts the footer's declared size matches the presentation
-file's own `viewBox`, asserts the header's rendered `viewBox`/`width`/`height` matches each
-source file's own, and floors each file's ink-to-viewBox height fraction against the figures
-above — so both a size desync and a re-crop that thins the ink back out fail the suite.
+## The header's and footer's inlined marks
 
-## The header's inlined mark
+Both `Header.astro`'s and `Footer.astro`'s inlined brand marks hold no hex of their own: each
+fills all five classes with `var()` straight from `tokens.css`
+(`.tn-ink`/`.tn-signal`/`.tn-pulse` unconditionally; `.tn-wordmark`/`.tn-tagline` with a dark
+override). That duplicates — as `var()` names rather than hex — the same class-to-colour
+pairs the brand SVGs hand-declare for every URL-referenced consumer, so
+`tests/brand-assets.test.ts` resolves each component's `fill: var(--…)` rules through
+`tokens.css` and asserts the result equals the presentation file's own declared pair, in the
+light rules and every dark grouping, for both placements. A token edit, a re-export, or a
+`var()` swapped for its neighbour surfaces as a failing test rather than a wrong-hued or
+ink-on-ink mark in either component.
 
-`Header.astro`'s inlined brand mark holds no hex of its own: it fills all five classes with
-`var()` straight from `tokens.css` (`.tn-ink`/`.tn-signal`/`.tn-pulse` unconditionally;
-`.tn-wordmark`/`.tn-tagline` with a dark override). That duplicates — as `var()` names
-rather than hex — the same class-to-colour pairs the brand SVGs hand-declare for every
-URL-referenced consumer, so `tests/brand-assets.test.ts` resolves each of the header's
-`fill: var(--…)` rules through `tokens.css` and asserts the result equals the presentation
-file's own declared pair, in the light rules and every dark grouping. A token edit, a
-re-export, or a `var()` swapped for its neighbour surfaces as a failing test rather than a
-wrong-hued or ink-on-ink mark.
-
-A second suite walks every built page's injected `.site-header__brand` markup and asserts it
-ships both inert and still tokenised — because a re-export that moved a fill from a class
-onto a presentation attribute would still be a valid, inert SVG and would still pass every
-geometry check, while painting a hardcoded colour on every page in both schemes.
+A second suite walks every built page's injected `.site-header__brand` **and**
+`.site-footer__brand` markup and asserts each ships both inert and still tokenised — because a
+re-export that moved a fill from a class onto a presentation attribute would still be a valid,
+inert SVG and would still pass every geometry check, while painting a hardcoded colour on
+every page in both schemes. The walk and the fill-resolution suite are both parameterised over
+the two placements, so a third inlined mark lands covered by adding it to the same parameter
+list rather than a new suite.
 
 ## The favicon is two files, not three
 
@@ -179,26 +181,23 @@ correct; there is no switch left to get wrong. If a future cycle wants a dark ic
 re-adding one file and one link is a smaller change than keeping a decoy alive through every
 cycle in between.
 
-## ThemeToggle's remaining prerequisite
+## ThemeToggle's prerequisite is now fully satisfied
 
-`Header.astro` no longer depends on scheme propagation at all: it inlines both lockups and
-paints their fills through the same `tokens.css` cascade as every other page element, so a
-`data-theme` attribute on the document reaches it exactly the way it reaches body text.
+Neither `Header.astro` nor `Footer.astro` depends on scheme propagation into a referenced
+image anymore. Both inline their lockups and paint every fill through the same `tokens.css`
+cascade as any other page element, so a `data-theme` attribute on the document reaches each
+mark exactly the way it reaches body text — no cross-document `color-scheme` propagation
+involved.
 
-`Footer.astro` still references the brand SVGs by URL, so its dark-mode fills are the
-remaining half of this prerequisite. In principle a `data-theme` attribute lives on the
-embedding document, not inside the referenced image, so it cannot reach in. In practice
-`tokens.css` pairs every scheme block with a `color-scheme` declaration
-(`:root[data-theme="dark"] { color-scheme: dark }`), and Chromium propagates the embedding
-document's *used* `color-scheme` into a URL-referenced SVG image — so `data-theme="dark"`
-with the OS in light mode correctly recolors the footer logo today.
+Until `footer-mark-inline`, the footer referenced the brand SVGs by URL and relied on
+Chromium propagating the embedding document's *used* `color-scheme` into the referenced image
+(verified in Chromium 141 only; Gecko and WebKit were unverified, and a filter/inversion-based
+dark mode — a Dark Reader-style extension — would have set nothing the image document could
+see). That was the human-reported symptom this cycle traced and fixed: inlining the footer's
+marks the way `Header.astro` already did removes the dependency rather than widening its
+browser coverage.
 
-**Verified in Chromium 141 only.** Gecko and WebKit are unverified (neither is installed in
-this environment), and a dark mode implemented by filter/colour inversion rather than
-`color-scheme` — a Dark Reader-style extension — sets nothing the image document can see and
-would still produce an invisible, ink-on-ink footer wordmark.
-
-Whoever builds ThemeToggle must confirm this propagation across the browsers the site needs
-to support. Where it doesn't hold, `Header.astro` is the pattern to follow — inline the SVGs
-so page-level `data-theme` CSS can target their classes — rather than serving
-scheme-specific files swapped by `data-theme`.
+Whoever builds ThemeToggle can treat both components as already reachable by a `data-theme`
+toggle. A future URL-referenced asset should follow the same pattern — inline it so
+page-level `data-theme` CSS can target its classes — rather than serving scheme-specific files
+swapped by `data-theme`.

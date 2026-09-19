@@ -138,9 +138,6 @@ and [`docs/brand-assets.md`](docs/brand-assets.md):
 - **Permission grants live on jobs, not on workflows.** Workflow level is `permissions: {}`.
   A third-party action is pinned to a full commit SHA with its version in a trailing comment.
   `tests/workflow-permissions.test.ts` enforces both on every file in `.github/workflows/`.
-- **Re-exporting or re-cropping a brand SVG means revisiting `Footer.astro`'s hand-copied
-  `918`/`835` extents.** The header reads its own `viewBox` at import time; the footer does
-  not.
 - **`sharp` is a declared `devDependency` and stays one.** Its range tracks astro's own
   `optionalDependencies.sharp`; bump them together.
 - **CI reports, it does not yet gate.** Marking `verify` a required status check on `master`
@@ -238,9 +235,9 @@ button · Callout · Pagination · Breadcrumb · ThemeToggle · SEO head block �
 
 If a page needs a thirteenth component, question the page before adding it.
 
-**ThemeToggle has a half-satisfied prerequisite.** The header no longer depends on scheme
-propagation into a referenced image; the footer still does, and that mechanism is verified in
-Chromium 141 only. Read [`docs/brand-assets.md`](docs/brand-assets.md) before building it.
+**ThemeToggle's prerequisite is satisfied.** Header and footer both inline their brand marks
+and paint them through `tokens.css`, so neither depends on scheme propagation into a
+referenced image. Read [`docs/brand-assets.md`](docs/brand-assets.md) before building it.
 
 **`Prose` forwards unrecognized props (`...rest`) onto its root `<div>`**, not just `class`.
 Astro hands a child its parent's scoped-style attribute as a prop, and the child must place
