@@ -363,14 +363,13 @@ tier; build-time image optimization; nothing.
 - [x] Every page has a unique title (≤60 chars) and description (≤155 chars)
 - [x] Canonical URLs are absolute and use the chosen hostname — `https://technoise.dev` in
       `astro.config.mjs` is confirmed as the GitHub Pages custom domain (Phase 5).
-- [ ] OG image renders correctly in a social preview debugger — `public/og/technoise-og.png`
+- [x] OG image renders correctly in a social preview debugger — `public/og/technoise-og.png`
       confirmed exactly 1200×630 and correctly referenced via `OG_IMAGE` on every page.
       Facebook's Sharing Debugger initially reported a robots.txt block on
       `facebookexternalhit`; `robots.txt` now names `facebookexternalhit` and `Facebot`
       explicitly (`src/pages/robots.txt.ts`) even though the wildcard rule already covered
-      them — Meta's crawlers are known to report this against a bare wildcard. Still open:
-      re-run the debugger's "Scrape Again" once this deploys, to confirm the card itself
-      renders
+      them — Meta's crawlers are known to report this against a bare wildcard. Confirmed
+      working by the site owner after the fix deployed
 - [x] `sitemap.xml` lists every public page and no drafts
 - [x] `robots.txt` allows crawling and references the sitemap
 - [x] RSS validates — `dist/rss.xml` parses clean under `xmllint --noout` and carries every
