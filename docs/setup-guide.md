@@ -50,6 +50,12 @@ keeps DNS, registrar, and analytics in one dashboard.
 Functions bill against the Workers free plan at 100,000 requests/day with 10 ms CPU per request. A purely static site never touches that. Keep it static
 and this stays $0 permanently.
 
+**Actual choice: GitHub Pages.** The repo is public, this site sits comfortably inside the
+1 GB/100 GB-per-month limits, and `.github/workflows/deploy.yml` was already the simplest
+path from `git push` to a live URL with no separate host to connect. Everything from Phase 5
+onward describes GitHub Pages, not Cloudflare Pages — CLAUDE.md's Stack table carries the
+current, binding answer.
+
 ### Decision 3: Registrar
 
 Buy the domain at Cloudflare Registrar, which passes through the wholesale registry fee plus the $0.18 ICANN fee with no markup and no renewal premium — currently $10.44/yr for a .com. Note for budgeting: Verisign raises the wholesale .com fee on 1 November 2026, taking the at-cost total to about $11.15.
@@ -59,6 +65,10 @@ else combined — .io runs $50/yr and .ai $80/yr at cost.
 
 Skip this and use `username.github.io` if you want $0.00 total. The tradeoff is that you
 can never move the URL without losing accumulated search ranking.
+
+**Actual purchase: `technoise.dev` at Squarespace Domains**, not Cloudflare Registrar. The
+registrar doesn't matter to GitHub Pages — only that you can edit its DNS records, which
+Phase 5 now assumes is Squarespace's DNS panel rather than Cloudflare's.
 
 ---
 
@@ -257,23 +267,50 @@ edits. Verified.
 **Done when:** view-source on three different page types shows three different titles,
 descriptions, and canonicals — no duplicates. Verified.
 
-### Phase 5 — Deploy (1 evening)
-1. Push to GitHub.
-2. In Cloudflare Pages, connect the repo, set the build command and output directory.
-3. First deploy lands on a `*.pages.dev` URL. Verify it there before touching DNS.
-4. Buy the domain at Cloudflare Registrar.
-5. Attach the custom domain in Pages. DNS and SSL are automatic when the domain is in the
-   same Cloudflare account.
-6. **Choose apex or `www` and 301 the other.** Pick one now; changing it later splits your
-   search ranking across two hostnames.
-7. Confirm HTTPS is enforced and the `.pages.dev` URL isn't independently indexable.
+### Phase 5 — Deploy (1 evening) — done, on GitHub Pages, not Cloudflare Pages
+1. Push to `master`. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on
+   every push — there is no separate host to connect.
+2. First deploy lands on `https://<user>.github.io/<repo>/`, a *subpath* URL. Don't judge the
+   build there: `site` is root-only (`assertRootDeploy()` in `src/lib/seo.ts` rejects a
+   subpath), so every root-relative asset 404s under `/<repo>/` and the page renders
+   unstyled. Verify the artifact with `npm run preview` instead, and leave `site` in
+   `astro.config.mjs` pointed at the custom domain, never the `.github.io` one.
+3. Buy the domain and be able to edit its DNS (Decision 3 — this site's came from Squarespace
+   Domains).
+4. Repo Settings → Pages → **Custom domain** → enter the apex (`technoise.dev`) → GitHub
+   shows the DNS values to add and enters a "DNS check in progress" state that clears on its
+   own once the records below resolve. There's nothing to click to speed that up. This
+   setting, not a file in the repo, is what GitHub Pages actually reads: unlike the legacy
+   "Deploy from a branch" flow, `.github/workflows/deploy.yml` publishes through
+   `actions/deploy-pages`, which does not read (and does not write) a `CNAME` file in the
+   published artifact — a committed one would be inert and, per the layout rule above, an
+   undocumented file in `public/`. Don't add one.
+5. At the registrar's DNS panel (Squarespace's, here), point the apex at GitHub Pages:
+   - Four `A` records at the apex (`@`) → `185.199.108.153`, `185.199.109.153`,
+     `185.199.110.153`, `185.199.111.153`.
+   - Four `AAAA` records at the apex → `2606:50c0:8000::153`, `2606:50c0:8001::153`,
+     `2606:50c0:8002::153`, `2606:50c0:8003::153`.
+   - One `CNAME` record for the `www` host → `<github-username>.github.io.`
+6. **Choose apex or `www` as canonical in the Custom domain field and let GitHub redirect the
+   other.** With DNS records in place for both, GitHub Pages 301s the host you didn't choose
+   to the one you did. Pick once — changing it later splits search ranking across two
+   hostnames.
+7. Optional but recommended: account Settings → Pages → **Verified domains** → add the domain
+   → add the `_github-pages-challenge-<user>` TXT record it gives you at the registrar →
+   verify. This blocks anyone else from ever pointing a Pages site at your domain during a
+   moment the DNS record dangles.
+8. Once DNS resolves, confirm **Enforce HTTPS** is checked in the Pages settings, and check
+   what `https://<user>.github.io/<repo>/` does: with a custom domain set it should redirect
+   to the custom domain rather than serve a second copy. If it serves, you have two indexable
+   hostnames for one site — fix that before requesting indexing in Phase 6.
 
-**Done when:** the custom domain serves over HTTPS and every internal link uses it.
+**Done when:** the custom domain serves over HTTPS, a plain `git push` alone republishes it,
+and every internal link uses the custom domain.
 
 ### Phase 6 — Indexing (30 minutes, then waiting)
 1. **Google Search Console** → add property → **Domain** property (not URL prefix) → it
-   gives you a TXT record → add it in Cloudflare DNS → verify. Domain properties cover every
-   subdomain and both protocols, which saves grief later.
+   gives you a TXT record → add it at your registrar's DNS (Squarespace here) → verify.
+   Domain properties cover every subdomain and both protocols, which saves grief later.
 2. Submit `https://yourdomain/sitemap.xml` under Sitemaps. Confirm it reports "Success" and a
    page count matching reality.
 3. URL Inspection → Request Indexing for home, `/blog/`, `/projects/`, `/resume/`, `/about/`.
@@ -327,9 +364,8 @@ tier; build-time image optimization; nothing.
 ## Part 4 — Launch checklist
 
 - [x] Every page has a unique title (≤60 chars) and description (≤155 chars)
-- [ ] Canonical URLs are absolute and use the chosen hostname — absolute: done; the
-      hostname itself is still `https://technoise.dev` in `astro.config.mjs`, unconfirmed
-      against the GitHub Pages deploy target. A human must settle this before Phase 5.
+- [x] Canonical URLs are absolute and use the chosen hostname — `https://technoise.dev` in
+      `astro.config.mjs` is confirmed as the GitHub Pages custom domain (Phase 5).
 - [ ] OG image renders correctly in a social preview debugger — image is built and
       committed (1200×630, cream field, no crop); not run against a debugger, which needs
       a publicly reachable URL and the site isn't deployed yet
