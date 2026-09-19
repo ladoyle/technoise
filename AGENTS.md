@@ -37,7 +37,8 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # SEO-helper, discovery-output (sitemap/rss/robots),
                       # nav/route-resolution, brand-asset, workflow-permissions,
                       # test-harness-contract, ci-workflow, dependency-contract,
-                      # palette-tokens and a11y-verify-script tests (14 files, 289 tests)
+                      # palette-tokens, a11y-verify-script and mark-tint-contract tests
+                      # (15 files, 302 tests)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests — its
                       # phone-shape scan strips <svg>…</svg> from the visible HTML first,
@@ -82,7 +83,16 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # to clip-only (no fullPage), pins scrollIntoViewIfNeeded() ahead of
                       # boundingBox() in sampleRenderedBackground(), and asserts no catch there
                       # coexists with the "zero-size element" fallback message, all via static
-                      # source reads, no browser, no build)
+                      # source reads, no browser, no build; and tests/mark-tint-contract.test.ts
+                      # reads tokens.css and measures with src/lib/contrast.ts to guard the
+                      # brand mark's dimmed dark tints, --signal-300-dim/--pulse-300-dim: one
+                      # half asserts no semantic role (--link/--rule/--focus/
+                      # --accent-fill-hover) ever resolves to either -dim token, in both dark
+                      # blocks, so a future edit can't silently drop link/focus contrast
+                      # site-wide; the other half floors --signal-300-dim at 4.5:1 on --ink,
+                      # because .tn-signal paints the "HEAR THE FUTURE" tagline as well as the
+                      # robot's face, not just the 3:1 large-text/icon floor the fill would
+                      # otherwise only need)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -273,17 +283,26 @@ The first is the three brand SVGs in `public/brand/` (`technoise-icon.svg`,
 the favicon is two files). They're referenced by `<img src>` / `<link>` URL, not inlined, so
 they cannot read this page's CSS custom properties — each file carries its own fills as
 literal hex, three classes (`.tn-ink`, `.tn-signal`, `.tn-pulse`) that must byte-match
-`--ink`/`--signal`/`--pulse` in light mode and `--cream-dim`/`--signal-300`/`--pulse-300` in
-dark — **`--cream-dim`, not raw `--cream`**: the brand wordmark used to burn at `--cream`'s
-12.91:1 in dark mode while every other piece of chrome on the page was already dimmed to
-`--cream-dim`'s 10.72:1, and it now takes the same value for the same reason `--text` does
-(cream emitted from a dark screen reads as glare, not extra contrast). Four of the five files
-gate the dark triple behind a `prefers-color-scheme: dark` override; `favicon-dark.svg` states
-it unconditionally, with no media query of its own. `tests/brand-assets.test.ts` reads
-`tokens.css` at test time and asserts the match — that test, not a code review, is what keeps
-this exception honest. Don't "fix" the hardcoded hex in these files without re-running it; a
-token edit that isn't mirrored here silently desyncs to an ink-on-ink wordmark in dark mode
-(measured 1.00:1 — invisible, not just off-color).
+`--ink`/`--signal`/`--pulse` in light mode and `--cream-dim`/`--signal-300-dim`/
+`--pulse-300-dim` in dark — **`--cream-dim`, not raw `--cream`**: the brand wordmark used to
+burn at `--cream`'s 12.91:1 in dark mode while every other piece of chrome on the page was
+already dimmed to `--cream-dim`'s 10.72:1, and it now takes the same value for the same reason
+`--text` does (cream emitted from a dark screen reads as glare, not extra contrast).
+`--signal-300-dim` (`#46A5C6`, 4.81:1 on ink) and `--pulse-300-dim` (`#E37B48`, 4.64:1 on ink)
+are each a 60/40 blend along that colour's own `-300`/`-700` ramp, not toward `--ink` — a
+blend toward `--ink` reads as brown, not a calmer orange. They exist **only** for the brand
+mark's `.tn-signal`/`.tn-pulse` dark fills; `--signal-300`/`--pulse-300` remain, unchanged, the
+link, rule, focus and button-hover tints described above. Don't unify the two pairs: a
+`.tn-signal`/`.tn-pulse` fill that resolved to plain `--signal-300`/`--pulse-300` again would
+be the exact brightness the mark was dimmed away from, and a semantic role (`--link`, `--rule`,
+`--focus`, `--accent-fill-hover`) that resolved to the `-dim` pair would silently drop
+link/focus contrast site-wide — `tests/mark-tint-contract.test.ts` guards both directions.
+Four of the five files gate the dark triple behind a `prefers-color-scheme: dark` override;
+`favicon-dark.svg` states it unconditionally, with no media query of its own.
+`tests/brand-assets.test.ts` reads `tokens.css` at test time and asserts the match — that
+test, not a code review, is what keeps this exception honest. Don't "fix" the hardcoded hex in
+these files without re-running it; a token edit that isn't mirrored here silently desyncs to
+an ink-on-ink wordmark in dark mode (measured 1.00:1 — invisible, not just off-color).
 
 The second is `src/lib/palette.ts`, the module behind `/styleguide/`'s swatch captions. A
 caption prints a hex string and a computed WCAG ratio; neither can be a `var()`, so the
