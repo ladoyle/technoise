@@ -339,36 +339,57 @@ describe("brand SVG viewBoxes stay cropped to their ink", () => {
 const presentation = svgs.find((s) => s.name === "technoise-logo-presentation.svg")!;
 const full = svgs.find((s) => s.name === "technoise-logo-full.svg")!;
 
-// Footer.astro still renders the lockup the way both components used to: a <picture> whose
-// <source>/<img> point at public/brand/ by URL. Header.astro no longer does — it inlines the
-// same two files (see the suites below it) — so these three assertions are the footer's
-// alone now, not a shared loop over both components.
+// Footer.astro now renders the lockup the way Header.astro does: both files read at build
+// time and inlined, so the fills resolve in the page's cascade rather than inside a
+// URL-referenced image document. These three assertions are the footer's half of that,
+// pinned the same way the header's are below.
 describe("the footer brand lockup", () => {
-  // The markup only. A component's frontmatter comment is free to name the very tags these
-  // assertions grep for — Footer.astro's now does, explaining what the header stopped doing
-  // — and a regex that reads the comment as markup fails on prose.
+  // The markup only, for the geometry and breakpoint claims. A component's frontmatter
+  // comment is free to name the very tags these assertions grep for, and a regex that reads
+  // the comment as markup fails on prose.
   const markup = footer.slice(footer.indexOf("\n---", 3) + 4);
 
   it("references brand files that exist", () => {
-    const refs = [...markup.matchAll(/["'](\/brand\/[^"']+)["']/g)].map((m) => m[1]);
-    expect(refs.length).toBeGreaterThan(0);
-    for (const ref of refs) {
-      expect(existsSync(join(root, "public", ref)), `Footer.astro points at a missing ${ref}`).toBe(true);
+    for (const svg of [presentation, full]) {
+      expect(
+        footer,
+        `Footer.astro no longer imports ${svg.name}; public/brand/ must stay the one source of truth`,
+      ).toContain(`../../public/brand/${svg.name}?raw`);
+      expect(
+        existsSync(join(brandDir, svg.name)),
+        `Footer.astro points at a missing ${svg.name}`,
+      ).toBe(true);
     }
   });
 
-  it("reserves the box with the presentation file's intrinsic size", () => {
-    const img = /<img[\s\S]*?>/.exec(markup);
-    expect(img, "Footer.astro renders no <img>").not.toBeNull();
-    const width = /\swidth="(\d+)"/.exec(img![0]);
-    const height = /\sheight="(\d+)"/.exec(img![0]);
-    expect([Number(width?.[1]), Number(height?.[1])]).toEqual(presentation.declared);
+  it("reserves the box with each lockup file's intrinsic size", () => {
+    const rendered = readFileSync(join(root, "dist", "index.html"), "utf8");
+    const brand = /<div class="site-footer__brand"[\s\S]*?<\/div>/.exec(rendered);
+    expect(brand, "the built footer renders no .site-footer__brand").not.toBeNull();
+
+    for (const { variant, svg } of [
+      { variant: "stacked", svg: presentation },
+      { variant: "wide", svg: full },
+    ]) {
+      const tag = new RegExp(`<svg data-mark="${variant}"[^>]*>`).exec(brand![0]);
+      expect(tag, `the built footer renders no [data-mark="${variant}"] svg`).not.toBeNull();
+
+      const viewBox = /\sviewBox="([^"]+)"/.exec(tag![0])?.[1].trim().split(/\s+/).map(Number);
+      const width = /\swidth="([\d.]+)"/.exec(tag![0])?.[1];
+      const height = /\sheight="([\d.]+)"/.exec(tag![0])?.[1];
+
+      expect(viewBox).toEqual(svg.viewBox);
+      expect([Number(width), Number(height)]).toEqual(svg.declared);
+    }
   });
 
-  it("swaps sources on the one 48em breakpoint, not a second one", () => {
-    const medias = [...markup.matchAll(/media="\(min-width:\s*([^)]+)\)"/g)].map((m) => m[1].trim());
-    expect(medias.length).toBeGreaterThan(0);
-    expect(new Set(medias)).toEqual(new Set(["48em"]));
+  it("swaps lockups on the one 48em breakpoint, not a second one", () => {
+    const swaps = [...markup.matchAll(/\[data-mark="(stacked|wide)"\]\s*\{\s*display:\s*(\w+)/g)];
+    expect(swaps.length, "Footer.astro swaps the two lockups nowhere in CSS").toBeGreaterThan(0);
+
+    const widths = [...markup.matchAll(/@media\s*\(\s*min-width:\s*([^)]+)\)/g)].map((m) => m[1].trim());
+    expect(new Set(widths)).toEqual(new Set(["48em"]));
+    expect(markup, "a max-width query is a second breakpoint").not.toMatch(/max-width:/);
     expect(tokens).toContain("@media (min-width: 48em)");
   });
 });
