@@ -38,7 +38,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 suites, 352 tests; see docs/testing.md for the map
+npm test             # vitest run — 16 suites, 418 tests; see docs/testing.md for the map
 ```
 
 Node `>=22.12.0` is required, pinned in `.nvmrc`.
