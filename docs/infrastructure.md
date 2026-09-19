@@ -24,6 +24,14 @@ one documented exception is `technoise-icon.svg`: it is the master the favicon i
 from, served live but named nowhere in `src/`. A second assertion holds the exemption list
 to files `BRAND_FILES` already guards, so it cannot grow to cover an undocumented path.
 
+A second, unrelated exemption exists for the same reason: `public/CNAME` is GitHub Pages'
+custom-domain file, read by GitHub's serving infrastructure rather than by anything in `src/`.
+A site deployed via a GitHub Actions workflow (this repo's `deploy.yml`, not "Deploy from a
+branch") has to carry that file itself — GitHub does not write it into the repository the way
+the branch-based flow does. It's tracked separately, as `DEPLOY_FILES_BY_DESIGN` in
+`tests/brand-assets.test.ts`, kept out of the brand-only allowance above so a Header or Footer
+that stopped referencing a logo still fails loudly.
+
 ## `.github/workflows/deploy.yml` — two binding conventions
 
 Both born from Issue #14: a `pages: write` + `id-token: write` grant sitting at workflow

@@ -134,7 +134,8 @@ and [`docs/brand-assets.md`](docs/brand-assets.md):
 
 - **`public/` means deployed, not kept.** A file that must stay in the repo but must never be
   served goes in `archive/`. `public/` may hold no file `src/` references nowhere;
-  `technoise-icon.svg` is the one documented exception.
+  `technoise-icon.svg` and `CNAME` (GitHub Pages' custom-domain file) are the two documented
+  exceptions.
 - **Permission grants live on jobs, not on workflows.** Workflow level is `permissions: {}`.
   A third-party action is pinned to a full commit SHA with its version in a trailing comment.
   `tests/workflow-permissions.test.ts` enforces both on every file in `.github/workflows/`.
