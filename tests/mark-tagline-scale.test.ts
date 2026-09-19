@@ -16,11 +16,17 @@ import { describe, expect, it } from "vitest";
 //      as texture, not as words. SC 1.4.3 exempts logotype text from the contrast minimum at
 //      any size, so this is belt-and-braces — but the *reason* the site was willing to take
 //      the exemption is the rendered size, and a re-export could change it.
-//   2. The face field and the headphones never abut the page at all. What governs their
-//      shape-reading is the --cream-dim outline enclosing them (10.72:1 on --ink), and that
-//      contrast went *up* as the fills darkened. If a re-export ever broke the outline so a
-//      fill met the page directly, the 3:1-measured-on-a-surface-it-never-touches framing in
-//      mark-tint-contract.test.ts would stop describing reality.
+//   2. The face field and the headphones never abut the page at all — every boundary pixel
+//      either of them has meets the --cream-dim outline instead. That is not context any
+//      more: mark-tint-contract.test.ts now floors both fills at 3:1 *against that outline*,
+//      which is only the right pair of colours if the enclosure is total. So this suite
+//      measures both sides — 0% page adjacency and ~100% ink adjacency — and a re-export that
+//      opened the outline anywhere fails here rather than silently leaving the mark's one
+//      real non-text floor pointed at a colour it no longer abuts.
+//
+// The two premises underwrite one floor each: premise 1 the ceiling on how dark the fills may
+// go (the page-adjacent tagline against --ink), premise 2 the floor on how light they may be
+// (the enclosed fills against the outline).
 //
 // Both premises lived only in a source comment and a git-ignored report. This suite measures
 // them, so a re-export that enlarges the tagline or opens the outline fails here instead of
@@ -196,8 +202,9 @@ describe("the logotype tagline stays texture at the size the mark ships at", () 
 
 describe("the mascot's fills never meet the page directly", () => {
   // 4-neighbourhood: a fill pixel with an orthogonal neighbour that belongs to no class is
-  // touching the page surface. The premise under the relaxed floor is that this is zero for
-  // both fills in every file — they are read against the --cream-dim outline, not the page.
+  // touching the page surface; one whose neighbour carries .tn-ink is touching the outline.
+  // Both are counted, because mark-tint-contract.test.ts floors these fills against the
+  // outline — a claim that only holds while the enclosure is total.
   const pageAdjacency = async (file: string, cls: string, only?: "field" | "glyphs") => {
     const [self, ink, other] = await Promise.all([
       isolate(file, cls),
@@ -218,6 +225,7 @@ describe("the mascot's fills never meet the page directly", () => {
 
     let boundary = 0;
     let touchingPage = 0;
+    let touchingInk = 0;
     for (const at of pixels) {
       const x = at % width;
       const y = Math.floor(at / width);
@@ -237,28 +245,38 @@ describe("the mascot's fills never meet the page directly", () => {
         const next = ny * width + nx;
         if (self.mask[next]) continue;
         boundary += 1;
-        if (!ink.mask[next] && !other.mask[next]) touchingPage += 1;
+        if (ink.mask[next]) touchingInk += 1;
+        else if (!other.mask[next]) touchingPage += 1;
       }
     }
-    return { boundary, touchingPage };
+    return { boundary, touchingPage, touchingInk };
   };
 
+  // The fraction of a fill's boundary that meets .tn-ink. 1.00 today for every fill in every
+  // file; the 0.99 allowance is for rasteriser drift along an antialiased edge, not for a
+  // region of open outline. What it pins is the colour pair mark-tint-contract.test.ts's
+  // lightness floor measures: --signal-300-dim / --pulse-300-dim against --cream-dim.
+  const ENCLOSURE = 0.99;
+
   it("the face field is fully enclosed by the outline in the stacked lockup", async () => {
-    const { boundary, touchingPage } = await pageAdjacency(STACKED, "tn-signal", "field");
+    const { boundary, touchingPage, touchingInk } = await pageAdjacency(STACKED, "tn-signal", "field");
     expect(boundary).toBeGreaterThan(0);
     expect(touchingPage).toBe(0);
+    expect(touchingInk / boundary).toBeGreaterThanOrEqual(ENCLOSURE);
   });
 
   it("the face field is fully enclosed by the outline in the wide lockup", async () => {
-    const { boundary, touchingPage } = await pageAdjacency(WIDE, "tn-signal", "field");
+    const { boundary, touchingPage, touchingInk } = await pageAdjacency(WIDE, "tn-signal", "field");
     expect(boundary).toBeGreaterThan(0);
     expect(touchingPage).toBe(0);
+    expect(touchingInk / boundary).toBeGreaterThanOrEqual(ENCLOSURE);
   });
 
   it.each([STACKED, WIDE, ...TAGLINE_FREE])("the headphones never meet the page in %s", async (file) => {
-    const { boundary, touchingPage } = await pageAdjacency(file, "tn-pulse");
+    const { boundary, touchingPage, touchingInk } = await pageAdjacency(file, "tn-pulse");
     expect(boundary).toBeGreaterThan(0);
     expect(touchingPage).toBe(0);
+    expect(touchingInk / boundary).toBeGreaterThanOrEqual(ENCLOSURE);
   });
 
   // The counterpart, asserted rather than assumed: the tagline *is* page-adjacent. That is
