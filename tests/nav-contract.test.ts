@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { RESUME, profiles } from "../src/lib/resume";
+import { SITE } from "../src/lib/seo";
 
 // D3/D4 turned the primary nav into a disclosure and cut /about/ from both navs for
 // one reason: a nav item that promises a 404 is worse than no nav item. Nothing in the
@@ -358,6 +359,35 @@ describe("the footer's Elsewhere block stays tied to the profiles helper", () =>
       expect(footerRegion(page.html, page.path), `${page.path}: footer link opens a new tab`).not.toMatch(
         /\starget=/,
       );
+    }
+  });
+
+  // QA. `profiles` matches a host against a label map and drops what it cannot name, so
+  // two failure modes live below the markup the assertions above read. Both are about a
+  // future edit to SITE.author.sameAs, the one input the derivation has.
+
+  it("names every host in sameAs, so no profile is dropped from the site in silence", () => {
+    // An unlabelled host vanishes from the footer, the resume's contact list and the
+    // JSON-LD at once, with a clean build and no warning. It is also what makes the
+    // component's `profiles.length > 0` guard unreachable: assert the reason, not the
+    // branch.
+    expect(profiles.map((p) => p.href)).toEqual([...SITE.author.sameAs]);
+  });
+
+  it("publishes profile links over https and no other scheme", () => {
+    // new URL() parses an authority for any scheme, so "javascript://github.com/%0a…"
+    // and a typo'd "htps://github.com" both resolve host "github.com", earn a label and
+    // render as a live href. The host allowlist does not see a scheme; this does.
+    for (const profile of profiles) {
+      expect(new URL(profile.href).protocol, profile.href).toBe("https:");
+    }
+    for (const page of pages) {
+      const hrefs = [...footerRegion(page.html, page.path).matchAll(/href="([^"]*)"/g)].map(
+        (m) => m[1],
+      );
+      for (const href of hrefs) {
+        expect(href, `${page.path}: ${href}`).toMatch(/^(?:https:\/\/|\/)/);
+      }
     }
   });
 });
