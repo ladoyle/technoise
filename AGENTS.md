@@ -37,8 +37,8 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # SEO-helper, discovery-output (sitemap/rss/robots),
                       # nav/route-resolution, brand-asset, workflow-permissions,
                       # test-harness-contract, ci-workflow, dependency-contract,
-                      # palette-tokens, a11y-verify-script and mark-tint-contract tests
-                      # (15 files, 302 tests)
+                      # palette-tokens, a11y-verify-script, mark-tint-contract and
+                      # mark-tagline-scale tests (16 files, 316 tests)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests — its
                       # phone-shape scan strips <svg>…</svg> from the visible HTML first,
@@ -83,16 +83,29 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # to clip-only (no fullPage), pins scrollIntoViewIfNeeded() ahead of
                       # boundingBox() in sampleRenderedBackground(), and asserts no catch there
                       # coexists with the "zero-size element" fallback message, all via static
-                      # source reads, no browser, no build; and tests/mark-tint-contract.test.ts
+                      # source reads, no browser, no build; tests/mark-tint-contract.test.ts
                       # reads tokens.css and measures with src/lib/contrast.ts to guard the
                       # brand mark's dimmed dark tints, --signal-300-dim/--pulse-300-dim: one
                       # half asserts no semantic role (--link/--rule/--focus/
                       # --accent-fill-hover) ever resolves to either -dim token, in both dark
                       # blocks, so a future edit can't silently drop link/focus contrast
-                      # site-wide; the other half floors --signal-300-dim at 4.5:1 on --ink,
-                      # because .tn-signal paints the "HEAR THE FUTURE" tagline as well as the
-                      # robot's face, not just the 3:1 large-text/icon floor the fill would
-                      # otherwise only need)
+                      # site-wide; the other half floors both tints at WCAG 1.4.11's 3:1
+                      # non-text minimum on --ink-sunken (the darkest surface tokens.css
+                      # declares, not --ink, the surface the mark actually paints on — a
+                      # deliberately conservative buffer), not the 4.5:1 text minimum, because
+                      # SC 1.4.3 exempts logotype text from the text floor at any size and the
+                      # only part of .tn-signal that touches the page rather than the mark's
+                      # own --cream-dim outline is the "HEAR THE FUTURE" tagline; and
+                      # tests/mark-tagline-scale.test.ts measures, rather than transcribes from
+                      # a report, the two geometric premises that 3:1 floor depends on: it pins
+                      # the block-size: var(--space-48) anchor both Header.astro and
+                      # Footer.astro declare for the mark, rasterises the tagline glyphs in
+                      # both lockup files against a rendered-cap-height ceiling so a re-export
+                      # that scaled them up to readable text would fail here, confirms
+                      # technoise-icon.svg and both favicon files carry no tagline at all, and
+                      # asserts the zero-page-adjacency geometry (the face field and headphones
+                      # never touch the page surface, only the tagline does) the 3:1-on-a-
+                      # surface-the-mark-never-touches reasoning above depends on)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -288,15 +301,30 @@ literal hex, three classes (`.tn-ink`, `.tn-signal`, `.tn-pulse`) that must byte
 burn at `--cream`'s 12.91:1 in dark mode while every other piece of chrome on the page was
 already dimmed to `--cream-dim`'s 10.72:1, and it now takes the same value for the same reason
 `--text` does (cream emitted from a dark screen reads as glare, not extra contrast).
-`--signal-300-dim` (`#46A5C6`, 4.81:1 on ink) and `--pulse-300-dim` (`#E37B48`, 4.64:1 on ink)
-are each a 60/40 blend along that colour's own `-300`/`-700` ramp, not toward `--ink` — a
-blend toward `--ink` reads as brown, not a calmer orange. They exist **only** for the brand
-mark's `.tn-signal`/`.tn-pulse` dark fills; `--signal-300`/`--pulse-300` remain, unchanged, the
-link, rule, focus and button-hover tints described above. Don't unify the two pairs: a
-`.tn-signal`/`.tn-pulse` fill that resolved to plain `--signal-300`/`--pulse-300` again would
-be the exact brightness the mark was dimmed away from, and a semantic role (`--link`, `--rule`,
-`--focus`, `--accent-fill-hover`) that resolved to the `-dim` pair would silently drop
-link/focus contrast site-wide — `tests/mark-tint-contract.test.ts` guards both directions.
+`--signal-300-dim` (`#3293B6`, 3.860:1 on `--ink`) and `--pulse-300-dim` (`#D56A37`, 3.835:1 on
+`--ink`) are each a 40/60 blend along that colour's own `-300`/`-700` ramp — 40% the `-300`
+base, 60% the `-700` base, moved further toward each colour's own `-700` variant — not toward
+`--ink`; a blend toward `--ink` reads as brown, not a calmer orange. They exist **only** for
+the brand mark's `.tn-signal`/`.tn-pulse` dark fills; `--signal-300`/`--pulse-300` remain,
+unchanged, the link, rule, focus and button-hover tints described above. Don't unify the two
+pairs: a `.tn-signal`/`.tn-pulse` fill that resolved to plain `--signal-300`/`--pulse-300`
+again would be the exact brightness the mark was dimmed away from, and a semantic role
+(`--link`, `--rule`, `--focus`, `--accent-fill-hover`) that resolved to the `-dim` pair would
+silently drop link/focus contrast site-wide — `tests/mark-tint-contract.test.ts` guards both
+directions. The applicable accessibility floor for `.tn-signal` is WCAG 1.4.11's 3:1 non-text
+minimum, not the 4.5:1 text minimum a prior cycle held it to: SC 1.4.3 exempts logotype text
+from the text floor at any size (cite 1.4.3 alone for that exemption — 1.4.11 itself contains
+no logotype clause; a logo escapes it by falling outside its scope, not through an exception
+within it), and the only part of `.tn-signal` that touches the page surface rather than the
+mark's own `--cream-dim` outline is the "HEAR THE FUTURE" tagline, which renders as texture
+(2.7–4.4 CSS px of cap height) rather than readable text at the size both lockups ship it.
+Both tints are floored at 3:1 measured on `--ink-sunken`, not `--ink`, the surface the mark
+actually paints on — a deliberately conservative buffer; `--ink-sunken`'s own comment in
+`tokens.css` notes that it also gates this guard, since its four other consumers (`TagPill`,
+prose code blocks, `index.astro`) have nothing to do with the brand mark and a future nudge to
+it for one of those reasons can turn `tests/mark-tint-contract.test.ts` red in what looks like
+an unrelated place. `tests/mark-tagline-scale.test.ts` pins both premises the floor depends
+on: the tagline's rendered size and the zero-page-adjacency of the face field and headphones.
 Four of the five files gate the dark triple behind a `prefers-color-scheme: dark` override;
 `favicon-dark.svg` states it unconditionally, with no media query of its own.
 `tests/brand-assets.test.ts` reads `tokens.css` at test time and asserts the match — that
