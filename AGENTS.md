@@ -38,7 +38,7 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # nav/route-resolution, brand-asset, workflow-permissions,
                       # test-harness-contract, ci-workflow, dependency-contract,
                       # palette-tokens, a11y-verify-script, mark-tint-contract and
-                      # mark-tagline-scale tests (16 files, 319 tests)
+                      # mark-tagline-scale tests (16 files, 352 tests)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests — its
                       # phone-shape scan strips <svg>…</svg> from the visible HTML first,
@@ -56,16 +56,20 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # brand file's own declared colours, in both schemes; another walks
                       # every built page's injected header markup asserting it ships inert
                       # (no script, handler or external reference) and still tokenised (no
-                      # hex, no fill/stroke presentation attribute); it also carries a second
-                      # SVG parser (parseFlatSvg, for a file with no internal dark block) and
-                      # a third tracked list (assetTracked, alongside tokenTracked and
-                      # BRAND_FILES) that folds public/favicon-dark.svg into the geometry,
-                      # ink-floor and inertness loops; a "the two-file favicon" suite asserts
-                      # favicon.svg still carries its internal dark block on purpose and that
-                      # favicon-dark.svg is favicon.svg with only its <style> replaced, no
-                      # @media of its own; and a "BaseLayout hands the scheme choice to the
-                      # document" suite reads dist/index.html and pins the three icon links'
-                      # hrefs, media and order — the first assertion in this file about the
+                      # hex, no fill/stroke presentation attribute); every tracked file carries
+                      # a role — mascot-only (technoise-icon.svg, favicon.svg: three classes,
+                      # no @media at all) or lockup (both logo files: five classes, only
+                      # .tn-wordmark/.tn-tagline appear in the dark block, asserted as an exact
+                      # object so "no dark override" for the other three is a positive claim,
+                      # not an absence nobody checked) — and both roles feed the same geometry,
+                      # ink-floor and inertness loops via one tracked list (tokenTracked); a
+                      # "the two-file favicon" suite and its parseFlatSvg/assetTracked
+                      # machinery are gone with public/favicon-dark.svg, which this repo no
+                      # longer has — the mascot needs no second rendering to select between,
+                      # so the file would have been byte-identical to favicon.svg; and a
+                      # "BaseLayout hands the scheme choice to the document" suite reads every
+                      # built page and pins the two icon links' hrefs and confirms neither
+                      # carries a media attribute — the first assertion in this file about the
                       # document's <head> rather than about an asset;
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
@@ -85,34 +89,44 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # coexists with the "zero-size element" fallback message, all via static
                       # source reads, no browser, no build; tests/mark-tint-contract.test.ts
                       # reads tokens.css and measures with src/lib/contrast.ts to guard the
-                      # brand mark's dimmed dark tints, --signal-300-dim/--pulse-300-dim: one
-                      # half asserts no semantic role (--link/--rule/--focus/
-                      # --accent-fill-hover) ever resolves to either -dim token, in both dark
-                      # blocks, so a future edit can't silently drop link/focus contrast
-                      # site-wide; the other half floors both tints at WCAG 1.4.11's 3:1
-                      # non-text minimum against both surfaces the mark can actually be
-                      # adjacent to — --ink (the page background both lockups paint on) and
-                      # --cream-dim (the mark's own outline, which wholly encloses the face
-                      # field and headphones) — not the 4.5:1 text minimum, because SC 1.4.3
-                      # exempts logotype text from the text floor at any size and the only part
-                      # of .tn-signal that touches the page rather than the mark's own
-                      # --cream-dim outline is the "HEAR THE FUTURE" tagline; a third assertion
-                      # in the same file is placement-invariant, not colour-based — it parses
-                      # every rule between the mark and <body> in Header.astro and
-                      # Footer.astro and fails if any declares a background other than the
-                      # header toggle's own (pinned separately to transparent), since the
-                      # --cream-dim floor is only true for as long as nothing sits between the
-                      # mark and the page; and tests/mark-tagline-scale.test.ts measures,
-                      # rather than transcribes from a report, the geometric premises both
-                      # floors depend on: it pins the block-size: var(--space-48) anchor both
-                      # Header.astro and Footer.astro declare for the mark, rasterises the
-                      # tagline glyphs in both lockup files against a rendered-cap-height
-                      # ceiling so a re-export that scaled them up to readable text would fail
-                      # here, confirms technoise-icon.svg and both favicon files carry no
-                      # tagline at all, and measures each fill's own boundary — asserting at
-                      # least 99% of it meets .tn-ink, which is what turns "the face field and
-                      # headphones never touch the page, only the tagline does" from an
-                      # assumption into a per-pixel measurement)
+                      # one dim tint the mascot-scheme-freeze cycle left standing,
+                      # --signal-300-dim (--pulse-300-dim was removed as dead — nothing fills
+                      # .tn-pulse in dark mode any more, in any file): one part asserts no
+                      # semantic role (--link/--rule/--focus/--accent-fill-hover) ever resolves
+                      # to it, in both dark blocks, so a future edit can't silently drop
+                      # link/focus contrast site-wide, plus a standing guard that no other
+                      # -dim base is ever declared in tokens.css without a var() consumer
+                      # in src/, so a reinstated --pulse-300-dim needs a consumer from the day
+                      # it lands; another floors --signal-300-dim at WCAG 1.4.11's 3:1 non-text
+                      # minimum against --ink alone — the only surface .tn-tagline (its sole
+                      # consumer) still touches in dark mode, now that the mascot classes have
+                      # no dark value left to be floored against; a third measures the frozen
+                      # mascot fills directly against the dark page and pins the resulting
+                      # figures — .tn-ink 1.000:1, .tn-signal 3.143:1, .tn-pulse 4.238:1 — with
+                      # a comment recording that the outline's 1.000:1 is this cycle's intended,
+                      # requested result for the mascot specifically, not the ink-on-ink defect
+                      # prior cycles' comments describe (that defect is still real, just
+                      # narrowed to .tn-wordmark, which must still clear --cream-dim); and a
+                      # fourth is placement-invariant, not colour-based — it parses every rule
+                      # between the mark and <body> in Header.astro and Footer.astro and fails
+                      # if any declares a background other than the header toggle's own (pinned
+                      # separately to transparent), since the three pinned figures above are
+                      # only true for as long as nothing sits between the mark and the page;
+                      # and tests/mark-tagline-scale.test.ts measures, rather than transcribes
+                      # from a report, the geometric premises this depends on: it pins the
+                      # block-size: var(--space-48) anchor both Header.astro and Footer.astro
+                      # declare for the mark, rasterises the tagline glyphs in both lockup
+                      # files against a rendered-cap-height ceiling so a re-export that scaled
+                      # them up to readable text would fail here, confirms technoise-icon.svg
+                      # and favicon.svg carry no tagline class at all, and measures each
+                      # mascot fill's own boundary — asserting at least 99% of it meets
+                      # .tn-ink, which is what turns "the face field and headphones are wholly
+                      # enclosed by the outline, so only the tagline is read against the page"
+                      # from an assumption into a per-pixel measurement; its isolate() helper
+                      # derives the set of classes to suppress from each file's own class
+                      # attributes rather than naming three, so a sixth class inherits
+                      # suppression instead of polluting every mask the way .tn-wordmark and
+                      # .tn-tagline silently did the one cycle this rework fixed)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -166,32 +180,31 @@ technoise/
 ├─ public/brand/        the three live logo SVGs — anything here is published
 ├─ public/fonts/        the self-hosted Inter woff2 that fonts.css loads
 ├─ public/og/           the one committed Open Graph card (OG_IMAGE in src/lib/seo.ts)
-├─ public/favicon.*     .ico plus two scheme-scoped SVGs — three files, three links, see below
+├─ public/favicon.*     .ico plus one scheme-invariant SVG — two files, two links, see below
 ├─ archive/             versioned but never built or served — see the rule below
 ├─ tests/               vitest suites, plus global-setup.ts — the one build they all read
 └─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
 
-`public/favicon.*` is three files, not "an .ico and a .svg": `favicon.ico`, `favicon.svg`
-(light fills as its defaults, plus its own internal `@media (prefers-color-scheme: dark)`
-override) and `favicon-dark.svg` (the dark fills stated unconditionally, no media query of its
-own). `BaseLayout.astro`'s `<head>` links all three, in this order: `.ico` (no `media`) →
-`favicon-dark.svg` (`media="(prefers-color-scheme: dark)"`) → `favicon.svg`
-(`media="(prefers-color-scheme: light)"`). Two things about this look like cleanup targets and
-are not:
+`public/favicon.*` is two files, not three: `favicon.ico` and `favicon.svg`. `favicon.svg`
+carries no `@media (prefers-color-scheme: dark)` block at all — its three fills (the mascot's
+outline, face field and headphones) are the light-mode hex, unconditional, in both schemes.
+`BaseLayout.astro`'s `<head>` links both, in order: `.ico` (no `media`) → `favicon.svg`
+(`type="image/svg+xml"`, **no `media` attribute**).
 
-- **`favicon.svg` keeps its internal dark `@media` block on purpose.** It is a fallback for an
-  engine that ignores the `media` attribute on a `<link rel="icon">` but still honours a
-  `prefers-color-scheme` query inside the referenced SVG (documented Gecko behaviour, not
-  independently verified here — neither Gecko nor WebKit is installed in this environment).
-  Stripping it would trade the bug this cycle fixed in Chromium for an equivalent one in
-  Firefox.
-- **The link order — dark before light — is load-bearing, not arbitrary.** An engine that
-  ignores `media` entirely and falls through to the last declared icon must land on
-  `favicon.svg`, the file that still self-adapts internally, never on `favicon-dark.svg`
-  alone: that file measures 1.20:1 on a light surface, since it has no light rules at all.
+A third file, `favicon-dark.svg`, existed through the four `mascot-dark-dim` cycles so the icon
+could switch to a dimmed-but-still-adapting rendering on a dark OS. `mascot-scheme-freeze`
+deleted it: once the mascot stops adapting to scheme at all, there is only one rendering left,
+and shipping the same bytes at a second URL selected by `media` is not infrastructure, it is a
+no-op with a maintenance cost — the deleted file would have been byte-identical to `favicon.svg`
+the moment the freeze landed. Its removal also retires, wholesale, the two reasons a prior
+version of this section named for keeping the split: the "dark before light is load-bearing"
+link-ordering rule, and "`favicon.svg` keeps its internal dark `@media` block on purpose, as a
+Gecko fallback." Both existed only to make a scheme *switch* correct; there is no switch left to
+get wrong. If a future cycle wants a dark icon back, re-adding one file and one link is a
+smaller change than keeping a decoy alive through every cycle in between.
 
-Reference by URL, not inlined, so both SVGs sit under the hex exception in "Color tokens"
+Reference by URL, not inlined, so `favicon.svg` sits under the hex exception in "Color tokens"
 below, the same as the three `public/brand/` files.
 
 `archive/` exists because `public/` does not mean "kept" — it means "deployed": anything
@@ -298,78 +311,79 @@ where a test reads `tokens.css` at test time and fails the suite on drift. Two i
 today.
 
 The first is the three brand SVGs in `public/brand/` (`technoise-icon.svg`,
-`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus the two-file favicon,
-`public/favicon.svg` and `public/favicon-dark.svg` (see the repo layout section below for why
-the favicon is two files). They're referenced by `<img src>` / `<link>` URL, not inlined, so
-they cannot read this page's CSS custom properties — each file carries its own fills as
-literal hex, three classes (`.tn-ink`, `.tn-signal`, `.tn-pulse`) that must byte-match
-`--ink`/`--signal`/`--pulse` in light mode and `--cream-dim`/`--signal-300-dim`/
-`--pulse-300-dim` in dark — **`--cream-dim`, not raw `--cream`**: the brand wordmark used to
-burn at `--cream`'s 12.91:1 in dark mode while every other piece of chrome on the page was
-already dimmed to `--cream-dim`'s 10.72:1, and it now takes the same value for the same reason
-`--text` does (cream emitted from a dark screen reads as glare, not extra contrast).
-`--signal-300-dim` (`#2386A9`, 3.260:1 on `--ink`, 3.290:1 on `--cream-dim`) and
-`--pulse-300-dim` (`#CB5C2A`, 3.291:1 on `--ink`, 3.258:1 on `--cream-dim`) are each a blend
-along that colour's own `-300`/`-700` ramp — 25% the `-300` base, 75% the `-700` base, moved
-further toward each colour's own `-700` variant — not toward `--ink`; a blend toward `--ink`
-reads as brown, not a calmer orange. (A third `mascot-dark-dim` cycle shipped these at a 60%
-blend — `#3293B6`/`#D56A37` — before landing here at 75%; don't reintroduce either the 60%
-figures or the "40/60" framing that described them.) They exist **only** for the brand mark's
-`.tn-signal`/`.tn-pulse` dark fills; `--signal-300`/`--pulse-300` remain, unchanged, the link,
-rule, focus and button-hover tints described above. Don't unify the two pairs: a
-`.tn-signal`/`.tn-pulse` fill that resolved to plain `--signal-300`/`--pulse-300` again would
-be the exact brightness the mark was dimmed away from, and a semantic role (`--link`, `--rule`,
-`--focus`, `--accent-fill-hover`) that resolved to the `-dim` pair would silently drop
-link/focus contrast site-wide — `tests/mark-tint-contract.test.ts` guards both directions. The
-applicable accessibility floor for `.tn-signal` is WCAG 1.4.11's 3:1 non-text minimum, not the
-4.5:1 text minimum a prior cycle held it to: SC 1.4.3 exempts logotype text from the text floor
-at any size (cite 1.4.3 alone for that exemption — 1.4.11 itself contains no logotype clause; a
-logo escapes it by falling outside its scope, not through an exception within it), and the only
-part of `.tn-signal` that touches the page surface rather than the mark's own `--cream-dim`
-outline is the "HEAR THE FUTURE" tagline, which renders as texture (2.7–4.4 CSS px of cap
-height) rather than readable text at the size both lockups ship it.
+`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus `public/favicon.svg` (see
+the repo layout section above for why the favicon is one file, not two). They're referenced by
+`<img src>` / `<link>` URL, not inlined, so they cannot read this page's CSS custom properties —
+each file carries its own fills as literal hex. There are two file roles, not one:
 
-Both tints are floored at 3:1 against **both surfaces the mark can actually be adjacent to**:
-`--ink`, the page background both lockups paint on, and `--cream-dim`, the mark's own outline,
-which wholly encloses the face field and the headphones (`tests/mark-tagline-scale.test.ts`
-measures the enclosure directly — at least 99% of each fill's boundary meets `.tn-ink`, never
-the page). This replaced an earlier, single-sided floor that measured against `--ink-sunken`
-instead — a surface no placement of the mark is ever actually painted on. That floor was wrong,
-not just conservative: the values it approved (the 60% blend above) measured **under** 3:1
-against the surface the fills are actually adjacent to (2.778:1 / 2.796:1 against
-`--cream-dim`), so the mark shipped briefly failing its own stated accessibility floor. The two
-floors are also provably incompatible, not just different: the retired `--ink-sunken` floor
-caps the blend at ~61.3–61.7%, while the `--cream-dim` floor requires ≥66.5–66.9% — disjoint
-ranges, so no blend fraction could ever have satisfied both. `--ink-sunken` no longer gates
-anything about the brand mark; its own comment in `tokens.css` said otherwise and has been
-removed, since it was describing a coupling that no longer exists. `--ink-sunken`'s four real
-consumers (`TagPill`, `.button` disabled/ghost-hover states, prose code blocks, `index.astro`)
-are unaffected by any of this and a future nudge to it for one of those reasons has no bearing
-on `tests/mark-tint-contract.test.ts`. That test also carries a placement-invariant assertion
-that the `--cream-dim` floor depends on staying true: no rule between the mark and `<body>` in
-`Header.astro` or `Footer.astro` may declare a background (the header's toggle button is the
-one named exemption, itself pinned to `transparent`) — without it, a background introduced
-behind the mark would put the fills back in contact with something other than the outline and
-the floor would no longer describe reality. That invariant is a source read of the two
-components only; it does not see `src/styles/`, a shared layout, or an inline style — see the
-non-blocking finding in the fourth `mascot-dark-dim` QA report for the gap this leaves.
+- **Mascot-only** — `technoise-icon.svg` and `favicon.svg`. Three classes (`.tn-ink`,
+  `.tn-signal`, `.tn-pulse`: the outline, the face field, the headphones), no
+  `@media (prefers-color-scheme: dark)` block at all. Every fill is the light-mode hex,
+  unconditional, in both schemes.
+- **Lockup** — `technoise-logo-presentation.svg` and `technoise-logo-full.svg`. Five classes:
+  the same three mascot classes, frozen exactly as above, plus two text classes,
+  `.tn-wordmark` (the "TechNoise" letterforms) and `.tn-tagline` ("HEAR THE FUTURE"). Only
+  `.tn-wordmark` and `.tn-tagline` appear in either file's dark block; the mascot classes appear
+  in neither. `.tn-wordmark` must byte-match `--ink`/`--cream-dim` (light/dark) — the exact
+  pair `.tn-ink` itself used to carry uniformly, before `mascot-scheme-freeze` split it out.
+  `.tn-tagline` must byte-match `--signal`/`--signal-300-dim`.
 
-**This is the last dimming pass this ramp supports.** The shipped 75% blend sits 6.7–8.8 blend
-points below where the `--ink` floor is crossed (81.6–81.7% for signal, 83.7–83.8% for pulse) —
-the only headroom this approach has left. A future request to dim the mark further has exactly
-three honest answers, none of which is "push the blend again": accept the current values as
-final; explicitly ship below 3:1 on the page under the logotype exemption (SC 1.4.3 permits
-this for text, but doing it on purpose is a standards decision for a human to make and record
-here, not one an agent should infer from a request to "make it darker"); or re-export the
-lockups so the "HEAR THE FUTURE" tagline is no longer part of `.tn-signal`, which removes the
-constraint that bounds the blend today.
+This split exists because the human asked the mascot to stop adapting to scheme entirely while
+the wordmark and tagline kept their existing dark-mode treatment unchanged — a request the four
+prior `mascot-dark-dim` cycles' shared three-class shape couldn't express, since one class
+painted both a mascot detail and letterforms in some paths. `--pulse-300-dim`, the tint that
+used to serve `.tn-pulse`'s dark fill, has no consumer left anywhere in the repo after the
+freeze and was removed with it.
 
-Four of the five files gate the dark triple behind a `prefers-color-scheme: dark` override;
-`favicon-dark.svg` states it unconditionally, with no media query of its own.
-`tests/brand-assets.test.ts` reads `tokens.css` at test time and asserts the match — that
-test, not a code review, is what keeps this exception honest. Don't "fix" the hardcoded hex in
-these files without re-running it; a token edit that isn't mirrored here silently desyncs to
-an ink-on-ink wordmark in dark mode (measured 1.00:1 — invisible, not just off-color).
+`--signal-300-dim` (`#2386A9`) is the sole surviving `-dim` token now, and its scope is
+narrower than it was: a blend along `--signal`'s own `-300`/`-700` ramp (25% the `-300` base,
+75% the `-700` base, moved further toward `--signal-700` — not toward `--ink`, which reads as
+brown rather than a calmer blue), serving `.tn-tagline` alone at **3.260:1 against `--ink`**.
+`.tn-tagline` is the only element left in either lockup that still touches the page surface
+directly in dark mode, so `--ink` is the only floor that applies — there is no longer a second,
+`--cream-dim`-outline-based floor to reconcile it against, because the outline (`.tn-ink`) has
+no dark value left to be floored. The applicable accessibility standard is still WCAG 1.4.11's
+3:1 non-text minimum, not the 4.5:1 text minimum a prior cycle held it to: SC 1.4.3 exempts
+logotype text from the text floor at any size, and the tagline renders as texture (2.7–4.4 CSS
+px of cap height) rather than readable text at the size both lockups ship it. Never a link,
+rule, focus or hover colour — `--signal-300`/`--pulse-300` (undimmed) remain those, unchanged.
+`tests/mark-tint-contract.test.ts` also carries a standing guard that no `-dim` base may be
+declared in `tokens.css` with zero `var()` consumers in `src/`, so a reinstated
+`--pulse-300-dim` needs a real consumer from the day it lands, or the suite fails on it.
+
+**The mascot renders at 1.000:1 against the dark page, and this is requested, shipped behaviour
+— not the ink-on-ink defect four prior cycles worked to prevent.** `.tn-ink` is frozen at its
+light-mode hex (`#0C3242`) in every file and every scheme; the dark-mode page background is
+also `#0C3242` (`--ink`, dark mode's `--surface`). The outline and the mascot's inner line-work
+(visor, mouth, eye surrounds) therefore vanish into the page, measured at exactly 1.000:1 —
+not estimated, and not a regression to "fix" by giving `.tn-ink` a dark value again. `.tn-signal`
+(the face field) still clears 3.143:1 against `--ink` and `.tn-pulse` (the headphones) 4.238:1,
+so the mascot survives as a recognisable silhouette of colour fields; what is lost is only the
+drawn rim. The brand lockup is `aria-hidden` inside an `<a aria-label>`, so nothing is conveyed
+to assistive tech by the vanished outline. **This distinction matters because the wordmark is
+not exempt from the old rule**: `.tn-wordmark` must still clear a real floor (`--cream-dim`,
+10.72:1), and a token edit that isn't mirrored across every file still silently desyncs it to
+the same 1.000:1 an earlier cycle shipped by accident — that failure mode is real, just now
+narrowed to the two text classes rather than all three mascot ones.
+`tests/mark-tint-contract.test.ts` pins the mascot's 1.000:1 / 3.143:1 / 4.238:1 figures with a
+comment recording that they are this cycle's intended result, specifically so a future reader
+treats the shipped state as a decision to preserve rather than a bug to helpfully fix by
+reintroducing dark-mode adaptation for the mascot.
+
+`tests/mark-tint-contract.test.ts` also keeps a placement-invariant assertion, though what it
+protects changed: no rule between the mark and `<body>` in `Header.astro` or `Footer.astro` may
+declare a background (the header's toggle button is the one named exemption, itself pinned to
+`transparent`). It used to guard the `--cream-dim`-outline floor described above; now it guards
+the claim that the frozen `.tn-signal`/`.tn-pulse` fills and the `.tn-ink` outline are read
+against `--ink` at all — a background introduced behind the mark would put those fills in
+contact with something other than the page, and the pinned figures above would no longer
+describe reality. That invariant is a source read of the two components only; it does not see
+`src/styles/`, a shared layout, or an inline style — see the non-blocking finding in the fourth
+`mascot-dark-dim` QA report for the gap this leaves.
+
+`tests/brand-assets.test.ts` reads `tokens.css` at test time and asserts every file's declared
+pair against it, for both roles above — that test, not a code review, is what keeps this
+exception honest. Don't "fix" the hardcoded hex in these files without re-running it.
 
 The second is `src/lib/palette.ts`, the module behind `/styleguide/`'s swatch captions. A
 caption prints a hex string and a computed WCAG ratio; neither can be a `var()`, so the
@@ -389,11 +403,12 @@ exemption list to files `BRAND_FILES` already guards, so it cannot grow to cover
 undocumented path.
 
 `tests/brand-assets.test.ts` carries a fourth guard, of a different shape than the three
-above: **`Header.astro`'s inlined brand mark holds no hex of its own — it fills `.tn-ink`/
-`.tn-signal`/`.tn-pulse` with `var(--ink)`/`var(--signal)`/`var(--pulse)` (and their dark
-counterparts) straight from `tokens.css` — but that duplicates, as `var()` names rather than
-hex, the same class-to-colour pairs the three brand SVGs above still hand-declare as literal
-hex for every URL-referenced consumer.** One suite resolves each of `Header.astro`'s `fill:
+above: **`Header.astro`'s inlined brand mark holds no hex of its own — it fills all five
+classes with `var()` straight from `tokens.css` (`.tn-ink`/`.tn-signal`/`.tn-pulse`
+unconditionally; `.tn-wordmark`/`.tn-tagline` with a dark override) — but that duplicates, as
+`var()` names rather than hex, the same class-to-colour pairs the three brand SVGs above still
+hand-declare as literal hex for every URL-referenced consumer.** One suite resolves each of
+`Header.astro`'s `fill:
 var(--…)` rules through `tokens.css` and asserts the result equals the presentation file's own
 declared pair, in both the light rules and every dark-scheme grouping, so a token edit, a
 re-export, or a `var()` swapped for its neighbour in `Header.astro` surfaces as a failing test
