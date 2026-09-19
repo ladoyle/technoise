@@ -1,10 +1,69 @@
 # TechNoise — Agent Contract
 
-Every agent reads this file before doing anything else. It is the single source of
-truth for development style, workflow, and handoffs. Where this file and a prompt
-disagree, ask rather than guess.
+Every agent reads this file before doing anything else. It is the single source of truth for
+development style, workflow, and handoffs. Where this file and a prompt disagree, ask rather
+than guess.
 
-The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/setup-guide.md).
+This file states **rules**. The reasoning behind them lives in linked docs, which you read
+only when you are touching that area:
+
+| Doc | Read it before |
+|---|---|
+| [`docs/setup-guide.md`](docs/setup-guide.md) | Planning work — the design plan and phase roadmap |
+| [`docs/testing.md`](docs/testing.md) | Adding or changing a test, or debugging the harness |
+| [`docs/brand-assets.md`](docs/brand-assets.md) | Touching a brand SVG, the favicon, the header mark, or a `-dim` token |
+| [`docs/infrastructure.md`](docs/infrastructure.md) | Touching a workflow, `public/`, `archive/`, the `48em` hinge, or a dependency |
+
+Keep it that way. Narrative that belongs in a doc must not be inlined here — this file is
+reloaded into every agent's context on every cycle, and length is a real cost.
+
+---
+
+## Pick the path first
+
+Before running anything, classify the request. There are two paths and the wrong one is
+expensive in both directions.
+
+### Quick tweak — direct edit, no pipeline, no reports
+
+Handle it yourself, in the session, against the rules in this file. **Do not spawn agents.
+Do not write a report.** Reports exist to carry state between stages; with no stages there
+is no state to carry.
+
+A request qualifies when **all** of these hold:
+
+- **Singular** — one coherent change, not a list of independent ones.
+- **Non-structural** — no new route, component, dependency, schema field, workflow, or
+  public API; no change to a file's role or to how the build resolves anything.
+- **Covered by existing tests** — the current suite would catch a regression. You are not
+  writing a new test to make the change safe.
+- **Reversible** — a single revert undoes it cleanly.
+
+Typical members: a token value change, a copy edit, a spacing or type-scale swap (on-scale),
+a dark-mode tint adjustment, an `alt` text fix, a doc correction, a one-line helper fix with
+a test already over it.
+
+The quick-tweak procedure, in full:
+
+1. Make the edit on a `feature/<short-slug>` branch.
+2. Run `npx astro check` and `npm test`. Both must pass.
+3. For anything visible, look at the result — 320px and 1440px, light and dark.
+4. Commit, push, and tell the human what changed in a few sentences in chat.
+
+That chat summary replaces the report. If the change turns out to need a second file, a new
+test, or a judgement you can't make from this file, **stop and escalate to the full
+pipeline** rather than growing the tweak.
+
+### Full pipeline — structural change
+
+Everything else: new pages or components, schema or config changes, dependency additions,
+anything touching security, routing, the build, or the deploy. Run the pipeline in
+[Workflow](#workflow).
+
+### When you can't tell
+
+Ask the human which path they want, in one line, and say which way you lean. Guessing up
+costs a pipeline nobody needed; guessing down ships a structural change with no review.
 
 ---
 
@@ -12,20 +71,12 @@ The full design plan and phase roadmap lives in [`docs/setup-guide.md`](docs/set
 
 | | |
 |---|---|
-| Generator | Astro 7 (static output; one justified JS island — see below) |
-| Node | floor `>=22.12.0` in `engines`; `.nvmrc` names the major line (`24`) both workflows build on — `ci.yml` via `node-version-file`, `deploy.yml` via an explicit `node-version` input to `withastro/action`, pinned to `.nvmrc` by `tests/ci-workflow.test.ts` |
+| Generator | Astro 7, static output, one justified JS island (the header's mobile nav — see [`docs/infrastructure.md`](docs/infrastructure.md)) |
+| Node | floor `>=22.12.0` in `engines`; `.nvmrc` names the major line (`24`) both workflows build on, pinned by `tests/ci-workflow.test.ts` |
 | Package manager | npm, lockfile committed |
 | Host | GitHub Pages via `.github/workflows/deploy.yml` on push to `master` |
-| CI | `.github/workflows/ci.yml` — `npm ci`, `npx astro check`, `npm test` on every pull request and every push to `master` |
+| CI | `.github/workflows/ci.yml` — `npm ci`, `npx astro check`, `npm test` on every PR and push to `master` |
 | Content | Markdown in `src/content/`, typed frontmatter schemas |
-
-Astro still emits zero client JS by default — every page ships one exception: the header's
-mobile nav disclosure (`html.js` class hook in `BaseLayout`, plus `Header`'s own bundled
-module). It exists because `aria-expanded`/`aria-controls`, Escape-to-close and
-click-outside cannot be built in HTML and CSS alone; see "Accessibility and performance
-floors" below for the standard that justifies an island, and `Header.astro` for the only
-one that currently meets it. Without JS the nav degrades to the full link list, stacked —
-no broken affordance.
 
 ```sh
 npm install          # install dependencies
@@ -33,128 +84,22 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — schema, publishing-rule, content-helper, build-output,
-                      # SEO-helper, discovery-output (sitemap/rss/robots),
-                      # nav/route-resolution, brand-asset, workflow-permissions,
-                      # test-harness-contract, ci-workflow, dependency-contract,
-                      # palette-tokens, a11y-verify-script, mark-tint-contract and
-                      # mark-tagline-scale tests (16 files, 352 tests)
-                      # (tests/nav-contract.test.ts also carries the resume page's
-                      # privacy-regression assertions, not just nav contract tests — its
-                      # phone-shape scan strips <svg>…</svg> from the visible HTML first,
-                      # since the header's inlined brand mark puts viewBox coordinates on
-                      # every page, including /resume/, that can otherwise look phone-shaped;
-                      # tests/build-output.test.ts also carries CSS-cascade/specificity
-                      # assertions for the hero ghost-CTA hover rule, asserts every
-                      # dark-scheme CSS rule in the shipped output stays `@media screen`-
-                      # scoped, and asserts the 404 page and the home hero each resolve to
-                      # their own hashed art derivatives (never the other's) and keep their
-                      # own `object-position`, not only markup checks;
-                      # tests/brand-assets.test.ts also reads dist/**/*.html now, not just
-                      # the source SVGs under public/brand/ — one suite resolves the header's
-                      # inlined-mark var() rules through tokens.css and pins them to each
-                      # brand file's own declared colours, in both schemes; another walks
-                      # every built page's injected header markup asserting it ships inert
-                      # (no script, handler or external reference) and still tokenised (no
-                      # hex, no fill/stroke presentation attribute); every tracked file carries
-                      # a role — mascot-only (technoise-icon.svg, favicon.svg: three classes,
-                      # no @media at all) or lockup (both logo files: five classes, only
-                      # .tn-wordmark/.tn-tagline appear in the dark block, asserted as an exact
-                      # object so "no dark override" for the other three is a positive claim,
-                      # not an absence nobody checked) — and both roles feed the same geometry,
-                      # ink-floor and inertness loops via one tracked list (tokenTracked); a
-                      # "the two-file favicon" suite and its parseFlatSvg/assetTracked
-                      # machinery are gone with public/favicon-dark.svg, which this repo no
-                      # longer has — the mascot needs no second rendering to select between,
-                      # so the file would have been byte-identical to favicon.svg; and a
-                      # "BaseLayout hands the scheme choice to the document" suite reads every
-                      # built page and pins the two icon links' hrefs and confirms neither
-                      # carries a media attribute — the first assertion in this file about the
-                      # document's <head> rather than about an asset;
-                      # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
-                      # run steps — workflow-permissions.test.ts asserts how a workflow is
-                      # permitted, this one asserts that it actually runs the gates — and
-                      # also pins deploy.yml's node-version input against .nvmrc;
-                      # tests/dependency-contract.test.ts pins devDependencies.sharp to the
-                      # range the installed astro declares for its own image service, and
-                      # asserts the lockfile holds exactly one sharp, not one marked
-                      # "optional: true"; tests/palette-tokens.test.ts reads tokens.css
-                      # and re-derives every ratio the styleguide prints, so it also carries
-                      # that page's own prose-figure assertions, not just src/lib/palette.ts's;
-                      # and tests/a11y-verify-script.test.ts is the first suite to cover a file
-                      # under .claude/skills/ — verify-contrast.mjs is exercised by no build or
-                      # check path otherwise, so it pins the repo's one page.screenshot() call
-                      # to clip-only (no fullPage), pins scrollIntoViewIfNeeded() ahead of
-                      # boundingBox() in sampleRenderedBackground(), and asserts no catch there
-                      # coexists with the "zero-size element" fallback message, all via static
-                      # source reads, no browser, no build; tests/mark-tint-contract.test.ts
-                      # reads tokens.css and measures with src/lib/contrast.ts to guard the
-                      # one dim tint the mascot-scheme-freeze cycle left standing,
-                      # --signal-300-dim (--pulse-300-dim was removed as dead — nothing fills
-                      # .tn-pulse in dark mode any more, in any file): one part asserts no
-                      # semantic role (--link/--rule/--focus/--accent-fill-hover) ever resolves
-                      # to it, in both dark blocks, so a future edit can't silently drop
-                      # link/focus contrast site-wide, plus a standing guard that no other
-                      # -dim base is ever declared in tokens.css without a var() consumer
-                      # in src/, so a reinstated --pulse-300-dim needs a consumer from the day
-                      # it lands; another floors --signal-300-dim at WCAG 1.4.11's 3:1 non-text
-                      # minimum against --ink alone — the only surface .tn-tagline (its sole
-                      # consumer) still touches in dark mode, now that the mascot classes have
-                      # no dark value left to be floored against; a third measures the frozen
-                      # mascot fills directly against the dark page and pins the resulting
-                      # figures — .tn-ink 1.000:1, .tn-signal 3.143:1, .tn-pulse 4.238:1 — with
-                      # a comment recording that the outline's 1.000:1 is this cycle's intended,
-                      # requested result for the mascot specifically, not the ink-on-ink defect
-                      # prior cycles' comments describe (that defect is still real, just
-                      # narrowed to .tn-wordmark, which must still clear --cream-dim); and a
-                      # fourth is placement-invariant, not colour-based — it parses every rule
-                      # between the mark and <body> in Header.astro and Footer.astro and fails
-                      # if any declares a background other than the header toggle's own (pinned
-                      # separately to transparent), since the three pinned figures above are
-                      # only true for as long as nothing sits between the mark and the page;
-                      # and tests/mark-tagline-scale.test.ts measures, rather than transcribes
-                      # from a report, the geometric premises this depends on: it pins the
-                      # block-size: var(--space-48) anchor both Header.astro and Footer.astro
-                      # declare for the mark, rasterises the tagline glyphs in both lockup
-                      # files against a rendered-cap-height ceiling so a re-export that scaled
-                      # them up to readable text would fail here, confirms technoise-icon.svg
-                      # and favicon.svg carry no tagline class at all, and measures each
-                      # mascot fill's own boundary — asserting at least 99% of it meets
-                      # .tn-ink, which is what turns "the face field and headphones are wholly
-                      # enclosed by the outline, so only the tagline is read against the page"
-                      # from an assumption into a per-pixel measurement; its isolate() helper
-                      # derives the set of classes to suppress from each file's own class
-                      # attributes rather than naming three, so a sixth class inherits
-                      # suppression instead of polluting every mask the way .tn-wordmark and
-                      # .tn-tagline silently did the one cycle this rework fixed)
+npm test             # vitest run — 16 files, 352 tests; see docs/testing.md
 ```
 
-When starting the dev server as an agent, use background mode: `astro dev --background`.
-Manage it with `astro dev stop`, `astro dev status`, and `astro dev logs`. Never leave a
-foreground dev server blocking a turn.
+Three run rules, each binding:
 
-Astro's content loader caches parsed entries in `node_modules/.astro/data-store.json`, not
-in `.astro/`. Deleting or renaming a file in `src/content/` and re-running `npm run build`
-can still emit its page from that cache — clear it with `rm -rf node_modules/.astro` (a
-plain `rm -rf .astro dist` is not enough). CI is unaffected: both workflows always install
-into a clean `node_modules`.
+- **A test file must never run `astro build` itself.** `tests/global-setup.ts` builds once
+  per vitest invocation; every HTML-reading suite reads that `dist/`.
+  `tests/test-harness-contract.test.ts` enforces it.
+- **Use `npm test` (run mode) when freshness matters.** `vitest --watch` does not rebuild on
+  a `.astro` change.
+- **Start a dev server in background mode** as an agent: `astro dev --background`, managed
+  with `astro dev stop | status | logs`. Never leave a foreground server blocking a turn.
+  Reuse one running server across a session rather than starting and stopping per task.
 
-`tests/global-setup.ts` runs `astro build` exactly once per vitest invocation, before any
-test file loads; the five HTML-reading suites (`build-output.test.ts`,
-`discovery-output.test.ts`, `nav-contract.test.ts`, `brand-assets.test.ts` and
-`palette-tokens.test.ts`) only ever `readFileSync` out of `dist/`.
-`vitest.config.ts` no longer sets `fileParallelism: false` — the race that setting guarded
-against (two suites each shelling out to `astro build` concurrently) no longer exists, since
-no suite builds for itself. **A test file must never run `astro build` itself** — it reads
-the `dist/` that `globalSetup` already produced. `tests/test-harness-contract.test.ts` is
-what makes this binding, the same role `tests/brand-assets.test.ts` plays for the brand-SVG
-hex exception: it asserts `globalSetup` stays registered in `vitest.config.ts` and that no
-file matching `tests/**/*.test.ts` shells out to a build, so either regression fails the
-suite instead of quietly reintroducing a stale-`dist/` or a build race. `globalSetup` runs
-once per vitest *invocation*, not per file-change, so `vitest --watch` does not get this
-guarantee — a change to a `.astro` page won't trigger a rebuild mid-watch-session unless a
-test file itself changed. Use `npm test` (run mode) for the freshness guarantee; don't trust
-a long-lived watch session to have a current `dist/`.
+If a deleted `src/content/` file still emits a page, clear the loader cache with
+`rm -rf node_modules/.astro` — `rm -rf .astro dist` is not enough.
 
 ---
 
@@ -163,116 +108,57 @@ a long-lived watch session to have a current `dist/`.
 ```
 technoise/
 ├─ .claude/agents/      designer, developer, qa, documenter, gatekeeper
-├─ .claude/skills/      a11y-verify, safe-install
-├─ docs/                setup-guide.md — design plan and phase roadmap
+├─ .claude/skills/      a11y-verify, pr-creation, safe-install
+├─ docs/                setup-guide, testing, brand-assets, infrastructure
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
 │  ├─ assets/           astro:assets input — processed and hashed at build, unlike public/
-│  ├─ content.config.ts schema for the collections below (Astro 7 path — not src/content/config.ts)
+│  ├─ content.config.ts schema for the collections below (Astro 7 path, not src/content/config.ts)
 │  ├─ content/          blog/ and projects/ — one Markdown file per entry
 │  ├─ components/       reusable, from the component inventory below
 │  ├─ layouts/          page shells
-│  ├─ lib/              shared TypeScript helpers (publishing rules, formatting, SEO),
-│  │                    plus resume.ts — content, not logic; see the privacy rule below
-│  ├─ pages/            routes, plus generated non-HTML endpoints (sitemap.xml.ts,
-│  │                    rss.xml.ts, robots.txt.ts)
+│  ├─ lib/              shared TypeScript helpers, plus resume.ts (content, not logic)
+│  ├─ pages/            routes, plus sitemap.xml.ts, rss.xml.ts, robots.txt.ts
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        the three live logo SVGs — anything here is published
 ├─ public/fonts/        the self-hosted Inter woff2 that fonts.css loads
 ├─ public/og/           the one committed Open Graph card (OG_IMAGE in src/lib/seo.ts)
-├─ public/favicon.*     .ico plus one scheme-invariant SVG — two files, two links, see below
-├─ archive/             versioned but never built or served — see the rule below
+├─ public/favicon.*     .ico plus one scheme-invariant SVG — two files, two links
+├─ archive/             versioned but never built or served
 ├─ tests/               vitest suites, plus global-setup.ts — the one build they all read
 └─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
 
-`public/favicon.*` is two files, not three: `favicon.ico` and `favicon.svg`. `favicon.svg`
-carries no `@media (prefers-color-scheme: dark)` block at all — its three fills (the mascot's
-outline, face field and headphones) are the light-mode hex, unconditional, in both schemes.
-`BaseLayout.astro`'s `<head>` links both, in order: `.ico` (no `media`) → `favicon.svg`
-(`type="image/svg+xml"`, **no `media` attribute**).
+Binding rules for this layout — rationale in [`docs/infrastructure.md`](docs/infrastructure.md)
+and [`docs/brand-assets.md`](docs/brand-assets.md):
 
-A third file, `favicon-dark.svg`, existed through the four `mascot-dark-dim` cycles so the icon
-could switch to a dimmed-but-still-adapting rendering on a dark OS. `mascot-scheme-freeze`
-deleted it: once the mascot stops adapting to scheme at all, there is only one rendering left,
-and shipping the same bytes at a second URL selected by `media` is not infrastructure, it is a
-no-op with a maintenance cost — the deleted file would have been byte-identical to `favicon.svg`
-the moment the freeze landed. Its removal also retires, wholesale, the two reasons a prior
-version of this section named for keeping the split: the "dark before light is load-bearing"
-link-ordering rule, and "`favicon.svg` keeps its internal dark `@media` block on purpose, as a
-Gecko fallback." Both existed only to make a scheme *switch* correct; there is no switch left to
-get wrong. If a future cycle wants a dark icon back, re-adding one file and one link is a
-smaller change than keeping a decoy alive through every cycle in between.
+- **`public/` means deployed, not kept.** A file that must stay in the repo but must never be
+  served goes in `archive/`. `public/` may hold no file `src/` references nowhere;
+  `technoise-icon.svg` is the one documented exception.
+- **Permission grants live on jobs, not on workflows.** Workflow level is `permissions: {}`.
+  A third-party action is pinned to a full commit SHA with its version in a trailing comment.
+  `tests/workflow-permissions.test.ts` enforces both on every file in `.github/workflows/`.
+- **Re-exporting or re-cropping a brand SVG means revisiting `Footer.astro`'s hand-copied
+  `918`/`835` extents.** The header reads its own `viewBox` at import time; the footer does
+  not.
+- **`sharp` is a declared `devDependency` and stays one.** Its range tracks astro's own
+  `optionalDependencies.sharp`; bump them together.
+- **CI reports, it does not yet gate.** Marking `verify` a required status check on `master`
+  is a GitHub repo setting no agent can make.
 
-Reference by URL, not inlined, so `favicon.svg` sits under the hex exception in "Color tokens"
-below, the same as the three `public/brand/` files.
+### The resume privacy rule
 
-`archive/` exists because `public/` does not mean "kept" — it means "deployed": anything
-under it is copied verbatim into `dist/` and published at a guessable URL on the canonical
-origin. `archive/brand-pre-svg-migration/` (Issue #32) holds the four pre-SVG-migration brand
-PNGs, kept because `docs/setup-guide.md`'s asset-prep table still names them as source
-material for exports (`icon-192`, `icon-512`, `apple-touch-icon`, social profile images) that
-have not been made yet. A file that must stay in the repo but must never be served belongs
-outside `public/` — `archive/` is that place, the same way `src/assets/` is the place for a
-file that must be served but only after `astro:assets` processes it.
+`src/lib/resume.ts` holds content rather than logic, and its types are load-bearing for a
+standing rule:
 
-`public/brand/*.svg`'s viewBoxes are trimmed close to their ink bounds (no wasted transparent
-margin) — ~88% ink for `technoise-icon.svg` (0.889) and `technoise-logo-presentation.svg`
-(0.883), ~73% for `technoise-logo-full.svg` (0.726): the horizontal lockup carries more
-block-axis margin than the other two, and "~88%" does not describe it. `.site-footer__brand
-img` and its `<img width height>` pair (`918`/`835`, the presentation file's own extents)
-assume that framing — `Footer.astro` still references the files by URL and hand-copies their
-extents. `Header.astro` no longer works this way: it inlines both lockups at build time (see
-the hex-exception section below) and sizes `.site-header__brand [data-mark]` from each file's
-own `viewBox`, read at import time rather than hand-copied, so a re-export cannot desync the
-header's box the way it still can the footer's. Re-exporting or re-cropping any of these three
-files still means revisiting the footer's hand-copied `918`/`835` pair, or its mark renders at
-the wrong size or off-center in its reserved box. `tests/brand-assets.test.ts` asserts the
-footer's declared size matches the presentation file's own `viewBox`, asserts the header's
-rendered `viewBox`/`width`/`height` matches each source file's own, and floors each file's
-ink-to-viewBox height fraction against the figures above, so both a size desync and a re-crop
-that thins the ink back out fail the suite instead of shipping quietly.
+> **`/resume/` may never publish a phone number or a city/state/other location — not in its
+> visible text, its JSON-LD, or its metadata.**
 
-`src/lib/resume.ts` is the first `src/lib/` module that holds content rather than logic — the
-resume's copy, dates and skills, not a helper. Its types are load-bearing for a standing
-privacy rule, not just for correctness: **`/resume/` may never publish a phone number or a
-city/state/other location, in its visible text, its JSON-LD, or its metadata.** The module's
-types carry no field either could occupy, and `tests/nav-contract.test.ts` asserts this at
-three layers — the built HTML, the parsed JSON-LD, and the exported `RESUME` object's own
-keys — so a location field added before anything renders it still fails the suite. This rule
-outlives the cycle that added it: treat any future edit to `resume.ts` or `resume.astro` as
-bound by it, not just the one that shipped the page.
-
-`.github/workflows/ci.yml` runs this suite on every pull request, but that makes CI *report*
-the failure, not *gate* the merge, until the repo owner marks `verify` (the job `ci.yml`
-defines) as a required status check on `master` — Settings → Branches → branch protection
-rule for `master` → Require status checks to pass before merging → select `verify`. That
-setting is a GitHub repo setting, not something in this repository, so no agent can make it.
-Until it's made, a red `verify` still permits a human to merge past this rule, same as any
-other check in `ci.yml`.
-
-`.github/workflows/deploy.yml` follows two binding conventions, both born from Issue #14
-(a `pages: write` + `id-token: write` grant sitting at workflow level, readable by every job
-including one running third-party code):
-
-1. **Permission grants live on jobs, not on the workflow.** The workflow-level block is
-   `permissions: {}`; a job inherits nothing and must declare its own scopes, or it runs
-   with no access at all. `build`, which is the job that runs third-party code, holds only
-   `contents: read`. `pages: write` and `id-token: write` live on `deploy` alone, which runs
-   no third-party action.
-2. **A third-party action is pinned to a full commit SHA, with its version in a trailing
-   comment** (`withastro/action@<40-char sha> # v6.1.3`), never to a mutable tag. Bumping it
-   means re-resolving with `git ls-remote` and updating the SHA and the comment together.
-   First-party `actions/*` refs stay on tags today; if that changes, it changes for
-   `actions/checkout` and `actions/deploy-pages` in the same edit.
-
-`tests/workflow-permissions.test.ts` is what makes both of these binding — the same role
-`tests/brand-assets.test.ts` plays for the brand-SVG hex exception: the rule holds because a
-test goes red, not because a reviewer remembers. It parses every file under
-`.github/workflows/`, so a workflow added later inherits the rule instead of quietly
-escaping it. `ci.yml` (Issue #21) is the first workflow added after this rule existed, and it
-inherits it without a carve-out: `permissions: {}` at workflow level, `contents: read` on its
-one job, same shape as `deploy.yml`'s `build` job.
+The module's types carry no field either could occupy, and `tests/nav-contract.test.ts`
+asserts this at three layers: the built HTML, the parsed JSON-LD, and the exported `RESUME`
+object's own keys — so a location field added before anything renders it still fails the
+suite. This rule outlives the cycle that added it. Treat any future edit to `resume.ts` or
+`resume.astro` as bound by it.
 
 ---
 
@@ -282,8 +168,8 @@ These are binding. A change that violates them is a defect, not a preference.
 
 ### Color tokens
 
-Defined once as CSS custom properties in `src/styles/tokens.css`. Never hardcode a hex
-value anywhere else.
+Defined once as CSS custom properties in `src/styles/tokens.css`. Never hardcode a hex value
+anywhere else.
 
 | Role | Token | Value | Contrast on cream | Rule |
 |---|---|---|---|---|
@@ -297,146 +183,34 @@ value anywhere else.
 
 Dark mode (ink becomes the page, via `prefers-color-scheme`): links lighten to `#6EC9E8`
 (7.2:1 on ink), accents to `#FF9F6B` (6.7:1 on ink). Body text uses `--cream-dim` (`#E5E5E1`,
-10.72:1 on ink) rather than raw `--cream`, and muted text uses `--cream-muted` (`#B5BDBE`,
-7.09:1 on ink) — both dimmed below light mode's 12.9:1 body figure on purpose: the same ratio
-emitted from a dark screen reads as glare, not just contrast. The home hero's scrim opacity
-rises to 0.86 in dark mode (from 0.72 in light) for the same reason — dimming the text alone
-would have dropped the worst composited pixel under the 6.5:1 floor `/styleguide/` states. All
-four dark-mode tints are derived from the brand bases — do not introduce new hues.
+10.72:1) and muted text `--cream-muted` (`#B5BDBE`, 7.09:1) — both dimmed below light mode's
+12.9:1 on purpose: the same ratio emitted from a dark screen reads as glare. The home hero's
+scrim opacity rises to 0.86 in dark mode (from 0.72) for the same reason. All dark-mode tints
+derive from the brand bases — do not introduce new hues.
 
-**"Never hardcode a hex value" has a pattern of exception, not a single one:** a hex literal
-is tolerated outside `tokens.css` only where a `var()` genuinely cannot reach — a `<img src>`/
-`<link>`-referenced file, or a caption printing a value rather than styling with it — and only
-where a test reads `tokens.css` at test time and fails the suite on drift. Two instances exist
-today.
+Keep every dark-scheme rule scoped to `@media screen`, so `@media print` gets the light
+tokens without asking. `tests/build-output.test.ts` scans the shipped CSS for this.
 
-The first is the three brand SVGs in `public/brand/` (`technoise-icon.svg`,
-`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus `public/favicon.svg` (see
-the repo layout section above for why the favicon is one file, not two). They're referenced by
-`<img src>` / `<link>` URL, not inlined, so they cannot read this page's CSS custom properties —
-each file carries its own fills as literal hex. There are two file roles, not one:
-
-- **Mascot-only** — `technoise-icon.svg` and `favicon.svg`. Three classes (`.tn-ink`,
-  `.tn-signal`, `.tn-pulse`: the outline, the face field, the headphones), no
-  `@media (prefers-color-scheme: dark)` block at all. Every fill is the light-mode hex,
-  unconditional, in both schemes.
-- **Lockup** — `technoise-logo-presentation.svg` and `technoise-logo-full.svg`. Five classes:
-  the same three mascot classes, frozen exactly as above, plus two text classes,
-  `.tn-wordmark` (the "TechNoise" letterforms) and `.tn-tagline` ("HEAR THE FUTURE"). Only
-  `.tn-wordmark` and `.tn-tagline` appear in either file's dark block; the mascot classes appear
-  in neither. `.tn-wordmark` must byte-match `--ink`/`--cream-dim` (light/dark) — the exact
-  pair `.tn-ink` itself used to carry uniformly, before `mascot-scheme-freeze` split it out.
-  `.tn-tagline` must byte-match `--signal`/`--signal-300-dim`.
-
-This split exists because the human asked the mascot to stop adapting to scheme entirely while
-the wordmark and tagline kept their existing dark-mode treatment unchanged — a request the four
-prior `mascot-dark-dim` cycles' shared three-class shape couldn't express, since one class
-painted both a mascot detail and letterforms in some paths. `--pulse-300-dim`, the tint that
-used to serve `.tn-pulse`'s dark fill, has no consumer left anywhere in the repo after the
-freeze and was removed with it.
-
-`--signal-300-dim` (`#2386A9`) is the sole surviving `-dim` token now, and its scope is
-narrower than it was: a blend along `--signal`'s own `-300`/`-700` ramp (25% the `-300` base,
-75% the `-700` base, moved further toward `--signal-700` — not toward `--ink`, which reads as
-brown rather than a calmer blue), serving `.tn-tagline` alone at **3.260:1 against `--ink`**.
-`.tn-tagline` is the only element left in either lockup that still touches the page surface
-directly in dark mode, so `--ink` is the only floor that applies — there is no longer a second,
-`--cream-dim`-outline-based floor to reconcile it against, because the outline (`.tn-ink`) has
-no dark value left to be floored. The applicable accessibility standard is still WCAG 1.4.11's
-3:1 non-text minimum, not the 4.5:1 text minimum a prior cycle held it to: SC 1.4.3 exempts
-logotype text from the text floor at any size, and the tagline renders as texture (2.7–4.4 CSS
-px of cap height) rather than readable text at the size both lockups ship it. Never a link,
-rule, focus or hover colour — `--signal-300`/`--pulse-300` (undimmed) remain those, unchanged.
-`tests/mark-tint-contract.test.ts` also carries a standing guard that no `-dim` base may be
-declared in `tokens.css` with zero `var()` consumers in `src/`, so a reinstated
-`--pulse-300-dim` needs a real consumer from the day it lands, or the suite fails on it.
-
-**The mascot renders at 1.000:1 against the dark page, and this is requested, shipped behaviour
-— not the ink-on-ink defect four prior cycles worked to prevent.** `.tn-ink` is frozen at its
-light-mode hex (`#0C3242`) in every file and every scheme; the dark-mode page background is
-also `#0C3242` (`--ink`, dark mode's `--surface`). The outline and the mascot's inner line-work
-(visor, mouth, eye surrounds) therefore vanish into the page, measured at exactly 1.000:1 —
-not estimated, and not a regression to "fix" by giving `.tn-ink` a dark value again. `.tn-signal`
-(the face field) still clears 3.143:1 against `--ink` and `.tn-pulse` (the headphones) 4.238:1,
-so the mascot survives as a recognisable silhouette of colour fields; what is lost is only the
-drawn rim. The brand lockup is `aria-hidden` inside an `<a aria-label>`, so nothing is conveyed
-to assistive tech by the vanished outline. **This distinction matters because the wordmark is
-not exempt from the old rule**: `.tn-wordmark` must still clear a real floor (`--cream-dim`,
-10.72:1), and a token edit that isn't mirrored across every file still silently desyncs it to
-the same 1.000:1 an earlier cycle shipped by accident — that failure mode is real, just now
-narrowed to the two text classes rather than all three mascot ones.
-`tests/mark-tint-contract.test.ts` pins the mascot's 1.000:1 / 3.143:1 / 4.238:1 figures with a
-comment recording that they are this cycle's intended result, specifically so a future reader
-treats the shipped state as a decision to preserve rather than a bug to helpfully fix by
-reintroducing dark-mode adaptation for the mascot.
-
-`tests/mark-tint-contract.test.ts` also keeps a placement-invariant assertion, though what it
-protects changed: no rule between the mark and `<body>` in `Header.astro` or `Footer.astro` may
-declare a background (the header's toggle button is the one named exemption, itself pinned to
-`transparent`). It used to guard the `--cream-dim`-outline floor described above; now it guards
-the claim that the frozen `.tn-signal`/`.tn-pulse` fills and the `.tn-ink` outline are read
-against `--ink` at all — a background introduced behind the mark would put those fills in
-contact with something other than the page, and the pinned figures above would no longer
-describe reality. That invariant is a source read of the two components only; it does not see
-`src/styles/`, a shared layout, or an inline style — see the non-blocking finding in the fourth
-`mascot-dark-dim` QA report for the gap this leaves.
-
-`tests/brand-assets.test.ts` reads `tokens.css` at test time and asserts every file's declared
-pair against it, for both roles above — that test, not a code review, is what keeps this
-exception honest. Don't "fix" the hardcoded hex in these files without re-running it.
-
-The second is `src/lib/palette.ts`, the module behind `/styleguide/`'s swatch captions. A
-caption prints a hex string and a computed WCAG ratio; neither can be a `var()`, so the
-module hand-declares each base's hex and each semantic token's base per scheme, and derives
-every ratio at build time rather than storing one. `tests/palette-tokens.test.ts` plays the
-same role here that `tests/brand-assets.test.ts` plays for the SVGs: it reads `tokens.css`
-and fails on any drift between it and the module, in either direction.
-
-`tests/brand-assets.test.ts` carries a third standing guard, alongside the hex-token-sync rule
-above and the ink-to-viewBox-height floor from Issue #22: **`public/` may hold no file that
-`src/` references nowhere.** It enumerates `public/` recursively, the same shape
-`tests/workflow-permissions.test.ts` uses for `.github/workflows/`, so a file dropped in later
-inherits the rule instead of escaping it — this is what caught the four orphaned PNGs in
-Issue #32. The one documented exception is `technoise-icon.svg`: it is the master the favicon
-is exported from, served live but named nowhere in `src/`, and a second assertion holds the
-exemption list to files `BRAND_FILES` already guards, so it cannot grow to cover an
-undocumented path.
-
-`tests/brand-assets.test.ts` carries a fourth guard, of a different shape than the three
-above: **`Header.astro`'s inlined brand mark holds no hex of its own — it fills all five
-classes with `var()` straight from `tokens.css` (`.tn-ink`/`.tn-signal`/`.tn-pulse`
-unconditionally; `.tn-wordmark`/`.tn-tagline` with a dark override) — but that duplicates, as
-`var()` names rather than hex, the same class-to-colour pairs the three brand SVGs above still
-hand-declare as literal hex for every URL-referenced consumer.** One suite resolves each of
-`Header.astro`'s `fill:
-var(--…)` rules through `tokens.css` and asserts the result equals the presentation file's own
-declared pair, in both the light rules and every dark-scheme grouping, so a token edit, a
-re-export, or a `var()` swapped for its neighbour in `Header.astro` surfaces as a failing test
-rather than a wrong-hued or ink-on-ink mark. A second suite walks every built page's injected
-`.site-header__brand` markup and asserts it ships both inert (no `<script>`, handler or
-external reference) and still tokenised (no hex, no `fill`/`stroke` presentation attribute) —
-because a re-export that moved a fill from a class onto a presentation attribute would still
-be a valid, inert SVG and would still pass every geometry check, while painting a hardcoded
-colour on every page in both schemes.
+**The hex exception.** A hex literal is tolerated outside `tokens.css` only where a `var()`
+genuinely cannot reach — a `<img src>`/`<link>`-referenced file, or a caption printing a
+value rather than styling with it — and only where a test reads `tokens.css` at test time and
+fails on drift. Exactly two instances exist: the four brand SVGs
+(`public/brand/*.svg` plus `public/favicon.svg`) and `src/lib/palette.ts`. Before editing
+either, read [`docs/brand-assets.md`](docs/brand-assets.md) — it covers the two file roles,
+why the mascot renders at 1.000:1 in dark mode **on purpose**, and what the tint tests guard.
+Don't "fix" the hardcoded hex in those files without re-running `tests/brand-assets.test.ts`.
 
 ### The three posture rules
 
 1. **Orange appears once per screen.** It is the "do this" color. Three orange things on a
-   page means the page has no call to action. **Carve-out:** the `.tn-pulse` headphones baked
-   into the brand logo SVGs (`Header.astro`, `Footer.astro`) don't count against this budget.
-   They're fixed brand chrome — the same class of exception the color-token table already
-   grants raw `--signal` for "icons, borders only" — not a page-content "do this" signal. A
-   page's actual call to action still gets exactly one orange fill; two logo instances plus one
-   CTA is the correct, intended count, not a violation.
+   page means the page has no call to action. *Carve-out:* the `.tn-pulse` headphones baked
+   into the brand logo SVGs don't count — that is fixed brand chrome, not a page-content
+   signal. Two logo instances plus one CTA is the correct count.
 2. **Cream is the page, never white.** Pure white next to `#FDF9F3` reads as a rendering bug.
 3. **The mascot is a guest, not wallpaper.** This applies to the mascot as *page content or
-   illustration* — home hero, About, and 404 only (`src/assets/technoise-background.png` for
-   the home hero, `src/assets/technoise-404-background.png` for `/404.html`, and anything like
-   them stays confined to those three pages). It does not apply to the mascot as
-   *part of the fixed brand lockup*: the header and footer logos (`public/brand/*.svg`) and the
-   favicon render on every page, exactly as any site's logo and favicon would. That's not
-   wallpaper, it's signage — the distinction is illustration-of-the-page vs. identity-of-the-
-   site.
+   illustration* — home hero, About, and 404 only. It does not apply to the mascot as part of
+   the fixed brand lockup: header, footer, and favicon render on every page, as any site's
+   signage would. Illustration-of-the-page vs. identity-of-the-site is the distinction.
 
 Editorial layout, generous whitespace, one column of readable text. No cards-in-cards, no
 gradients, no shadow deeper than a hairline.
@@ -452,24 +226,8 @@ gradients, no shadow deeper than a hairline.
   the footer. Gutters 24px mobile, 48px desktop.
 
 `48em` is the site's one responsive hinge, reused deliberately rather than adding a second
-breakpoint to reason about. It carries four responsibilities: `Header.astro`'s nav collapse,
-`Footer.astro`'s inner grid (a two-row `1fr auto` at and above the hinge — brand and the nav
-run share row one, the colophon spans row two — not three columns; below it, a single-column
-grid), `Footer.astro`'s nav axis (a stacked column of full-width, block-display links below
-the hinge; one horizontal `flex-direction: row` run with `inline-block` links above it — the
-inversion exists because the three-column layout could not hold a horizontal five-link run
-plus the colophon at 768px without both wrapping badly), and each component's own brand-logo
-swap — but the two components no longer implement that last responsibility the same way.
-`Footer.astro` still swaps its lockup via a `<picture><source media="(min-width: 48em)">` HTML
-attribute, as both components did since `7e3924d`. `Header.astro` now inlines both lockups
-(see the hex-exception section above) and swaps them with a `@media (min-width: 48em)` CSS
-block over its `[data-mark="stacked"]`/`[data-mark="wide"]` elements instead, so a future
-change to the breakpoint value has to be made in a CSS media query in `Header.astro` and
-`tokens.css`, *and*, separately, in the footer's own `@media (min-width: 48em)` grid/nav-axis
-block, *and*, separately again, the HTML `media` attribute on the footer's `<picture><source>`
-— three CSS sites plus one HTML attribute, not one shared value. `tests/brand-assets.test.ts`
-pins the footer's `<source media>` value to `48em`; it carries no equivalent pin for the
-header's or the footer's CSS-side values today.
+breakpoint. Changing its value means editing three CSS sites plus one HTML attribute — see
+[`docs/infrastructure.md`](docs/infrastructure.md) before you touch it.
 
 ### Component inventory
 
@@ -480,36 +238,15 @@ button · Callout · Pagination · Breadcrumb · ThemeToggle · SEO head block �
 
 If a page needs a thirteenth component, question the page before adding it.
 
-**ThemeToggle has a prerequisite that is now half-satisfied, not probably-satisfied.**
-`Header.astro`'s brand mark no longer depends on this at all: it inlines both lockups and
-paints their fills through the same `tokens.css` cascade as every other page element (see the
-hex-exception section above), so a `data-theme` attribute on the document reaches it exactly
-the way it reaches body text — no propagation into a referenced image document required.
-`Footer.astro` still references the brand SVGs by URL, so its dark-mode fills still follow
-only the mechanism described below, and it is the remaining half of this prerequisite.
+**ThemeToggle has a half-satisfied prerequisite.** The header no longer depends on scheme
+propagation into a referenced image; the footer still does, and that mechanism is verified in
+Chromium 141 only. Read [`docs/brand-assets.md`](docs/brand-assets.md) before building it.
 
-In principle, referencing by URL means the footer's dark-mode fills follow only the OS
-`prefers-color-scheme` — a `data-theme` attribute lives on the embedding document, not inside
-the referenced image, so it looks like it cannot reach in. In practice, `tokens.css` already
-pairs every scheme block with a `color-scheme` declaration (`:root[data-theme="dark"] {
-color-scheme: dark }`), and Chromium propagates the embedding document's *used*
-`color-scheme` into a URL-referenced SVG image — so `data-theme="dark"` with the OS in light
-mode correctly recolors the footer logo today. **Verified in Chromium 141 only.** Gecko and
-WebKit are unverified (neither is installed in this environment), and a dark mode implemented
-by filter/colour inversion rather than `color-scheme` — a Dark Reader-style browser extension,
-say — sets nothing the image document can see and would still produce an invisible, ink-on-ink
-footer wordmark, the same failure the header has already shed. Whoever builds ThemeToggle must
-confirm this propagation across the browsers the site actually needs to support before relying
-on it for the footer; where it doesn't hold, `Header.astro` is now the pattern to follow —
-inline the SVGs so page-level `data-theme` CSS can target their classes — rather than serving
-scheme-specific files swapped by `data-theme`.
-
-`Prose` forwards unrecognized props (`...rest`) onto its root `<div>`, not just `class`.
-Astro hands a child component its parent's scoped-style attribute as a prop, and the child
-has to place it on its own root or the parent's scoped rules never match — `<Prose
-class="sg-narrow">` needs the spread to receive `sg-narrow`'s own CSS. Every call site
-today passes only `class`; keep it that way, since the spread also means a typo'd prop name
-type-checks and lands silently in the DOM.
+**`Prose` forwards unrecognized props (`...rest`) onto its root `<div>`**, not just `class`.
+Astro hands a child its parent's scoped-style attribute as a prop, and the child must place
+it on its own root or the parent's scoped rules never match. Every call site today passes
+only `class`; keep it that way, since the spread also means a typo'd prop name type-checks
+and lands silently in the DOM.
 
 ### Accessibility and performance floors
 
@@ -518,9 +255,9 @@ Non-negotiable on every change:
 - Keyboard-only navigation works; focus states are visible.
 - Layout holds at 320px and in dark mode.
 - Body text meets 4.5:1 contrast; large text 3:1.
-- Lighthouse mobile: Performance ≥ 90, Accessibility ≥ 95, SEO = 100 — this floor is for
-  indexable pages. `/404.html` scores SEO 69 by design: `is-crawlable` fails on its
-  deliberate `noindex`, and that is correct, not a defect to fix by removing it.
+- Lighthouse mobile: Performance ≥ 90, Accessibility ≥ 95, SEO = 100 — for indexable pages.
+  `/404.html` scores SEO 69 by design (`is-crawlable` fails on its deliberate `noindex`);
+  that is correct, not a defect.
 - Zero client JS unless a feature genuinely requires an island.
 
 ---
@@ -529,122 +266,86 @@ Non-negotiable on every change:
 
 - TypeScript for anything with logic; typed frontmatter schemas for all content collections,
   defined in `src/content.config.ts` using the `glob()` loader from `astro/loaders`. Astro 7
-  throws `LegacyContentConfigError` on the pre-7 `src/content/config.ts` path — the config
-  file lives beside `src/pages/`, not inside `src/content/`.
+  throws `LegacyContentConfigError` on the pre-7 `src/content/config.ts` path.
 - Components are `.astro` by default. Reach for a framework island only when interactivity
-  cannot be done with HTML and CSS, and say why in the handoff report.
+  cannot be done with HTML and CSS, and say why.
 - Styles go in `src/styles/` or a component's own `<style>` block. Tokens only — no raw hex,
   no off-scale sizes or spacing.
+- **Route-scoped stylesheets are imported by the page that needs them**, not by `BaseLayout`
+  or a shared component. `src/styles/print.css` is the first, imported only by
+  `resume.astro`.
 - Semantic HTML first: a `<button>` is a button, a `<nav>` is a nav.
 - Absolute canonical URLs; unique title (≤60 chars) and description (≤155 chars) per page.
 - Comments explain *why*, never *what*. Default to none.
-- Do not add dependencies without flagging it in the handoff report — every dependency is a
-  future upgrade and a supply-chain surface.
-- **`sharp` is a declared `devDependency`, not redundant with Astro.** It has two consumers:
-  Astro's default `astro:assets` image service (the `<Picture>` calls in `index.astro` and
-  `404.astro`) and `tests/brand-assets.test.ts`, which imports it directly to rasterise the
-  brand SVGs for the Issue #22 ink-floor guard. Before Issue #31 it was only present as
-  astro's *optional* transitive, so an Astro release inside `^7.3.2` that changed image
-  service would have dropped it and taken the whole brand-asset suite down as a vitest
-  *collection* error — a broken-harness message, not a brand regression. Its range tracks
-  astro's own `optionalDependencies.sharp` so the build and the test resolve one copy; bump
-  the two together, and don't tidy the declaration back out. `tests/dependency-contract.test.ts`
-  is what makes the range-matching rule binding — the same role `tests/brand-assets.test.ts`
-  plays for the brand-SVG hex exception and `tests/workflow-permissions.test.ts` plays for the
-  deploy-workflow rules: the coupling holds because a test goes red, not because a reviewer
-  remembers to check.
-- `astro.config.mjs` carries a Shiki transformer that strips Shiki's own inline colours from
-  fenced code blocks so `prose.css` — not Shiki's theme — styles them, and keeps the
-  `tabindex="0"` Astro puts on the resulting `<pre>` (required for a scrolling region to be
-  keyboard-reachable). Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false`
-  without accounting for both.
-- **Route-scoped stylesheets are imported by the page that needs them, not by `BaseLayout` or
-  a shared component.** `src/styles/print.css` is the first of these, and the repo's first
-  `@media print` rules — imported only by `src/pages/resume.astro`, so the rules ship on that
-  route alone. It carries no token reset, and needs none: `tokens.css` scopes both dark-scheme
-  blocks to `@media screen`, so a reader whose OS is dark already gets the light tokens under
-  `@media print` without anything print-side asking for them. A reset would have been inert
-  even before that scoping existed to rely on — media queries add no specificity, so a bare
-  `@media print { :root { … } }` loses to `:root:not([data-theme="light"])` regardless of
-  which stylesheet a bundler emits last. Keep any future dark-scheme rule scoped to
-  `@media screen`; `tests/build-output.test.ts`'s "the dark scheme stays off the printed page"
-  suite now enforces this by scanning every shipped CSS rule, not just convention.
+- Do not add dependencies without flagging it — every dependency is a future upgrade and a
+  supply-chain surface.
+- Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false` without accounting for
+  the transformer in `astro.config.mjs` (see [`docs/infrastructure.md`](docs/infrastructure.md)).
 
 ### Page SEO
 
-Every page renders through `BaseLayout`, which feeds `<SeoHead>` (the inventory's SEO head
-block) and owns nothing else a crawler or social client reads. A page passes:
+Every page renders through `BaseLayout`, which feeds `<SeoHead>` and owns nothing else a
+crawler or social client reads. A page passes:
 
 - `title`, `description` — required. `title` is the full `<title>` text (callers append
-  `SITE.titleSuffix` via `pageTitle()` from `src/lib/seo.ts`; the home page alone stays
-  bare). `description` doubles as the card summary and the meta description.
-- `canonicalPath?` — omit it and the layout derives one from the page's own URL via
-  `canonicalPath(Astro.url)`, so a new route is canonical by default, not by remembering.
+  `SITE.titleSuffix` via `pageTitle()`; the home page alone stays bare). `description`
+  doubles as the card summary and the meta description.
+- `canonicalPath?` — omit it and the layout derives one from the page's own URL, so a new
+  route is canonical by default, not by remembering.
 - `noindex?` — emits `noindex, nofollow` instead of the default
   `index, follow, max-image-preview:large`. Two pages use it, and both are the only routes
-  absent from `STATIC_SITEMAP_ROUTES`, for different reasons: `/styleguide/` is real content
-  nobody searched for; `/404.html` is not content at all and a static host cannot pair it with
-  a real 404 status code, so an indexed `404.html` would be a soft 404. `/resume/` used to
-  share both while it was a stub; lifting `noindex` and adding the route was the one-line
-  change that shipped once the page had real content — the pattern to repeat for any future
-  stub.
+  absent from `STATIC_SITEMAP_ROUTES`: `/styleguide/` is real content nobody searched for;
+  `/404.html` is not content at all, and a static host cannot pair it with a real 404 status,
+  so an indexed one would be a soft 404. Lifting `noindex` and adding the route is the
+  one-line change when a stub gains real content — as `/resume/` did.
 - `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
   page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.
 - `schema?` — an array of JSON-LD `@graph` nodes; omitted or empty emits no `<script>` tag.
 
-No absolute URL — canonical, `og:url`, `og:image`, JSON-LD `@id`, sitemap `<loc>`, RSS
-`link`/`guid` — is ever written as a literal hostname. Every one derives from `site` in
-`astro.config.mjs` through the helpers in `src/lib/seo.ts` (`absoluteUrl`, `canonicalPath`,
-`pageTitle`, …). A test walks `src/` and fails the suite if a `technoise.dev` or `github.io`
-literal ever appears, so changing the domain stays a one-line edit to `astro.config.mjs`.
+**No absolute URL is ever written as a literal hostname** — canonical, `og:url`, `og:image`,
+JSON-LD `@id`, sitemap `<loc>`, RSS `link`/`guid`. Every one derives from `site` in
+`astro.config.mjs` through the helpers in `src/lib/seo.ts`. A test walks `src/` and fails the
+suite if a `technoise.dev` or `github.io` literal appears, so changing the domain stays a
+one-line edit.
 
-**This site supports a root deploy only.** `site` in `astro.config.mjs` must be an origin
-whose pathname is `/`, and Astro's `base` must stay unset or `/` — a project-subpath deploy
-(`base: '/technoise'`, or a `site` that itself carries a path) is not supported. Every URL
-`src/lib/seo.ts` builds is a rooted path resolved against `site`, and `robots.txt` must land
-at the origin root or no crawler reads it, so a subpath can't be made to work by prefixing
-alone. `assertRootDeploy()` in `src/lib/seo.ts`, called from `absoluteUrl()`, enforces this
-at build time — a misconfigured `site` or `base` fails the build immediately with an
-explicit message, rather than silently emitting wrong URLs — and `tests/seo-helpers.test.ts`
-locks in both rejections. This pairs with the no-hostname-literal rule above: that rule
-keeps a domain change to one line; this one constrains what that line may contain.
+**This site supports a root deploy only.** `site` must be an origin whose pathname is `/`,
+and `base` must stay unset or `/`. `assertRootDeploy()` enforces this at build time.
 
 ### Content authoring rules
 
 Binding for every entry in `src/content/blog/` and `src/content/projects/`, enforced by the
 schema in `src/content.config.ts`:
 
-- `title` ≤48 characters. Every page renders `` `${title} — TechNoise` ``; the suffix costs
-  12 of the 60-character `<title>` budget, so 48 is the full remaining allowance, not a
-  stylistic choice.
+- `title` ≤48 characters. Every page renders `` `${title} — TechNoise` ``; the suffix costs 12
+  of the 60-character `<title>` budget, so 48 is the full remaining allowance.
 - `description` ≤155 characters. It is the card summary, the detail-page lede, and the meta
   description — one field, not three.
 - `tags`: lowercase, hyphenated (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤24 characters each, 1–4 per
   entry. Stored and displayed in slug form so `"Astro"` and `"astro"` can't open two archives
   for one idea.
-- Entries sit directly in the collection directory — `src/content/blog/<slug>.md`, never
-  `src/content/blog/<dir>/<slug>.md`. The loader's `**/*.md` pattern collects nested files
-  and their ids keep the directory prefix, but an id becomes a single URL segment in
-  `/blog/<slug>/`, so Astro fails the build with `TypeError: Missing parameter: slug` and no
-  filename. `assertRoutableId()` in `src/lib/content.ts` catches it first and names the file.
-- A post's filename (its slug) may not be a bare number — it collides with the `/blog/<n>/`
-  pagination routes and fails the build with the colliding filename in the error. Both this
-  rule and the flat-directory one are enforced in `assertRoutableId()`, called from
+- Entries sit **directly** in the collection directory — `src/content/blog/<slug>.md`, never
+  `<dir>/<slug>.md`. A nested id keeps its directory prefix and cannot become a single URL
+  segment, so the build fails with `TypeError: Missing parameter: slug` and no filename.
+- A post's filename may not be a bare number — it collides with the `/blog/<n>/` pagination
+  routes.
+- Both slug rules are enforced in `assertRoutableId()` in `src/lib/content.ts`, called from
   `getPublishedPosts()` and `getPublishedProjects()` — the one path every route already takes.
   Keep future slug rules there rather than adding a route-local guard.
 - `draft: true` hides an entry from production builds only; `astro dev` still shows it.
 - Astro renders raw HTML inside Markdown by default, so a `.md` file is as privileged as a
   component. Every file in `src/content/` today is repo-authored and reviewed; if content is
-  ever accepted from outside the repo (an external PR, a CMS), add a rehype sanitizer at that
-  point rather than after the fact.
+  ever accepted from outside the repo, add a rehype sanitizer at that point.
 
 ---
 
 ## Workflow
 
-The production cycle is a one-way pipeline. Each stage reads the report from the stage
-before it and writes exactly one report for the stage after it.
+Read [Pick the path first](#pick-the-path-first) before starting. If the change is a quick
+tweak, you are already done — there is no pipeline and no report.
+
+For a structural change, the production cycle is a one-way pipeline. Each stage reads the
+report from the stage before it and writes exactly one report for the stage after it.
 
 ```
 designer ──design-report──▶ developer ──dev-report──▶ qa ──qa-report──▶ documenter ──▶ PR
@@ -652,44 +353,60 @@ designer ──design-report──▶ developer ──dev-report──▶ qa ─
                                  └──── blocking ────────┘
                                        findings
 
-PR ──▶ gatekeeper ──▶ review comments  ──▶  human merges (or doesn't)
-            │
-            └── MAJOR finding ──▶ GitHub Issue ──▶ developer on bugfix/<slug> ──▶ qa ──▶ PR
+PR ──▶ human merges (or doesn't)
+  └──▶ gatekeeper, ONLY when the human asks ──▶ review comments
+                                                   │
+                                                   └── MAJOR ──▶ Issue ──▶ developer on
+                                                                bugfix/<slug> ──▶ qa ──▶ PR
 ```
 
-- **designer** — produces a numbered checklist of changes to make, plus whatever prose,
-  measurements and markup *excerpts* the report needs to be unambiguous. The report is the
-  whole deliverable: the designer never commits `.astro` or `.css` files. A committed
-  template reads as source, drifts away from `src/` the moment the developer implements it,
-  and the next cycle picks up the stale copy.
+- **designer** — produces a numbered checklist of changes, plus whatever prose, measurements
+  and markup *excerpts* the report needs to be unambiguous. The report is the whole
+  deliverable: the designer never commits `.astro` or `.css` files. A committed template
+  reads as source and drifts from `src/` the moment the developer implements it.
 - **developer** — implements every checklist item, one commit per coherent unit.
-- **qa** — reviews for vulnerabilities, writes unit tests, judges production readiness.
-  A blocking verdict sends the work back to developer with the same report as input.
-- **documenter** — updates README, AGENTS.md, and docs when architecture, design standards,
-  or run configuration changed. Runs last, and only when something durable changed. Opens
-  the PR.
-- **gatekeeper** — reviews the open PR on GitHub for production issues, bugs, warnings, and
-  code smells. Comments on every finding; files a GitHub Issue for each MAJOR one. Always
-  submits as `COMMENT` — never `REQUEST_CHANGES`, never `APPROVE`.
+- **qa** — reviews for vulnerabilities, writes tests where there is real logic, judges
+  production readiness. A blocking verdict sends the work back to developer with the same
+  report as input.
+- **documenter** — updates README, AGENTS.md, and `docs/` when architecture, design standards,
+  or run configuration changed. Runs last, and only when something durable changed. Opens the
+  PR, then stops. It does **not** hand off to gatekeeper.
 
-`qa` runs before the PR exists and gates the handoff. `gatekeeper` runs on the PR itself and
-asks the different question: *if this merges and deploys, what goes wrong?* It treats the QA
-report as a claim to test, not a result to trust.
+`qa` runs before the PR exists and gates the handoff. A human decides what merges: no agent
+approves, and no agent merges.
 
-**A human decides what merges.** No agent approves, and no agent merges. The gatekeeper's
-review is advisory — if the human merges over it, that is final, and the Issue already filed
-carries any real finding forward.
+### Verification depth
+
+Re-derive a claim independently when it is **new or risky** — a first-time contrast figure, a
+structural change to how something is computed, a security-relevant path, anything no test
+covers yet. Do not re-derive a number an upstream stage already computed and a test already
+pins; cite the stage and the test instead. Re-tabulating verified figures is the single
+largest source of report bloat in this repo.
+
+### Gatekeeper — by human request only
+
+The gatekeeper does **not** run automatically. It runs when the human explicitly asks for a PR
+review, by PR number or by name. Nothing in the pipeline triggers it, and no other agent hands
+off to it.
+
+This is deliberate. Its question — *if this merges and deploys, what goes wrong?* — is worth
+asking once over a PR that has accumulated real change, not once per increment. Let a PR
+collect its increments, then ask for one gatekeeper pass.
+
+When it runs: it reviews the PR on GitHub, comments on every finding, files a GitHub Issue for
+each MAJOR one, and always submits as `COMMENT` — never `REQUEST_CHANGES`, never `APPROVE`.
+Its review is advisory. If the human merges over it, that is final, and the Issue already
+filed carries any real finding forward.
 
 ### Bugfix loop
 
-A MAJOR gatekeeper finding becomes a GitHub Issue, not a blocked PR. The issue is picked up
-independently:
+A MAJOR gatekeeper finding becomes a GitHub Issue, not a blocked PR:
 
 1. Branch `bugfix/<short-slug>` from an up-to-date `master`.
 2. `developer` implements against the issue's acceptance criteria, referencing the issue
    number in the commit.
 3. `qa` verifies as normal and writes `reports/qa-report.md`.
-4. A new PR to `master`, reviewed by `gatekeeper`, merged by a human.
+4. A new PR to `master`, merged by a human.
 
 This keeps a follow-up fix from silently widening the PR that surfaced it.
 
@@ -697,58 +414,71 @@ This keeps a follow-up fix from silently widening the PR that surfaced it.
 
 ## Handoff protocol
 
-- All reports live in `reports/`. The directory is git-ignored — reports are working state,
-  not deliverables.
-- Each stage writes **one** report at a fixed path, overwriting the previous one:
+Reports are working state, not deliverables. `reports/` is git-ignored.
 
-  | Stage | Writes | Reads |
-  |---|---|---|
-  | designer | `reports/design-report.md` | — |
-  | developer | `reports/dev-report.md` | `reports/design-report.md` |
-  | qa | `reports/qa-report.md` | `reports/dev-report.md` (+ design report for intent) |
-  | documenter | `reports/doc-report.md` | `reports/qa-report.md` |
-  | gatekeeper | `reports/gatekeeper-report.md` | the PR diff (+ qa report as a claim to test) |
+**Hard limits on every report:**
 
-- **Only the latest report counts.** Before overwriting, move the existing file to
-  `reports/archive/<name>-<YYYYMMDD-HHMMSS>.md`. Archives are for humans debugging a cycle;
-  agents never read them.
-- Every report starts with the same header block so the next stage can validate its input:
+- **One file per stage**, at the fixed path below. Never a second file, an appendix, or a
+  supplementary table in `reports/`.
+- **250 lines maximum**, including the header block and any fenced excerpt. A report at the
+  cap is not a target to fill — most should be well under it.
+- **Under 300 words of prose** unless a blocking finding genuinely needs the detail. Tables
+  and checklists don't count toward that; restating them in prose does.
+- **No report at all on the quick-tweak path.** Summarize in chat instead.
 
-  ```markdown
-  ---
-  stage: designer | developer | qa | documenter
-  feature: short-slug
-  branch: feature/short-slug
-  date: YYYY-MM-DD HH:MM
-  upstream: reports/<file>.md | none
-  status: ready | blocked
-  ---
-  ```
+If a report would exceed the cap, the fix is to cut, not to split: drop re-derived numbers an
+upstream stage already verified, drop findings you decided not to raise, and cite files and
+test names instead of quoting them.
 
-- If the upstream report is missing, stale (points at a different feature or branch), or
-  `status: blocked`, stop and report that to the human. Do not improvise the missing stage.
-- Checklist items carry stable IDs (`D1`, `D2`, …) assigned by the designer. Every later
-  stage refers to work by that ID so a human can trace one line from design to test.
-  Gatekeeper findings use `G1`, `G2`, … in the same way.
-- The gatekeeper is the one stage whose real output lives on GitHub — review comments and
-  Issues, where reviewers actually look. Its report is a local record of that review, not
-  the deliverable. A reviewer must never have to open a git-ignored file to learn what was
-  flagged.
+| Stage | Writes | Reads |
+|---|---|---|
+| designer | `reports/design-report.md` | — |
+| developer | `reports/dev-report.md` | `reports/design-report.md` |
+| qa | `reports/qa-report.md` | `reports/dev-report.md` (+ design report for intent) |
+| documenter | `reports/doc-report.md` | `reports/qa-report.md` |
+| gatekeeper | `reports/gatekeeper-report.md` | the PR diff (+ qa report as a claim to test) |
+
+**Only the latest report counts.** Before overwriting, move the existing file to
+`reports/archive/<name>-<YYYYMMDD-HHMMSS>.md`. Archives are for humans debugging a cycle;
+agents never read them.
+
+Every report starts with the same header block so the next stage can validate its input:
+
+```markdown
+---
+stage: designer | developer | qa | documenter | gatekeeper
+feature: short-slug
+branch: feature/short-slug
+date: YYYY-MM-DD HH:MM
+upstream: reports/<file>.md | none
+status: ready | blocked
+---
+```
+
+If the upstream report is missing, stale (points at a different feature or branch), or
+`status: blocked`, stop and report that to the human. Do not improvise the missing stage.
+
+Checklist items carry stable IDs (`D1`, `D2`, …) assigned by the designer. Every later stage
+refers to work by that ID so a human can trace one line from design to test. Gatekeeper
+findings use `G1`, `G2`, … the same way.
+
+The gatekeeper is the one stage whose real output lives on GitHub — review comments and
+Issues, where reviewers actually look. Its report is a local record, not the deliverable. A
+reviewer must never have to open a git-ignored file to learn what was flagged.
 
 ---
 
 ## Git rules
 
-These are hard limits on every agent.
+Hard limits on every agent.
 
-- **Work happens on a feature branch.** `feature/<short-slug>` for new work, or
+- **Work happens on a feature branch.** `feature/<short-slug>` for new work,
   `bugfix/<short-slug>` when resolving a gatekeeper Issue. Both branch from an up-to-date
-  `master`. Never commit directly to `master`.
+  `master`. Never commit directly to `master`. This holds on the quick-tweak path too.
 - **Agents push to feature and bugfix branches only.** Never push to `master`, never
   force-push a branch an agent did not create, never rewrite published history.
-- **Raise a PR to `master` for human review.** The documenter (or whichever stage finishes the
-  cycle) opens it. No agent approves or merges its own work — or anyone else's. That includes
-  the gatekeeper, whose review is a signal, not a veto.
+- **Raise a PR to `master` for human review.** No agent approves or merges its own work — or
+  anyone else's. That includes the gatekeeper, whose review is a signal, not a veto.
 - **Every GitHub comment, review, and issue ends with the attribution footer**, so reviewers
   know it was agent-authored:
 

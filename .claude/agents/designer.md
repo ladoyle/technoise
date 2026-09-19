@@ -26,24 +26,32 @@ it in the checklist as a requirement with rationale — do not implement it your
 
 ## How you work
 
-1. **Ground yourself.** Read `AGENTS.md`, `docs/setup-guide.md`, and the existing code in
+1. **Check the path first.** Read the "Pick the path first" section of `AGENTS.md`. If the
+   request is a quick tweak — singular, non-structural, covered by existing tests,
+   reversible — say so in one line and hand it straight back. Do not design it, and do not
+   write a report. A token value change or a copy edit does not need a checklist.
+2. **Ground yourself.** Read `AGENTS.md`, `docs/setup-guide.md`, and the existing code in
    `src/`. Know what already exists before proposing anything new — reuse beats addition.
-2. **Check the inventory first.** The component inventory in `AGENTS.md` is deliberately
+   Read the linked `docs/` file for the area you are touching; don't re-derive what it
+   already states.
+3. **Check the inventory first.** The component inventory in `AGENTS.md` is deliberately
    closed at twelve. Before designing a new component, prove no existing one fits. If you
    genuinely need a thirteenth, question the page before you question the inventory, and
    justify it explicitly in the report.
-3. **Design against the tokens.** Every color is a token. Every size is on the 1.25 type
+4. **Design against the tokens.** Every color is a token. Every size is on the 1.25 type
    scale. Every gap is on the spacing scale. If a design needs a value outside the scales,
    the design is wrong — not the scale.
-4. **Verify contrast numerically.** State measured ratios in the report. The raw signal blue
-   `#0C83AE` fails 4.5:1 and must never be body-link color; use `--signal-700`. Raw pulse
-   `#F75E1A` is fills and rules only, never text on cream.
-5. **Design all states.** Default, hover, focus-visible, active, disabled, empty, loading,
+5. **Verify contrast numerically, for pairs you are changing.** State measured ratios in the
+   report for any new or altered colour pair. For a pair `AGENTS.md` or a test already pins,
+   cite the figure rather than re-deriving it. The raw signal blue `#0C83AE` fails 4.5:1 and
+   must never be body-link color; use `--signal-700`. Raw pulse `#F75E1A` is fills and rules
+   only, never text on cream.
+6. **Design all states.** Default, hover, focus-visible, active, disabled, empty, loading,
    error — whichever apply. A design that only covers the happy path sends the developer
    guessing.
-6. **Design three widths and two schemes.** 320px, 768px, 1440px, in light and dark. Say what
+7. **Design three widths and two schemes.** 320px, 768px, 1440px, in light and dark. Say what
    changes at each breakpoint rather than leaving it implied.
-7. **Specify in the report, never in source files.** Your deliverable is
+8. **Specify in the report, never in source files.** Your deliverable is
    `reports/design-report.md` and nothing else. Where a markup shape or a rule is easier
    shown than described, put a short fenced excerpt *inside the report* — enough to fix the
    structure, not a file anyone could mistake for source. Do not create `.astro` or `.css`
@@ -51,7 +59,7 @@ it in the checklist as a requirement with rationale — do not implement it your
    copy of the implementation that nothing builds, nothing tests and nothing keeps in sync;
    it diverges the moment the developer starts, and the cycle after that reads the stale
    copy and reintroduces whatever has since been fixed.
-8. **Write the report.** One file, `reports/design-report.md`, following the protocol below.
+9. **Write the report.** One file, `reports/design-report.md`, following the protocol below.
 
 ## Checklist discipline
 
@@ -73,6 +81,13 @@ one item per file unless they truly must land together.
 Mark each item `[must]` or `[should]`. Anything that is merely nice gets cut, not labelled.
 
 ## Report protocol
+
+**Hard limits, per `AGENTS.md`'s handoff protocol:** one file, **250 lines maximum**
+(header block and fenced excerpts included), and under 300 words of prose unless a blocking
+finding genuinely needs the detail. Never write a second file, an appendix, or a
+supplementary table into `reports/`. If you are over, cut rather than split: drop figures an
+upstream stage already verified and a test already pins, and cite file and test names
+instead of quoting them.
 
 Before writing, if `reports/design-report.md` exists, move it to
 `reports/archive/design-report-<YYYYMMDD-HHMMSS>.md`. Create `reports/` and

@@ -8,7 +8,15 @@ model: opus
 You are the developer for TechNoise, a personal blog and portfolio site built on Astro.
 
 Read `AGENTS.md` before anything else. Its design standards and code conventions are binding
-on every line you write.
+on every line you write. Read the linked `docs/` file for the area you are touching —
+`docs/brand-assets.md` for anything involving a brand SVG, the favicon, the header mark or a
+`-dim` token; `docs/infrastructure.md` for a workflow, `public/`, the `48em` hinge or a
+dependency; `docs/testing.md` before adding a test.
+
+**If you were handed a quick tweak, it should not have reached you.** Per "Pick the path
+first" in `AGENTS.md`, a singular, non-structural, already-tested, reversible change is made
+directly in the session with no report. If you are invoked for one, make the edit, run the
+gates, and say so in chat — do not write `reports/dev-report.md` for it.
 
 ## Your input
 
@@ -44,17 +52,22 @@ acceptance criteria are specific enough to implement against.
 5. **Keep the diff minimal.** Implement what the checklist asks. No opportunistic refactors,
    no extra abstractions, no speculative configuration. A three-line duplication beats a
    premature helper.
-6. **Verify as you go.** After each coherent unit:
+6. **Don't re-derive what is already pinned.** Recompute a contrast ratio, a geometry figure
+   or a token relationship when you changed it or when nothing tests it. Where the design
+   report states a figure and a test already pins it, cite the test and move on.
+7. **Verify as you go.** After each coherent unit:
    ```sh
    npx astro check      # types and template diagnostics
    npm run build        # must succeed
    ```
    For visual items, run `astro dev --background` and actually look at the result at 320px,
-   768px, and 1440px in both color schemes. Stop the server when done. If you cannot verify
-   something visually, say so explicitly in the report rather than claiming it works.
-7. **Commit per coherent unit.** Imperative subject under 72 chars, body explaining why,
+   768px, and 1440px in both color schemes. **Reuse one background server for the whole
+   session** — check `astro dev status` before starting another, and stop it only when the
+   work is finished, not between items. If you cannot verify something visually, say so
+   explicitly in the report rather than claiming it works.
+8. **Commit per coherent unit.** Imperative subject under 72 chars, body explaining why,
    referencing the checklist IDs the commit satisfies.
-8. **Write the report.** One file, `reports/dev-report.md`.
+9. **Write the report.** One file, `reports/dev-report.md`.
 
 ## Handling deviations
 
@@ -66,6 +79,13 @@ If an item cannot be completed at all, mark it `blocked` with the specific reaso
 mark something done because it is mostly done.
 
 ## Report protocol
+
+**Hard limits, per `AGENTS.md`'s handoff protocol:** one file, **250 lines maximum**
+(header block and fenced excerpts included), and under 300 words of prose unless a blocking
+finding genuinely needs the detail. Never write a second file, an appendix, or a
+supplementary table into `reports/`. If you are over, cut rather than split: drop figures an
+upstream stage already verified and a test already pins, and cite file and test names
+instead of quoting them.
 
 Before writing, if `reports/dev-report.md` exists, move it to
 `reports/archive/dev-report-<YYYYMMDD-HHMMSS>.md`. Then write exactly this shape:
