@@ -55,6 +55,17 @@ const fillsIn = (block: string): Record<string, string> =>
     ]),
   );
 
+const geometryOf = (name: string, source: string) => {
+  const box = /viewBox="(-?[\d.]+)\s+(-?[\d.]+)\s+([\d.]+)\s+([\d.]+)"/.exec(source);
+  const dim = /<svg[^>]*\swidth="([\d.]+)"[^>]*\sheight="([\d.]+)"/.exec(source);
+  if (!box || !dim) throw new Error(`${name} is missing a viewBox or root width/height`);
+
+  return {
+    viewBox: [+box[1], +box[2], +box[3], +box[4]] as [number, number, number, number],
+    declared: [+dim[1], +dim[2]] as [number, number],
+  };
+};
+
 const parseSvg = (dir: string, name: string): Svg => {
   const source = readFileSync(join(dir, name), "utf8");
 
@@ -68,18 +79,33 @@ const parseSvg = (dir: string, name: string): Svg => {
   const darkStart = darkMedia.index;
   const darkEnd = source.indexOf("</style>");
 
-  const box = /viewBox="(-?[\d.]+)\s+(-?[\d.]+)\s+([\d.]+)\s+([\d.]+)"/.exec(source);
-  const dim = /<svg[^>]*\swidth="([\d.]+)"[^>]*\sheight="([\d.]+)"/.exec(source);
-  if (!box || !dim) throw new Error(`${name} is missing a viewBox or root width/height`);
-
   return {
     name,
     dir,
     source,
     light: fillsIn(source.slice(0, darkStart)),
     dark: fillsIn(source.slice(darkStart, darkEnd)),
-    viewBox: [+box[1], +box[2], +box[3], +box[4]],
-    declared: [+dim[1], +dim[2]],
+    ...geometryOf(name, source),
+  };
+};
+
+// public/favicon-dark.svg is the one tracked file that carries no internal dark block, and
+// that is the point of it: BaseLayout selects it with `media` on the <link>, so its fills
+// are unconditional and parseSvg — which requires a dark @media to split on — cannot read
+// it. Parsed here instead, it joins every guard below except the light/dark split it has no
+// light half of; its unconditional fills are asserted against the same dark triple.
+const parseFlatSvg = (dir: string, name: string): Svg => {
+  const source = readFileSync(join(dir, name), "utf8");
+  const style = /<style>([\s\S]*?)<\/style>/.exec(source);
+  if (!style) throw new Error(`${name} carries no <style>`);
+
+  return {
+    name,
+    dir,
+    source,
+    light: {},
+    dark: fillsIn(style[1]),
+    ...geometryOf(name, source),
   };
 };
 
@@ -91,18 +117,31 @@ const svgs: Svg[] = BRAND_FILES.map((name) => parseSvg(brandDir, name));
 // and outside every assertion here. A token edit mirrored into public/brand/ and not into
 // the favicon desynced silently, which is the exact failure the exception is written to
 // prevent. It is asserted alongside them now.
-const tokenTracked: Svg[] = [...svgs, parseSvg(join(root, "public"), "favicon.svg")];
+const favicon = parseSvg(join(root, "public"), "favicon.svg");
+const tokenTracked: Svg[] = [...svgs, favicon];
+
+// The dark-only sibling shares the favicon's geometry and inertness but not its light half,
+// so it joins the geometry, ink and inert loops rather than the fills loop.
+const faviconDark = parseFlatSvg(join(root, "public"), "favicon-dark.svg");
+const assetTracked: Svg[] = [...tokenTracked, faviconDark];
+
+// --text resolves to --cream-dim rather than raw --cream in dark because cream emitted from
+// a dark screen reads as glare; the wordmark is the element that escaped that judgement
+// until now. The robot's two fills take the -dim pair for the same reason, one step further:
+// they are the 300s walked 40% toward their own -700s, so the mark reads wordmark-first
+// rather than neon. They are deliberately *not* --signal-300/--pulse-300, which remain the
+// link, rule, focus and hover tints — do not unify these back. Read from tokens.css, never
+// written as a literal, so a token edit still fails.
+const expected = {
+  light: () => ({ "tn-ink": token("ink"), "tn-signal": token("signal"), "tn-pulse": token("pulse") }),
+  dark: () => ({
+    "tn-ink": token("cream-dim"),
+    "tn-signal": token("signal-300-dim"),
+    "tn-pulse": token("pulse-300-dim"),
+  }),
+};
 
 describe("brand SVG fills track tokens.css", () => {
-  const expected = {
-    light: () => ({ "tn-ink": token("ink"), "tn-signal": token("signal"), "tn-pulse": token("pulse") }),
-    dark: () => ({
-      "tn-ink": token("cream"),
-      "tn-signal": token("signal-300"),
-      "tn-pulse": token("pulse-300"),
-    }),
-  };
-
   for (const svg of tokenTracked) {
     it(`${svg.name} uses the light-mode brand bases`, () => {
       expect(svg.light).toEqual(expected.light());
@@ -114,8 +153,58 @@ describe("brand SVG fills track tokens.css", () => {
   }
 });
 
+// Two files, one icon: favicon.svg carries the light fills plus its own dark override, and
+// favicon-dark.svg carries the dark fills unconditionally. BaseLayout picks between them with
+// `media` on the <link>, because an icon resource is not reliably made to re-evaluate its own
+// @media on reload. favicon.svg's internal block is not a leftover of that arrangement — it is
+// the fallback for an engine (Gecko) that ignores `media` on an icon link but does honour the
+// query inside the file, so deleting it as dead weight would pin that engine to light forever.
+describe("the two-file favicon", () => {
+  it("favicon.svg keeps the internal dark block engines that ignore <link media> fall back to", () => {
+    expect(favicon.source).toMatch(/@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/);
+  });
+
+  it("favicon-dark.svg states the dark tints unconditionally, with no @media of its own", () => {
+    expect(faviconDark.dark).toEqual(expected.dark());
+    expect(faviconDark.source).not.toMatch(/@media/i);
+  });
+
+  it("favicon-dark.svg is favicon.svg with a different <style>, and nothing else", () => {
+    const withoutStyle = (source: string) => source.replace(/<style>[\s\S]*?<\/style>/, "");
+    expect(withoutStyle(faviconDark.source)).toEqual(withoutStyle(favicon.source));
+  });
+});
+
+// The document side of the same arrangement. The order is load-bearing, not cosmetic: an
+// engine that ignores `media` treats both links as unconditional and takes the last one, so
+// the last one must be the self-adapting file, never the dark-only one.
+describe("BaseLayout hands the scheme choice to the document", () => {
+  const icons = [...readFileSync(join(root, "dist", "index.html"), "utf8")
+    .matchAll(/<link[^>]+rel="icon"[^>]*>/g)].map((m) => m[0]);
+
+  const href = (tag: string) => /href="([^"]+)"/.exec(tag)?.[1];
+  const media = (tag: string) => /media="([^"]+)"/.exec(tag)?.[1];
+
+  it("ships the raster fallback first, then one SVG per scheme, dark before light", () => {
+    expect(icons.map(href)).toEqual(["/favicon.ico", "/favicon-dark.svg", "/favicon.svg"]);
+    expect(icons.map(media)).toEqual([
+      undefined,
+      "(prefers-color-scheme: dark)",
+      "(prefers-color-scheme: light)",
+    ]);
+  });
+
+  it("types both SVG links, and points every icon at a file that ships", () => {
+    for (const tag of icons.slice(1)) expect(tag).toContain('type="image/svg+xml"');
+    for (const tag of icons) {
+      const file = href(tag)!;
+      expect(existsSync(join(root, "public", file)), `BaseLayout points at a missing ${file}`).toBe(true);
+    }
+  });
+});
+
 describe("brand SVG geometry the component CSS relies on", () => {
-  for (const svg of tokenTracked) {
+  for (const svg of assetTracked) {
     it(`${svg.name} declares a width/height matching its own viewBox`, () => {
       expect(svg.declared).toEqual([svg.viewBox[2], svg.viewBox[3]]);
     });
@@ -184,9 +273,10 @@ describe("brand SVG viewBoxes stay cropped to their ink", () => {
     "technoise-logo-presentation.svg": 0.83,
     "technoise-logo-full.svg": 0.68,
     "favicon.svg": 0.84,
+    "favicon-dark.svg": 0.84,
   };
 
-  for (const svg of tokenTracked) {
+  for (const svg of assetTracked) {
     it(`${svg.name} spends its viewBox height on ink, not transparent margin`, async () => {
       expect(await inkHeightFraction(svg.dir, svg.name)).toBeGreaterThanOrEqual(floors[svg.name]);
     });
@@ -453,7 +543,7 @@ describe("public/ ships nothing the site references nowhere", () => {
 });
 
 describe("brand SVGs stay inert assets", () => {
-  for (const svg of tokenTracked) {
+  for (const svg of assetTracked) {
     it(`${svg.name} carries no script, external reference or event handler`, () => {
       expect(svg.source).not.toMatch(/<script/i);
       expect(svg.source).not.toMatch(/<(foreignObject|image|use)\b/i);

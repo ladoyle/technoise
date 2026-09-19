@@ -251,29 +251,29 @@ const isCurrent = (href: string) =>
 
   @media screen and (prefers-color-scheme: dark) {
     :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-ink) {
-      fill: var(--cream);
+      fill: var(--cream-dim);
     }
 
     :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-signal) {
-      fill: var(--signal-300);
+      fill: var(--signal-300-dim);
     }
 
     :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-pulse) {
-      fill: var(--pulse-300);
+      fill: var(--pulse-300-dim);
     }
   }
 
   @media screen {
     :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-ink) {
-      fill: var(--cream);
+      fill: var(--cream-dim);
     }
 
     :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-signal) {
-      fill: var(--signal-300);
+      fill: var(--signal-300-dim);
     }
 
     :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-pulse) {
-      fill: var(--pulse-300);
+      fill: var(--pulse-300-dim);
     }
   }
 

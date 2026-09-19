@@ -63,7 +63,25 @@ const path = canonicalPath ?? toCanonicalPath(Astro.url);
     <meta name="description" content={description} />
 
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48 64x64 128x128 256x256" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {/*
+      The media attribute, not the query inside the file: an engine is not reliably made
+      to re-evaluate an icon resource's own @media on reload, so the document picks the
+      file. Dark first, light last on purpose — an engine that ignores `media` takes the
+      last matching icon, and that must be favicon.svg, which still self-adapts internally
+      for engines (Gecko) that honour the internal query but not this attribute.
+    */}
+    <link
+      rel="icon"
+      href="/favicon-dark.svg"
+      type="image/svg+xml"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="icon"
+      href="/favicon.svg"
+      type="image/svg+xml"
+      media="(prefers-color-scheme: light)"
+    />
 
     {/* crossorigin is required even for a same-origin font preload. */}
     <link

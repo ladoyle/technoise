@@ -37,7 +37,8 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # SEO-helper, discovery-output (sitemap/rss/robots),
                       # nav/route-resolution, brand-asset, workflow-permissions,
                       # test-harness-contract, ci-workflow, dependency-contract,
-                      # palette-tokens and a11y-verify-script tests (14 files)
+                      # palette-tokens, a11y-verify-script, mark-tint-contract and
+                      # mark-tagline-scale tests (16 files, 319 tests)
                       # (tests/nav-contract.test.ts also carries the resume page's
                       # privacy-regression assertions, not just nav contract tests — its
                       # phone-shape scan strips <svg>…</svg> from the visible HTML first,
@@ -55,7 +56,17 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # brand file's own declared colours, in both schemes; another walks
                       # every built page's injected header markup asserting it ships inert
                       # (no script, handler or external reference) and still tokenised (no
-                      # hex, no fill/stroke presentation attribute);
+                      # hex, no fill/stroke presentation attribute); it also carries a second
+                      # SVG parser (parseFlatSvg, for a file with no internal dark block) and
+                      # a third tracked list (assetTracked, alongside tokenTracked and
+                      # BRAND_FILES) that folds public/favicon-dark.svg into the geometry,
+                      # ink-floor and inertness loops; a "the two-file favicon" suite asserts
+                      # favicon.svg still carries its internal dark block on purpose and that
+                      # favicon-dark.svg is favicon.svg with only its <style> replaced, no
+                      # @media of its own; and a "BaseLayout hands the scheme choice to the
+                      # document" suite reads dist/index.html and pins the three icon links'
+                      # hrefs, media and order — the first assertion in this file about the
+                      # document's <head> rather than about an asset;
                       # tests/ci-workflow.test.ts pins ci.yml's job name, triggers and
                       # run steps — workflow-permissions.test.ts asserts how a workflow is
                       # permitted, this one asserts that it actually runs the gates — and
@@ -72,7 +83,36 @@ npm test             # vitest run — schema, publishing-rule, content-helper, b
                       # to clip-only (no fullPage), pins scrollIntoViewIfNeeded() ahead of
                       # boundingBox() in sampleRenderedBackground(), and asserts no catch there
                       # coexists with the "zero-size element" fallback message, all via static
-                      # source reads, no browser, no build)
+                      # source reads, no browser, no build; tests/mark-tint-contract.test.ts
+                      # reads tokens.css and measures with src/lib/contrast.ts to guard the
+                      # brand mark's dimmed dark tints, --signal-300-dim/--pulse-300-dim: one
+                      # half asserts no semantic role (--link/--rule/--focus/
+                      # --accent-fill-hover) ever resolves to either -dim token, in both dark
+                      # blocks, so a future edit can't silently drop link/focus contrast
+                      # site-wide; the other half floors both tints at WCAG 1.4.11's 3:1
+                      # non-text minimum against both surfaces the mark can actually be
+                      # adjacent to — --ink (the page background both lockups paint on) and
+                      # --cream-dim (the mark's own outline, which wholly encloses the face
+                      # field and headphones) — not the 4.5:1 text minimum, because SC 1.4.3
+                      # exempts logotype text from the text floor at any size and the only part
+                      # of .tn-signal that touches the page rather than the mark's own
+                      # --cream-dim outline is the "HEAR THE FUTURE" tagline; a third assertion
+                      # in the same file is placement-invariant, not colour-based — it parses
+                      # every rule between the mark and <body> in Header.astro and
+                      # Footer.astro and fails if any declares a background other than the
+                      # header toggle's own (pinned separately to transparent), since the
+                      # --cream-dim floor is only true for as long as nothing sits between the
+                      # mark and the page; and tests/mark-tagline-scale.test.ts measures,
+                      # rather than transcribes from a report, the geometric premises both
+                      # floors depend on: it pins the block-size: var(--space-48) anchor both
+                      # Header.astro and Footer.astro declare for the mark, rasterises the
+                      # tagline glyphs in both lockup files against a rendered-cap-height
+                      # ceiling so a re-export that scaled them up to readable text would fail
+                      # here, confirms technoise-icon.svg and both favicon files carry no
+                      # tagline at all, and measures each fill's own boundary — asserting at
+                      # least 99% of it meets .tn-ink, which is what turns "the face field and
+                      # headphones never touch the page, only the tagline does" from an
+                      # assumption into a per-pixel measurement)
 ```
 
 When starting the dev server as an agent, use background mode: `astro dev --background`.
@@ -126,11 +166,33 @@ technoise/
 ├─ public/brand/        the three live logo SVGs — anything here is published
 ├─ public/fonts/        the self-hosted Inter woff2 that fonts.css loads
 ├─ public/og/           the one committed Open Graph card (OG_IMAGE in src/lib/seo.ts)
-├─ public/favicon.*     .ico and .svg, both linked from BaseLayout's head
+├─ public/favicon.*     .ico plus two scheme-scoped SVGs — three files, three links, see below
 ├─ archive/             versioned but never built or served — see the rule below
 ├─ tests/               vitest suites, plus global-setup.ts — the one build they all read
 └─ .github/workflows/   ci.yml (checks on PRs), deploy.yml (Pages)
 ```
+
+`public/favicon.*` is three files, not "an .ico and a .svg": `favicon.ico`, `favicon.svg`
+(light fills as its defaults, plus its own internal `@media (prefers-color-scheme: dark)`
+override) and `favicon-dark.svg` (the dark fills stated unconditionally, no media query of its
+own). `BaseLayout.astro`'s `<head>` links all three, in this order: `.ico` (no `media`) →
+`favicon-dark.svg` (`media="(prefers-color-scheme: dark)"`) → `favicon.svg`
+(`media="(prefers-color-scheme: light)"`). Two things about this look like cleanup targets and
+are not:
+
+- **`favicon.svg` keeps its internal dark `@media` block on purpose.** It is a fallback for an
+  engine that ignores the `media` attribute on a `<link rel="icon">` but still honours a
+  `prefers-color-scheme` query inside the referenced SVG (documented Gecko behaviour, not
+  independently verified here — neither Gecko nor WebKit is installed in this environment).
+  Stripping it would trade the bug this cycle fixed in Chromium for an equivalent one in
+  Firefox.
+- **The link order — dark before light — is load-bearing, not arbitrary.** An engine that
+  ignores `media` entirely and falls through to the last declared icon must land on
+  `favicon.svg`, the file that still self-adapts internally, never on `favicon-dark.svg`
+  alone: that file measures 1.20:1 on a light surface, since it has no light rules at all.
+
+Reference by URL, not inlined, so both SVGs sit under the hex exception in "Color tokens"
+below, the same as the three `public/brand/` files.
 
 `archive/` exists because `public/` does not mean "kept" — it means "deployed": anything
 under it is copied verbatim into `dist/` and published at a guessable URL on the canonical
@@ -236,16 +298,78 @@ where a test reads `tokens.css` at test time and fails the suite on drift. Two i
 today.
 
 The first is the three brand SVGs in `public/brand/` (`technoise-icon.svg`,
-`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus `public/favicon.svg`.
-They're referenced by `<img src>` / `<link>` URL, not inlined, so they cannot read this page's
-CSS custom properties — each file carries its own fills as literal hex, three classes
-(`.tn-ink`, `.tn-signal`, `.tn-pulse`) with a `prefers-color-scheme: dark` override that must
-byte-match `--ink`/`--signal`/`--pulse` in light mode and `--cream`/`--signal-300`/
-`--pulse-300` in dark. `tests/brand-assets.test.ts` reads `tokens.css` at test time and
-asserts the match — that test, not a code review, is what keeps this exception honest. Don't
-"fix" the hardcoded hex in these files without re-running it; a token edit that isn't mirrored
-here silently desyncs to an ink-on-ink wordmark in dark mode (measured 1.00:1 — invisible, not
-just off-color).
+`technoise-logo-presentation.svg`, `technoise-logo-full.svg`) plus the two-file favicon,
+`public/favicon.svg` and `public/favicon-dark.svg` (see the repo layout section below for why
+the favicon is two files). They're referenced by `<img src>` / `<link>` URL, not inlined, so
+they cannot read this page's CSS custom properties — each file carries its own fills as
+literal hex, three classes (`.tn-ink`, `.tn-signal`, `.tn-pulse`) that must byte-match
+`--ink`/`--signal`/`--pulse` in light mode and `--cream-dim`/`--signal-300-dim`/
+`--pulse-300-dim` in dark — **`--cream-dim`, not raw `--cream`**: the brand wordmark used to
+burn at `--cream`'s 12.91:1 in dark mode while every other piece of chrome on the page was
+already dimmed to `--cream-dim`'s 10.72:1, and it now takes the same value for the same reason
+`--text` does (cream emitted from a dark screen reads as glare, not extra contrast).
+`--signal-300-dim` (`#2386A9`, 3.260:1 on `--ink`, 3.290:1 on `--cream-dim`) and
+`--pulse-300-dim` (`#CB5C2A`, 3.291:1 on `--ink`, 3.258:1 on `--cream-dim`) are each a blend
+along that colour's own `-300`/`-700` ramp — 25% the `-300` base, 75% the `-700` base, moved
+further toward each colour's own `-700` variant — not toward `--ink`; a blend toward `--ink`
+reads as brown, not a calmer orange. (A third `mascot-dark-dim` cycle shipped these at a 60%
+blend — `#3293B6`/`#D56A37` — before landing here at 75%; don't reintroduce either the 60%
+figures or the "40/60" framing that described them.) They exist **only** for the brand mark's
+`.tn-signal`/`.tn-pulse` dark fills; `--signal-300`/`--pulse-300` remain, unchanged, the link,
+rule, focus and button-hover tints described above. Don't unify the two pairs: a
+`.tn-signal`/`.tn-pulse` fill that resolved to plain `--signal-300`/`--pulse-300` again would
+be the exact brightness the mark was dimmed away from, and a semantic role (`--link`, `--rule`,
+`--focus`, `--accent-fill-hover`) that resolved to the `-dim` pair would silently drop
+link/focus contrast site-wide — `tests/mark-tint-contract.test.ts` guards both directions. The
+applicable accessibility floor for `.tn-signal` is WCAG 1.4.11's 3:1 non-text minimum, not the
+4.5:1 text minimum a prior cycle held it to: SC 1.4.3 exempts logotype text from the text floor
+at any size (cite 1.4.3 alone for that exemption — 1.4.11 itself contains no logotype clause; a
+logo escapes it by falling outside its scope, not through an exception within it), and the only
+part of `.tn-signal` that touches the page surface rather than the mark's own `--cream-dim`
+outline is the "HEAR THE FUTURE" tagline, which renders as texture (2.7–4.4 CSS px of cap
+height) rather than readable text at the size both lockups ship it.
+
+Both tints are floored at 3:1 against **both surfaces the mark can actually be adjacent to**:
+`--ink`, the page background both lockups paint on, and `--cream-dim`, the mark's own outline,
+which wholly encloses the face field and the headphones (`tests/mark-tagline-scale.test.ts`
+measures the enclosure directly — at least 99% of each fill's boundary meets `.tn-ink`, never
+the page). This replaced an earlier, single-sided floor that measured against `--ink-sunken`
+instead — a surface no placement of the mark is ever actually painted on. That floor was wrong,
+not just conservative: the values it approved (the 60% blend above) measured **under** 3:1
+against the surface the fills are actually adjacent to (2.778:1 / 2.796:1 against
+`--cream-dim`), so the mark shipped briefly failing its own stated accessibility floor. The two
+floors are also provably incompatible, not just different: the retired `--ink-sunken` floor
+caps the blend at ~61.3–61.7%, while the `--cream-dim` floor requires ≥66.5–66.9% — disjoint
+ranges, so no blend fraction could ever have satisfied both. `--ink-sunken` no longer gates
+anything about the brand mark; its own comment in `tokens.css` said otherwise and has been
+removed, since it was describing a coupling that no longer exists. `--ink-sunken`'s four real
+consumers (`TagPill`, `.button` disabled/ghost-hover states, prose code blocks, `index.astro`)
+are unaffected by any of this and a future nudge to it for one of those reasons has no bearing
+on `tests/mark-tint-contract.test.ts`. That test also carries a placement-invariant assertion
+that the `--cream-dim` floor depends on staying true: no rule between the mark and `<body>` in
+`Header.astro` or `Footer.astro` may declare a background (the header's toggle button is the
+one named exemption, itself pinned to `transparent`) — without it, a background introduced
+behind the mark would put the fills back in contact with something other than the outline and
+the floor would no longer describe reality. That invariant is a source read of the two
+components only; it does not see `src/styles/`, a shared layout, or an inline style — see the
+non-blocking finding in the fourth `mascot-dark-dim` QA report for the gap this leaves.
+
+**This is the last dimming pass this ramp supports.** The shipped 75% blend sits 6.7–8.8 blend
+points below where the `--ink` floor is crossed (81.6–81.7% for signal, 83.7–83.8% for pulse) —
+the only headroom this approach has left. A future request to dim the mark further has exactly
+three honest answers, none of which is "push the blend again": accept the current values as
+final; explicitly ship below 3:1 on the page under the logotype exemption (SC 1.4.3 permits
+this for text, but doing it on purpose is a standards decision for a human to make and record
+here, not one an agent should infer from a request to "make it darker"); or re-export the
+lockups so the "HEAR THE FUTURE" tagline is no longer part of `.tn-signal`, which removes the
+constraint that bounds the blend today.
+
+Four of the five files gate the dark triple behind a `prefers-color-scheme: dark` override;
+`favicon-dark.svg` states it unconditionally, with no media query of its own.
+`tests/brand-assets.test.ts` reads `tokens.css` at test time and asserts the match — that
+test, not a code review, is what keeps this exception honest. Don't "fix" the hardcoded hex in
+these files without re-running it; a token edit that isn't mirrored here silently desyncs to
+an ink-on-ink wordmark in dark mode (measured 1.00:1 — invisible, not just off-color).
 
 The second is `src/lib/palette.ts`, the module behind `/styleguide/`'s swatch captions. A
 caption prints a hex string and a computed WCAG ratio; neither can be a `var()`, so the
@@ -313,17 +437,24 @@ gradients, no shadow deeper than a hairline.
   the footer. Gutters 24px mobile, 48px desktop.
 
 `48em` is the site's one responsive hinge, reused deliberately rather than adding a second
-breakpoint to reason about. It carries three responsibilities: `Header.astro`'s nav collapse,
-`Footer.astro`'s three-column grid, and each component's own brand-logo swap — but the two
-components no longer implement that third responsibility the same way. `Footer.astro` still
-swaps its lockup via a `<picture><source media="(min-width: 48em)">` HTML attribute, as both
-components did since `7e3924d`. `Header.astro` now inlines both lockups (see the hex-exception
-section above) and swaps them with a `@media (min-width: 48em)` CSS block over its
-`[data-mark="stacked"]`/`[data-mark="wide"]` elements instead, so a future change to the
-breakpoint value has to be made in a CSS media query in `Header.astro` and `tokens.css`, *and*,
-separately, the HTML `media` attribute in `Footer.astro` — two languages, not one shared
-attribute. `tests/brand-assets.test.ts` pins the footer's `<source media>` value to `48em`; it
-carries no equivalent pin for the header's CSS-side value today.
+breakpoint to reason about. It carries four responsibilities: `Header.astro`'s nav collapse,
+`Footer.astro`'s inner grid (a two-row `1fr auto` at and above the hinge — brand and the nav
+run share row one, the colophon spans row two — not three columns; below it, a single-column
+grid), `Footer.astro`'s nav axis (a stacked column of full-width, block-display links below
+the hinge; one horizontal `flex-direction: row` run with `inline-block` links above it — the
+inversion exists because the three-column layout could not hold a horizontal five-link run
+plus the colophon at 768px without both wrapping badly), and each component's own brand-logo
+swap — but the two components no longer implement that last responsibility the same way.
+`Footer.astro` still swaps its lockup via a `<picture><source media="(min-width: 48em)">` HTML
+attribute, as both components did since `7e3924d`. `Header.astro` now inlines both lockups
+(see the hex-exception section above) and swaps them with a `@media (min-width: 48em)` CSS
+block over its `[data-mark="stacked"]`/`[data-mark="wide"]` elements instead, so a future
+change to the breakpoint value has to be made in a CSS media query in `Header.astro` and
+`tokens.css`, *and*, separately, in the footer's own `@media (min-width: 48em)` grid/nav-axis
+block, *and*, separately again, the HTML `media` attribute on the footer's `<picture><source>`
+— three CSS sites plus one HTML attribute, not one shared value. `tests/brand-assets.test.ts`
+pins the footer's `<source media>` value to `48em`; it carries no equivalent pin for the
+header's or the footer's CSS-side values today.
 
 ### Component inventory
 

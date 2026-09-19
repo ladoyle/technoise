@@ -1,6 +1,7 @@
 ---
-// Three blocks on the wide column: brand, navigation, colophon. Stacked below the
-// breakpoint, side by side above it.
+// Three blocks on the wide column: brand, navigation, colophon. All stacked below the
+// breakpoint; above it brand and navigation share a row and the colophon takes the next
+// one, because a horizontal five-link run and the colophon cannot both fit a row at 48em.
 //
 // The brand repeats the header's logo pair on the same 48em hinge, at the same 48px, but
 // not by the same mechanism: these are still <img src> references to public/brand/, so the
@@ -102,21 +103,23 @@ const nav = [
     block-size: var(--space-48);
   }
 
-  /* Two columns turn a five-rung ladder into three rows without a second breakpoint.
-     minmax(0, 1fr) rather than 1fr so "Styleguide" cannot force overflow at 320px. */
+  /* One column below the hinge: five stacked rows, each a full-width 44px+ target. The
+     4px gap is the same ladder Header.astro's stacked nav uses — the link's own 12px of
+     block padding is what separates the rows, not the gap. */
   .site-footer__list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-12) var(--space-24);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
-  /* 16px text at 1.65 plus 24px of padding clears WCAG 2.5.5's 44px target — the same
-     floor the header's toggle was built to. */
+  /* block, not inline-block: the target is then the full column width by 50.4px, which is
+     what WCAG 2.5.5's 44px floor actually asks for on both axes. inline-block made it only
+     as wide as its label, and "RSS" is 31px. */
   .site-footer__link {
-    display: inline-block;
+    display: block;
     padding-block: var(--space-12);
     color: var(--link);
     text-decoration: underline;
@@ -139,23 +142,33 @@ const nav = [
   }
 
   @media (min-width: 48em) {
+    /* Two rows, not three columns. A five-link horizontal run is 363px and the colophon's
+       longest line is 274px; with the 123px lockup and two 48px gaps that is 857px of track
+       in the 672px this column has at the hinge, which squeezes the colophon to ~90px and
+       wraps it four ways. Brand and nav share row one (534px of 672px, 137px spare); the
+       colophon takes row two. DOM order is unchanged, so nothing reorders. */
     .site-footer__inner {
-      grid-template-columns: 1fr auto auto;
-      gap: var(--space-48);
+      grid-template-columns: 1fr auto;
+      gap: var(--space-32) var(--space-48);
       padding-block: var(--space-48) var(--space-64);
-      align-items: start;
+      align-items: center;
     }
 
+    /* nowrap for the reason the header's run is nowrap: a nav that drops a link onto a
+       second line at a 24px gap is indistinguishable from a broken nav. */
     .site-footer__list {
-      grid-template-columns: 1fr;
-      gap: var(--space-8);
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: var(--space-24);
     }
 
     .site-footer__link {
+      display: inline-block;
       padding-block: var(--space-4);
     }
 
     .site-footer__colophon {
+      grid-column: 1 / -1;
       gap: var(--space-4);
       font-size: var(--text-meta);
       text-align: end;
