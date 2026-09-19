@@ -15,20 +15,27 @@ import { contrastRatio } from "../src/lib/contrast";
 //      ~7:1 to ~4.7:1 in a one-word edit, with no page looking broken and no other suite
 //      going red — tests/palette-tokens.test.ts pins the base behind each *swatched* token,
 //      and --accent-fill-hover is not swatched.
-//   2. Both fills take WCAG 1.4.11's 3:1 non-text floor, and the binding measurement is on
-//      --ink-sunken, the darkest surface tokens.css declares — not on --ink, the surface the
-//      mark actually paints on. That is what stopped the ramp at 60%: 3:1 on the sunken
-//      surface lands at 3.86:1 / 3.84:1 on the real one. .tn-signal was previously floored at
-//      the 4.5:1 text minimum because it paints the "HEAR THE FUTURE" tagline as well as the
-//      robot's face field. It no longer is, for two measured reasons: rasterising the class in
-//      isolation at the 48px block-size both the header and footer pin, that tagline renders
-//      2.66-2.75 CSS px of cap height in the stacked lockup and 4.30-4.48 px in the wide one —
-//      texture, not words — and SC 1.4.3 exempts logotype text from the text floor outright,
-//      at any size. technoise-icon.svg and both favicons carry no tagline at all, so for those
-//      three files the non-text floor was never in question. The face field and the headphones
-//      never abut the page: 0% of either region's boundary touches the surface, so what governs
-//      their shape-reading is the 10.72:1 --cream-dim outline enclosing them, and that contrast
-//      rises as the fills darken.
+//   2. Both fills sit inside a two-sided 3:1 window, and each side is measured against a
+//      colour the mark is genuinely adjacent to. The face field and the headphones never abut
+//      the page — tests/mark-tagline-scale.test.ts measures 0% page adjacency and ~100%
+//      adjacency to the --cream-dim outline enclosing them — so the colour they are read
+//      against is that outline, and 3:1 against it is a floor on how *light* they may be
+//      (crossed at ~66.5% / ~66.9% along each hue's 300->700 ramp). The only page-adjacent
+//      shape in the mark is the "HEAR THE FUTURE" logotype tagline, so 3:1 against --ink is a
+//      ceiling on how *dark* they may go (~81.7% / ~83.7%). The shipped 75% blend sits between
+//      both. An earlier cycle floored these on --ink-sunken instead, the darkest surface
+//      tokens.css declares: no placement paints the mark on it (the suite below asserts that),
+//      and that framing left both fills under 3:1 against the outline they actually abut —
+//      2.78:1 / 2.80:1. The --ink-sunken assertion is gone rather than re-thresholded, because
+//      the surface, not the number, was wrong.
+//
+//      Neither floor is owed. SC 1.4.3 exempts logotype text from the 4.5:1 text minimum at
+//      any size — cite it alone for that; 1.4.11 carries no logotype clause, and a logo
+//      escapes it by falling outside its scope. The site honours 1.4.11's 3:1 figure
+//      voluntarily, and rasterising .tn-signal in isolation at the 48px block-size both
+//      components pin shows why the text floor was dropped in the first place: the tagline
+//      renders 2.66-2.75 CSS px of cap height stacked and 4.30-4.48 px wide — texture, not
+//      words. technoise-icon.svg and both favicons carry no tagline at all.
 //
 // Every value is read out of tokens.css and measured with the site's own contrast helper,
 // so a later tint change is judged here rather than transcribed from a report.
@@ -113,23 +120,27 @@ describe("the dimmed mark tints stay off every semantic role", () => {
 });
 
 describe("the mark's dimmed tints keep the floors that set their values", () => {
-  const page = hex("ink");
-  const sunken = hex("ink-sunken");
+  const page = hex("ink"); // the surface both placements actually paint on
+  const outline = hex("cream-dim"); // the colour both enclosed fills are actually adjacent to
 
-  it("--signal-300-dim clears WCAG 1.4.11's 3:1 non-text floor", () => {
+  // The ceiling on darkness. Only the logotype tagline is page-adjacent, so this is the
+  // side of the window that shape answers to.
+  it("--signal-300-dim clears 3:1 against the page the mark is painted on", () => {
     expect(contrastRatio(hex("signal-300-dim"), page)).toBeGreaterThanOrEqual(3);
   });
 
-  it("--pulse-300-dim clears the 3:1 non-text floor", () => {
+  it("--pulse-300-dim clears 3:1 against the page the mark is painted on", () => {
     expect(contrastRatio(hex("pulse-300-dim"), page)).toBeGreaterThanOrEqual(3);
   });
 
-  // The binding floor, not a bonus check: measuring on the darkest declared surface rather
-  // than the one the mark paints on is what stopped the ramp at 60%. A 65% step measures
-  // 3.62:1 / 3.64:1 on --ink and still looks fine, but 2.88:1 / 2.89:1 here.
-  it("both clear 3:1 on the darkest surface the site has", () => {
-    expect(contrastRatio(hex("signal-300-dim"), sunken)).toBeGreaterThanOrEqual(3);
-    expect(contrastRatio(hex("pulse-300-dim"), sunken)).toBeGreaterThanOrEqual(3);
+  // The floor on lightness, and the side an --ink-sunken framing left failing: at the 60%
+  // blend shipped before this assertion existed, the two tints measured 2.778:1 / 2.796:1
+  // against the very outline that carries the robot's shape, while clearing 3:1 on a surface
+  // no placement paints. This assertion reverses at the values it replaced — that is the
+  // point of it, and why the --ink-sunken one was deleted rather than re-thresholded.
+  it("both clear 3:1 against the --cream-dim outline that encloses them", () => {
+    expect(contrastRatio(hex("signal-300-dim"), outline)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(hex("pulse-300-dim"), outline)).toBeGreaterThanOrEqual(3);
   });
 
   it("each -dim tint is actually dimmer than the 300 it is named for", () => {
@@ -146,5 +157,59 @@ describe("the mark's dimmed tints keep the floors that set their values", () => 
     const wordmark = contrastRatio(hex("cream-dim"), page);
     expect(wordmark).toBeGreaterThan(contrastRatio(hex("signal-300-dim"), page));
     expect(wordmark).toBeGreaterThan(contrastRatio(hex("pulse-300-dim"), page));
+  });
+});
+
+// The other half of "--ink is the page the mark is read against": the dark blocks above map
+// --surface to --ink, and nothing between <body> and the mark repaints it. Written as a
+// source read rather than a rendered sample so it fails at the moment a background is
+// declared, not only once someone screenshots the header.
+describe("the mark is painted on --ink, which is what makes that floor the real one", () => {
+  const component = (name: string): string =>
+    readFileSync(join(root, "src", "components", `${name}.astro`), "utf8");
+
+  /** Innermost `selector { declarations }` pairs — a declaration block holds no braces, so
+   *  this skips at-rule preludes and reaches rules nested in a media query. */
+  const rules = (source: string): { selector: string; declarations: string }[] =>
+    [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+      selector: m[1].trim(),
+      declarations: m[2],
+    }));
+
+  // Whole class names, so .site-header does not also match .site-header__toggle.
+  const names = (selector: string, classes: readonly string[]): boolean =>
+    classes.some((cls) => new RegExp(`\\.${cls}(?![\\w-])`).test(selector));
+
+  const BETWEEN_MARK_AND_BODY = [
+    "site-header",
+    "site-header__inner",
+    "site-header__brand",
+    "site-footer",
+    "site-footer__inner",
+    "site-footer__brand",
+  ] as const;
+
+  // Named, not matched loosely: the toggle is a sibling control beside the mark, never
+  // behind it, and it declares a transparent background to strip the UA button fill.
+  const EXEMPT = ["site-header__toggle"] as const;
+
+  it.each(["Header", "Footer"])("%s.astro paints no background behind the mark", (name) => {
+    const painted = rules(component(name))
+      .filter(({ declarations }) => /(^|[;{\s])background(-color)?\s*:/.test(declarations))
+      .filter(({ selector }) => !names(selector, EXEMPT))
+      .filter(({ selector }) => names(selector, BETWEEN_MARK_AND_BODY))
+      .map(({ selector }) => selector);
+
+    expect(painted).toEqual([]);
+  });
+
+  it("the one exemption is real and still transparent", () => {
+    const toggle = rules(component("Header")).filter(
+      ({ selector, declarations }) =>
+        names(selector, EXEMPT) && /(^|[;{\s])background(-color)?\s*:/.test(declarations),
+    );
+
+    expect(toggle).toHaveLength(1);
+    expect(toggle[0].declarations).toMatch(/background:\s*transparent\s*;/);
   });
 });

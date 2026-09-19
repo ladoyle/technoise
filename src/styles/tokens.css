@@ -21,23 +21,27 @@
   --signal-300: #6ec9e8;
   --pulse-300: #ff9f6b;
   /*
-    The 300s dimmed 60% toward --signal-700 / --pulse-700 — along each hue's own ramp,
+    The 300s dimmed 75% toward --signal-700 / --pulse-700 — along each hue's own ramp,
     not toward --ink, which drains the orange to brown and the blue to slate. For the
     brand mark's robot alone: the wordmark already took --cream-dim because cream emitted
-    from a dark screen glares, and the robot kept reading as neon beside it. Both land
-    inside the band the light mark has always painted (--signal 4.11:1, --pulse 3.05:1 on
-    cream), against 3.86:1 and 3.84:1 here on --ink. Floored at 3:1 on --ink-sunken, the
-    darkest surface declared below — WCAG 1.4.11's non-text minimum, which is the right
-    one: the only part of .tn-signal that touches the page rather than the mark's own
-    --cream-dim outline is a logotype tagline that renders 2.7-4.5 CSS px tall.
+    from a dark screen glares, and the robot kept reading brighter than it.
+
+    75% is the midpoint of a two-sided window, not a nudge. The face field and the
+    headphones never touch the page — the --cream-dim outline encloses both — so the
+    colour they are read against is that outline, and 3:1 against it puts a *floor on how
+    light they may be* (66.5% / 66.9% along the ramp). The only part of the mark that does
+    touch the page is the "HEAR THE FUTURE" logotype tagline, and 3:1 against --ink puts a
+    ceiling on how dark they may go (81.7% / 83.7%). Both floors are voluntary — SC 1.4.3
+    exempts logotype text outright and a logo falls outside 1.4.11's scope — but they are
+    measured against colours that exist. An earlier cycle floored these on --ink-sunken
+    instead; the mark is never painted on it, and that framing left both fills under 3:1
+    against the outline they actually abut.
+
     Never a link, rule, focus or hover colour — those stay on the 300s above.
   */
-  --signal-300-dim: #3293b6;
-  --pulse-300-dim: #d56a37;
+  --signal-300-dim: #2386a9;
+  --pulse-300-dim: #cb5c2a;
   --ink-muted: #48646e;
-  /* Also the binding surface for tests/mark-tint-contract.test.ts's 3:1 floor on
-     --signal-300-dim/--pulse-300-dim above (margin: 2.12% / 1.47%) — a nudge here for an
-     unrelated reason (TagPill, prose code blocks, index.astro) can turn that suite red. */
   --ink-sunken: #1f4250;
   --ink-border: #55727e;
   --cream-dim: #e5e5e1; /* cream + 10% ink */
