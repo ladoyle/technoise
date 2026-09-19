@@ -165,8 +165,6 @@ Sections shipped: summary, experience, skills, education (no separate Projects s
 page points to `/projects/` instead of repeating it). No phone number or city/state anywhere
 on the page, in its structured data, or in its metadata — a hard constraint, not an omission.
 
-**About** — bio, mascot illustration, contact, elsewhere links.
-
 **404** — mascot illustration, "This page isn't in the feed," links to home and blog.
 
 ### Asset prep from your five files
@@ -179,7 +177,7 @@ on the page, in its structured data, or in its metadata — a hard constraint, n
 | Header logo — **done** | `TechNoise_Full_Logo.PNG` | Traced to SVG (`public/brand/technoise-logo-full.svg` and `-presentation.svg`); used in both `Header.astro` and `Footer.astro`, swapped by breakpoint |
 | Social profile images | `archive/brand-pre-svg-migration/technoise-presentation-logo.png` | GitHub, LinkedIn, X |
 | Default OG image 1200×630 | `TechNoise_Full_Logo.PNG` | Cream field, logo left, page title right |
-| Hero / About / 404 art | `TechNoise_Background.png` | Export at 2x width used, AVIF + WebP |
+| Hero / 404 art | `TechNoise_Background.png` | Export at 2x width used, AVIF + WebP |
 
 The full logo and icon are now traced to SVG (`public/brand/`, plus `favicon.svg`/`.ico`) — the
 one-time job the original flag below asked for is done. Still raster and still pending:
@@ -259,8 +257,7 @@ edits. Verified.
 3. `robots.txt` generated at `src/pages/robots.txt.ts`, not a static file in `public/` —
    it needs an absolute sitemap URL and the hostname isn't settled (Part 0 Decision 3).
 4. JSON-LD: `WebSite` + `Person` on home, `BlogPosting` on posts, `CreativeWork` on
-   projects, `BreadcrumbList` on posts, projects and tag archives. `Person` on About is
-   deferred until that page exists (Part 5) — it's a two-line addition when it's built.
+   projects, `BreadcrumbList` on posts, projects and tag archives.
 5. One static OG image fallback (`public/og/technoise-og.png`), not per-page generation —
    three content entries didn't justify a renderer dependency.
 
@@ -367,10 +364,13 @@ tier; build-time image optimization; nothing.
 - [x] Canonical URLs are absolute and use the chosen hostname — `https://technoise.dev` in
       `astro.config.mjs` is confirmed as the GitHub Pages custom domain (Phase 5).
 - [ ] OG image renders correctly in a social preview debugger — `public/og/technoise-og.png`
-      confirmed exactly 1200×630 and correctly referenced via `OG_IMAGE` on every page; the
-      debugger step itself needs a publicly reachable URL, which an agent sandbox can't
-      fetch (outbound is allowlisted, not open) — paste `https://technoise.dev/` through
-      Facebook's Sharing Debugger or LinkedIn's Post Inspector once, a 2-minute human check
+      confirmed exactly 1200×630 and correctly referenced via `OG_IMAGE` on every page.
+      Facebook's Sharing Debugger initially reported a robots.txt block on
+      `facebookexternalhit`; `robots.txt` now names `facebookexternalhit` and `Facebot`
+      explicitly (`src/pages/robots.txt.ts`) even though the wildcard rule already covered
+      them — Meta's crawlers are known to report this against a bare wildcard. Still open:
+      re-run the debugger's "Scrape Again" once this deploys, to confirm the card itself
+      renders
 - [x] `sitemap.xml` lists every public page and no drafts
 - [x] `robots.txt` allows crawling and references the sitemap
 - [x] RSS validates — `dist/rss.xml` parses clean under `xmllint --noout` and carries every
@@ -378,13 +378,9 @@ tier; build-time image optimization; nothing.
       Validation Service itself still isn't reachable from an agent sandbox (no arbitrary
       outbound domains), so a human should still paste the live URL through it once, but
       that's belt-and-suspenders, not a gap
-- [ ] Apex/`www` decision made, other one 301s — needs a check against the live host; no
-      agent sandbox can reach `technoise.dev` (outbound is allowlisted, not open), so this
-      is a human/browser check, not a missing implementation
-- [ ] HTTPS enforced — confirm in Settings → Pages; no MCP tool here exposes Pages config
-      and an unauthenticated API call correctly 403s, so this is a 2-minute human check
-- [ ] 404 page works on the live host, not just locally — same reachability gap as above;
-      the local build already round-trips it correctly (see Lighthouse row)
+- [x] Apex/`www` decision made, other one 301s — confirmed live by the site owner
+- [x] HTTPS enforced — confirmed live by the site owner in Settings → Pages
+- [x] 404 page works on the live host, not just locally — confirmed live by the site owner
 - [x] Lighthouse mobile: Perf ≥ 90, A11y ≥ 95, SEO = 100 — run against the actual production
       build (`npm run build && npm run preview`, Lighthouse 13.5 via headless Chromium) on
       `/`, `/blog/`, a post, and `/resume/`: 100/100/100 on every indexable route; `/404.html`
@@ -398,9 +394,10 @@ tier; build-time image optimization; nothing.
       `aria-expanded` in sync throughout
 - [x] Works at 320px and in dark mode — zero horizontal overflow and zero axe-core
       violations at 320×640 in both light and dark, and at 1440×900 dark
-- [ ] Search Console verified, sitemap submitted, key pages requested — needs your Google
-      account; see Phase 6 above for the exact steps
-- [ ] Bing verified — needs your Microsoft account; see Phase 6 above
+- [ ] Search Console verified, sitemap submitted, key pages requested — domain property
+      verified via TXT record at the registrar (confirmed by the site owner); sitemap
+      submission and per-page indexing requests not yet confirmed, see Phase 6 above
+- [x] Bing verified — confirmed by the site owner (imported from Search Console)
 - [x] Resume prints a clean document via the route-scoped print stylesheet — no separate
       PDF asset exists to drift from the web version (decided against; see Part 1's Resume
       layout)

@@ -26,9 +26,8 @@ summary, experience, skills and education, indexable and in the sitemap — with
 phone number and location deliberately excluded from the page, its structured data, and its
 metadata (see `AGENTS.md`'s note on `src/lib/resume.ts`). A 404 page is live, with its own
 dedicated mascot illustration distinct from the home hero's, `noindex`ed and excluded from
-the sitemap since a static host can't pair it with a real 404 status. About is not built
-yet — it needs positioning copy that only the site owner can supply (see `docs/setup-guide.md`
-Part 5).
+the sitemap since a static host can't pair it with a real 404 status. There is no About
+page — out of scope for now.
 
 ## Running locally
 

@@ -10,6 +10,12 @@
 // No Disallow lines. A path blocked from crawling can never be read as noindex,
 // which is the standard way pages end up indexed after being told not to be;
 // /styleguide/ carries its own noindex instead.
+//
+// facebookexternalhit and Facebot get their own explicit block even though the
+// wildcard above already allows them. Meta's link-preview crawlers are known to
+// report "blocked by robots.txt" in the Sharing Debugger when they can't find a
+// rule naming them specifically, wildcard notwithstanding — naming them is the
+// documented fix, not a sign the wildcard rule was wrong.
 
 import type { APIRoute } from "astro";
 
@@ -17,6 +23,12 @@ import { SITEMAP_PATH, absoluteUrl } from "../lib/seo";
 
 export const GET: APIRoute = async ({ site }) => {
   const body = `User-agent: *
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
 Allow: /
 
 Sitemap: ${absoluteUrl(SITEMAP_PATH, site)}
