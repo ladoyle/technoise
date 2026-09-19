@@ -177,7 +177,15 @@ const PROFILE_LABELS: Record<string, string> = {
 // feeds the visible contact list, the JSON-LD and the site footer alike. A host with
 // no label here is dropped rather than rendered under a guessed name, so callers must
 // tolerate an empty list rather than assume two entries.
+//
+// Two guards on what reaches an href. The scheme is checked because new URL() parses an
+// authority for any scheme, so "javascript://github.com/..." has host "github.com" and
+// would otherwise earn the GitHub label and render as a live link; the duller version of
+// the same slip is a typo'd "htps://" shipping a dead link under a correct-looking name.
+// The lookup uses hasOwn because PROFILE_LABELS is an object literal, so an inherited key
+// like "constructor" is truthy and would put a function where this type promises a string.
 export const profiles: Profile[] = SITE.author.sameAs.flatMap((href) => {
-  const label = PROFILE_LABELS[new URL(href).host];
-  return label ? [{ label, href }] : [];
+  const { protocol, host } = new URL(href);
+  if (protocol !== "https:" || !Object.hasOwn(PROFILE_LABELS, host)) return [];
+  return [{ label: PROFILE_LABELS[host], href }];
 });
