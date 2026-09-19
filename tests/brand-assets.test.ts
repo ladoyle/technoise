@@ -463,57 +463,91 @@ describe("the header's inlined brand mark", () => {
 // cannot reach back into: a re-export that moves a fill from a class onto a presentation
 // attribute would still be a valid SVG, would still pass every geometry check, and would
 // paint a hardcoded hex on every page in both schemes.
-describe("the header's inlined mark ships inert and tokenised on every page", () => {
-  const walk = (dir: string): string[] =>
-    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-      const full = join(dir, entry.name);
-      return entry.isDirectory() ? walk(full) : full.endsWith(".html") ? [full] : [];
-    });
+//
+// Both placements are walked, not only the header's. Once Footer.astro stopped referencing
+// the files by URL it became a second <Fragment set:html> site with the same threat model,
+// and a re-export only has to reach one of them to ship a hardcoded fill on every page.
+const MARK_PLACEMENTS = [
+  { name: "header", region: /<a class="site-header__brand"[\s\S]*?<\/a>/, cls: "site-header__brand" },
+  { name: "footer", region: /<div class="site-footer__brand"[\s\S]*?<\/div>/, cls: "site-footer__brand" },
+] as const;
 
-  const pages = walk(join(root, "dist"));
+for (const placement of MARK_PLACEMENTS) {
+  describe(`the ${placement.name}'s inlined mark ships inert and tokenised on every page`, () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = join(dir, entry.name);
+        return entry.isDirectory() ? walk(full) : full.endsWith(".html") ? [full] : [];
+      });
 
-  it("builds pages to check", () => {
-    expect(pages.length).toBeGreaterThan(1);
-  });
+    const pages = walk(join(root, "dist"));
 
-  for (const page of pages) {
-    const label = relative(join(root, "dist"), page).split(sep).join(posix.sep);
+    // Each region is captured non-greedily to its own closing tag, which is the whole lockup
+    // only for as long as neither wrapper gains a nested element of the same name. Asserting
+    // both marks landed inside turns that brittleness into a loud failure rather than a
+    // region that silently shrinks and leaves the checks below inspecting nothing.
+    const injectedOf = (page: string, label: string): string => {
+      const brand = placement.region.exec(readFileSync(page, "utf8"));
+      expect(brand, `${label} renders no .${placement.cls}`).not.toBeNull();
+      for (const variant of ["stacked", "wide"]) {
+        expect(
+          brand![0],
+          `${label}'s .${placement.cls} captured no [data-mark="${variant}"]`,
+        ).toContain(`<svg data-mark="${variant}"`);
+      }
 
-    it(`/${label} injects no script, handler or external reference with the mark`, () => {
-      const brand = /<a class="site-header__brand"[\s\S]*?<\/a>/.exec(readFileSync(page, "utf8"));
-      expect(brand, `${label} renders no .site-header__brand`).not.toBeNull();
-
-      // The opening <a> carries href and class legitimately; everything after it is the
+      // The opening tag carries href and class legitimately; everything after it is the
       // injected SVG markup, which must carry neither.
-      const injected = brand![0].slice(brand![0].indexOf(">") + 1);
+      return brand![0].slice(brand![0].indexOf(">") + 1);
+    };
 
-      expect(injected).not.toMatch(/<(script|style|foreignObject|image|use|animate|set)\b/i);
-      expect(injected).not.toMatch(/\son[a-z]+\s*=/i);
-      expect(injected).not.toMatch(/(xlink:)?href\s*=/i);
-      expect(injected).not.toMatch(/url\(\s*['"]?(https?:|\/\/)/i);
-      expect(injected).not.toMatch(/javascript:/i);
+    it("builds pages to check", () => {
+      expect(pages.length).toBeGreaterThan(1);
     });
 
-    it(`/${label} paints the mark from tokens, never a hex of its own`, () => {
-      const brand = /<a class="site-header__brand"[\s\S]*?<\/a>/.exec(readFileSync(page, "utf8"));
-      const injected = brand![0].slice(brand![0].indexOf(">") + 1);
+    for (const page of pages) {
+      const label = relative(join(root, "dist"), page).split(sep).join(posix.sep);
 
-      expect(injected, "a fill hex inlined into the page escapes tokens.css entirely").not.toMatch(
-        /#[0-9a-fA-F]{3,8}\b/,
-      );
-      expect(injected).not.toMatch(/\s(fill|stroke)="(?!none\b)[^"]/i);
-      expect(injected).toMatch(/class="tn-(ink|signal|pulse|wordmark|tagline)"/);
-    });
-  }
-});
+      it(`/${label} injects no script, handler or external reference with the mark`, () => {
+        const injected = injectedOf(page, label);
 
-// Every fill rule Header.astro writes for the inlined mark, resolved through tokens.css and
+        expect(injected).not.toMatch(/<(script|style|foreignObject|image|use|animate|set)\b/i);
+        expect(injected).not.toMatch(/\son[a-z]+\s*=/i);
+        expect(injected).not.toMatch(/(xlink:)?href\s*=/i);
+        expect(injected).not.toMatch(/url\(\s*['"]?(https?:|\/\/)/i);
+        expect(injected).not.toMatch(/javascript:/i);
+      });
+
+      it(`/${label} paints the mark from tokens, never a hex of its own`, () => {
+        const injected = injectedOf(page, label);
+
+        expect(
+          injected,
+          "a fill hex inlined into the page escapes tokens.css entirely",
+        ).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+        expect(injected).not.toMatch(/\s(fill|stroke)="(?!none\b)[^"]/i);
+        expect(injected).toMatch(/class="tn-(ink|signal|pulse|wordmark|tagline)"/);
+      });
+    }
+  });
+}
+
+// Every fill rule a component writes for its inlined mark, resolved through tokens.css and
 // compared against what the source SVGs declare for themselves. The two must agree in both
 // schemes: this is a like-for-like reproduction of the files' own colours, so a token edit,
-// a re-export, or a var() swapped for its neighbour in Header.astro all surface here rather
-// than as a mark that renders in the wrong hue — or, in dark mode, in none.
-describe("the header's inlined fills track the same tokens the source files do", () => {
-  const style = header.replace(/\/\*[\s\S]*?\*\//g, "");
+// a re-export, or a var() swapped for its neighbour all surface here rather than as a mark
+// that renders in the wrong hue — or, in dark mode, in none.
+//
+// Both components are checked, because both now paint their own mark through the page
+// cascade. Footer.astro's five pairs are not a copy free to drift: until it was covered
+// here, a dark rule naming .tn-ink under .site-footer__brand unfroze that mascot with every
+// suite green — the disagree-on-one-page failure the freeze exists to prevent.
+for (const [placement, componentSource, brandClass] of [
+  ["header", header, ".site-header__brand"],
+  ["footer", footer, ".site-footer__brand"],
+] as const) {
+describe(`the ${placement}'s inlined fills track the same tokens the source files do`, () => {
+  const style = componentSource.replace(/\/\*[\s\S]*?\*\//g, "");
 
   const fillRules = [...style.matchAll(/([^{}]+)\{\s*fill:\s*var\(--([a-z0-9-]+)\)\s*;?\s*\}/g)]
     .map((m) => ({ selector: m[1].trim().replace(/\s+/g, " "), token: m[2] }))
@@ -535,9 +569,19 @@ describe("the header's inlined fills track the same tokens the source files do",
   // block's values.
   const darkGroups = new Map<string, typeof fillRules>();
   for (const rule of fillRules.filter((r) => r.selector.includes(":root"))) {
-    const prefix = rule.selector.slice(0, rule.selector.indexOf(".site-header__brand")).trim();
+    const prefix = rule.selector.slice(0, rule.selector.indexOf(brandClass)).trim();
     darkGroups.set(prefix, [...(darkGroups.get(prefix) ?? []), rule]);
   }
+
+  // Anchoring is what keeps the two components' rules from reaching each other's mark, and
+  // it is the premise the grouping above relies on to find a prefix at all.
+  it("anchors every mark fill at its own component's brand wrapper", () => {
+    const strays = fillRules.filter((rule) => !rule.selector.includes(brandClass));
+    expect(
+      strays.map((rule) => rule.selector),
+      `a ${placement} mark fill is not scoped to ${brandClass}`,
+    ).toEqual([]);
+  });
 
   it("paints the light scheme in the brand bases, all five classes", () => {
     const light = fillRules.filter((rule) => !rule.selector.includes(":root"));
@@ -545,7 +589,10 @@ describe("the header's inlined fills track the same tokens the source files do",
   });
 
   it("paints every dark-scheme selector in the text tints, so the wordmark is never ink on ink", () => {
-    expect(darkGroups.size, "Header.astro overrides the mark's fills in no dark scheme").toBeGreaterThan(0);
+    expect(
+      darkGroups.size,
+      `the ${placement} overrides the mark's fills in no dark scheme`,
+    ).toBeGreaterThan(0);
     for (const [prefix, rules] of darkGroups) {
       expect(fillsOf(rules), prefix).toEqual(presentation.dark);
     }
@@ -553,8 +600,8 @@ describe("the header's inlined fills track the same tokens the source files do",
 
   // The other half of the same claim, and the one a passing loop cannot make: the mascot
   // classes must appear in *no* dark rule. Inlined, they resolve through the page cascade,
-  // so a dark rule here would unfreeze the header's mascot while the footer's — which reads
-  // the file's own <style> — stayed frozen, and the two would disagree on one page.
+  // so a dark rule in either component unfreezes that component's mascot while the other
+  // stays frozen, and the two disagree on one page.
   it("gives the mascot classes no dark rule at all, which is what freezes them", () => {
     const frozen = darkMarkRules.filter((rule) =>
       MASCOT_CLASSES.some((cls) => new RegExp(`\\.${cls}(?![\\w-])`).test(rule.selector)),
@@ -578,6 +625,12 @@ describe("the header's inlined fills track the same tokens the source files do",
     }
   });
 
+});
+}
+
+// A property of the source files rather than of either component, so it is asserted once,
+// outside the loop above: both lockups must agree on the pairs both components reproduce.
+describe("the two lockup files agree on the pairs both components reproduce", () => {
   it("reproduces the same pairs the two source files agree on", () => {
     expect(full.light).toEqual(presentation.light);
     expect(full.dark).toEqual(presentation.dark);
