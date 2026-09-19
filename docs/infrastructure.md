@@ -24,13 +24,13 @@ one documented exception is `technoise-icon.svg`: it is the master the favicon i
 from, served live but named nowhere in `src/`. A second assertion holds the exemption list
 to files `BRAND_FILES` already guards, so it cannot grow to cover an undocumented path.
 
-A second, unrelated exemption exists for the same reason: `public/CNAME` is GitHub Pages'
-custom-domain file, read by GitHub's serving infrastructure rather than by anything in `src/`.
-A site deployed via a GitHub Actions workflow (this repo's `deploy.yml`, not "Deploy from a
-branch") has to carry that file itself — GitHub does not write it into the repository the way
-the branch-based flow does. It's tracked separately, as `DEPLOY_FILES_BY_DESIGN` in
-`tests/brand-assets.test.ts`, kept out of the brand-only allowance above so a Header or Footer
-that stopped referencing a logo still fails loudly.
+**Don't add a `public/CNAME` file.** It's a natural instinct for a GitHub Pages custom
+domain, but `.github/workflows/deploy.yml` publishes through `actions/deploy-pages`, which
+does not read (or write) a `CNAME` file from the artifact — that's only the legacy "Deploy
+from a branch" flow's mechanism. This repo's custom domain lives entirely in repo Settings →
+Pages, already configured there. A committed `CNAME` would be inert, would duplicate `site`
+from `astro.config.mjs` with nothing keeping the two in sync, and would need its own carve-out
+in the orphan-file guard above for no functional benefit.
 
 ## `.github/workflows/deploy.yml` — two binding conventions
 

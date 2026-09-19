@@ -676,13 +676,6 @@ describe("public/ ships nothing the site references nowhere", () => {
   // the documented set; the assertion below is what holds it there.
   const UNREFERENCED_BY_DESIGN = ["/brand/technoise-icon.svg"];
 
-  // /CNAME is GitHub Pages' own custom-domain config, read by GitHub's serving
-  // infrastructure, not by src/. A site built and deployed via a GitHub Actions workflow
-  // (this repo's deploy.yml, not "Deploy from a branch") has to carry the file itself — see
-  // docs/infrastructure.md. It's a deploy artifact, not a brand asset, so it stays out of
-  // BRAND_FILES/UNREFERENCED_BY_DESIGN rather than stretching that guard's meaning.
-  const DEPLOY_FILES_BY_DESIGN = ["/CNAME"];
-
   it("exempts only a file BRAND_FILES already guards", () => {
     const undocumented = UNREFERENCED_BY_DESIGN.filter(
       (path) => !BRAND_FILES.some((name) => path === `/brand/${name}`),
@@ -696,7 +689,7 @@ describe("public/ ships nothing the site references nowhere", () => {
   });
 
   it("serves no file that nothing in src/ references", () => {
-    const exempt = new Set([...UNREFERENCED_BY_DESIGN, ...DEPLOY_FILES_BY_DESIGN]);
+    const exempt = new Set(UNREFERENCED_BY_DESIGN);
     const orphans = walk(publicDir)
       .map(urlPath)
       .filter((path) => !exempt.has(path) && !source.includes(path));
