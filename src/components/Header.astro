@@ -6,10 +6,20 @@ import fullSvg from "../../public/brand/technoise-logo-full.svg?raw";
 // rather than referenced by URL. Referenced, the mark's dark mode could only come from
 // the prefers-color-scheme override inside the file itself — which the embedding page's
 // CSS cannot reach, and which a forced-dark filter or a non-Chromium engine may never
-// evaluate at all. When it does not fire, .tn-ink stays #0c3242 on a --surface that is
-// also #0c3242: 1.00:1, an invisible mark, which is what was reported. Inlined, the
-// fills resolve through the same tokens.css cascade as every other element on the page
-// (see the <style> block below), so the mark is as reliable as the nav text beside it.
+// evaluate at all. When it does not fire, .tn-wordmark stays #0c3242 on a --surface that
+// is also #0c3242: 1.00:1, an invisible wordmark, which is what was reported. Inlined,
+// the fills resolve through the same tokens.css cascade as every other element on the
+// page (see the <style> block below), so the mark is as reliable as the nav text beside
+// it.
+//
+// That 1.00:1 figure now describes the mascot too — .tn-ink, .tn-signal and .tn-pulse are
+// frozen at their light fills in both schemes, so in dark mode the mascot's ink outline
+// renders at 1.000:1 against the page and disappears. That is the shipped, requested
+// behaviour, not the regression the paragraph above describes: the human asked for the
+// robot to stop changing with the scheme, and the cost — the mascot reads as a blue face
+// field plus orange headphones with no drawn rim — was measured and accepted, not missed.
+// Only the wordmark and tagline still adapt, and only they are what the paragraph above
+// is about.
 //
 // The files under public/brand/ stay the single source of truth: both marks are read
 // here at build time, viewBox and all, so a re-export cannot desync a hand-copied path
@@ -226,15 +236,23 @@ const isCurrent = (href: string) =>
   }
 
   /*
-    The mark's fills. These are the SVG files' own three classes, but the files' internal
+    The mark's fills. These are the SVG files' own five classes, but the files' internal
     prefers-color-scheme block is stripped on the way in (see the frontmatter), so the
     values resolve here instead — same tokens, same pairs, live in the page's cascade.
     :global because the injected <path> elements carry no scope attribute; the selector
     still starts at this component's own .site-header__brand.
 
+    Only the text adapts. .tn-wordmark and .tn-tagline are the "TechNoise" letterforms and
+    the "HEAR THE FUTURE" tagline, and they keep their dark values. .tn-ink, .tn-signal and
+    .tn-pulse are the mascot — outline, face field, headphones — and they are frozen at
+    their light fills in both schemes, on purpose. The freeze is implemented by absence:
+    the three mascot classes have no dark rule at all. That is the whole mechanism, so
+    adding one back "for symmetry" would undo this cycle. See the note at the top of the
+    file for what it costs.
+
     The dark override is written twice for the same reason tokens.css writes its own dark
     block twice: the media query is what ships, and the [data-theme="dark"] twin keeps a
-    later ThemeToggle from flipping the page to ink while leaving this mark ink-coloured.
+    later ThemeToggle from flipping the page to ink while leaving the wordmark ink-coloured.
     Both stay scoped to `screen`, so the printed page keeps the light fills.
   */
   .site-header__brand :global(.tn-ink) {
@@ -249,31 +267,31 @@ const isCurrent = (href: string) =>
     fill: var(--pulse);
   }
 
+  .site-header__brand :global(.tn-wordmark) {
+    fill: var(--ink);
+  }
+
+  .site-header__brand :global(.tn-tagline) {
+    fill: var(--signal);
+  }
+
   @media screen and (prefers-color-scheme: dark) {
-    :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-ink) {
+    :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-wordmark) {
       fill: var(--cream-dim);
     }
 
-    :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-signal) {
+    :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-tagline) {
       fill: var(--signal-300-dim);
-    }
-
-    :global(:root:not([data-theme="light"])) .site-header__brand :global(.tn-pulse) {
-      fill: var(--pulse-300-dim);
     }
   }
 
   @media screen {
-    :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-ink) {
+    :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-wordmark) {
       fill: var(--cream-dim);
     }
 
-    :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-signal) {
+    :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-tagline) {
       fill: var(--signal-300-dim);
-    }
-
-    :global(:root[data-theme="dark"]) .site-header__brand :global(.tn-pulse) {
-      fill: var(--pulse-300-dim);
     }
   }
 

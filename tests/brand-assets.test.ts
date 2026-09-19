@@ -15,6 +15,21 @@ import { describe, expect, it } from "vitest";
 // the <img> width/height attributes must match the presentation file, because those
 // attributes are what reserves the box before the SVG arrives. A fourth geometry fact —
 // how much of each viewBox is actually ink — is pinned further down, for Issue #22.
+//
+// The files no longer share one shape, and that difference is the whole of the
+// mascot-scheme-freeze cycle. Two roles:
+//
+//   lockup      technoise-logo-presentation.svg, technoise-logo-full.svg — five classes.
+//               The mascot (.tn-ink outline, .tn-signal face field, .tn-pulse headphones)
+//               is frozen at its light hex in both schemes; only the text classes
+//               (.tn-wordmark, .tn-tagline) carry a dark override.
+//   mascot-only technoise-icon.svg, favicon.svg — three classes, no text, and no @media
+//               at any scheme. Nothing in them adapts.
+//
+// The freeze is implemented by *absence* — the mascot classes simply have no dark rule —
+// so every assertion about it below is written as a positive claim about what the dark
+// block may name, never as a loop over the rules that happen to be present. A loop passes
+// whether or not a mascot rule came back.
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const brandDir = join(root, "public", "brand");
@@ -43,6 +58,8 @@ type Svg = {
   source: string;
   light: Record<string, string>;
   dark: Record<string, string>;
+  /** The raw text of the file's own dark @media body, or "" when it carries none. */
+  darkBlock: string;
   viewBox: [number, number, number, number];
   declared: [number, number];
 };
@@ -66,45 +83,31 @@ const geometryOf = (name: string, source: string) => {
   };
 };
 
+// A dark @media block is optional, not required. Two of the four tracked files carry no
+// text and so have nothing left that adapts — demanding one threw at module scope and took
+// the whole suite (geometry, ink floor, orphan guard, inertness) down as a collection error
+// rather than failing the one claim that changed. Whether a file *should* carry a dark
+// block is the per-role expectation's business, asserted below, not the parser's.
 const parseSvg = (dir: string, name: string): Svg => {
   const source = readFileSync(join(dir, name), "utf8");
+  const style = /<style>([\s\S]*?)<\/style>/.exec(source);
+  if (!style) throw new Error(`${name} carries no <style>`);
 
   // The dark override is the only @media block in these files, so splitting on it
   // separates the default fills from the overridden ones without parsing CSS. Matched
   // by regex, not a literal substring: svgo's minifier is free to drop the whitespace
   // inside the media feature (e.g. `prefers-color-scheme:dark`) without changing what
   // the browser parses, and this assertion shouldn't care which form ships.
-  const darkMedia = /@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/.exec(source);
-  if (!darkMedia) throw new Error(`${name} carries no prefers-color-scheme: dark override`);
-  const darkStart = darkMedia.index;
-  const darkEnd = source.indexOf("</style>");
+  const darkMedia = /@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/.exec(style[1]);
+  const darkStart = darkMedia?.index ?? style[1].length;
 
   return {
     name,
     dir,
     source,
-    light: fillsIn(source.slice(0, darkStart)),
-    dark: fillsIn(source.slice(darkStart, darkEnd)),
-    ...geometryOf(name, source),
-  };
-};
-
-// public/favicon-dark.svg is the one tracked file that carries no internal dark block, and
-// that is the point of it: BaseLayout selects it with `media` on the <link>, so its fills
-// are unconditional and parseSvg — which requires a dark @media to split on — cannot read
-// it. Parsed here instead, it joins every guard below except the light/dark split it has no
-// light half of; its unconditional fills are asserted against the same dark triple.
-const parseFlatSvg = (dir: string, name: string): Svg => {
-  const source = readFileSync(join(dir, name), "utf8");
-  const style = /<style>([\s\S]*?)<\/style>/.exec(source);
-  if (!style) throw new Error(`${name} carries no <style>`);
-
-  return {
-    name,
-    dir,
-    source,
-    light: {},
-    dark: fillsIn(style[1]),
+    light: fillsIn(style[1].slice(0, darkStart)),
+    dark: fillsIn(style[1].slice(darkStart)),
+    darkBlock: style[1].slice(darkStart),
     ...geometryOf(name, source),
   };
 };
@@ -120,83 +123,134 @@ const svgs: Svg[] = BRAND_FILES.map((name) => parseSvg(brandDir, name));
 const favicon = parseSvg(join(root, "public"), "favicon.svg");
 const tokenTracked: Svg[] = [...svgs, favicon];
 
-// The dark-only sibling shares the favicon's geometry and inertness but not its light half,
-// so it joins the geometry, ink and inert loops rather than the fills loop.
-const faviconDark = parseFlatSvg(join(root, "public"), "favicon-dark.svg");
-const assetTracked: Svg[] = [...tokenTracked, faviconDark];
+const MASCOT_CLASSES = ["tn-ink", "tn-signal", "tn-pulse"] as const;
+const TEXT_CLASSES = ["tn-wordmark", "tn-tagline"] as const;
+
+// Which role each tracked file plays. Written as a list rather than inferred from the
+// file's own contents, so a lockup that lost its text classes fails here instead of being
+// re-classified as a mascot-only file and passing.
+const LOCKUPS = ["technoise-logo-presentation.svg", "technoise-logo-full.svg"];
+const isLockup = (svg: Svg) => LOCKUPS.includes(svg.name);
 
 // --text resolves to --cream-dim rather than raw --cream in dark because cream emitted from
-// a dark screen reads as glare; the wordmark is the element that escaped that judgement
-// until now. The robot's two fills take the -dim pair for the same reason, one step further:
-// they are the 300s walked 40% toward their own -700s, so the mark reads wordmark-first
-// rather than neon. They are deliberately *not* --signal-300/--pulse-300, which remain the
-// link, rule, focus and hover tints — do not unify these back. Read from tokens.css, never
-// written as a literal, so a token edit still fails.
+// a dark screen reads as glare, and the wordmark takes the same value for the same reason.
+// --signal-300-dim is the tagline's, and only the tagline's: it is --signal-300 walked 75%
+// toward --signal-700, deliberately *not* --signal-300 itself, which remains the link, rule,
+// focus and hover tint — do not unify these back. Read from tokens.css, never written as a
+// literal, so a token edit still fails here.
+//
+// The mascot triple has no dark half at all. `dark` is asserted as an exact object, so
+// "empty" is a claim this suite makes rather than a loop it skips.
 const expected = {
-  light: () => ({ "tn-ink": token("ink"), "tn-signal": token("signal"), "tn-pulse": token("pulse") }),
-  dark: () => ({
-    "tn-ink": token("cream-dim"),
-    "tn-signal": token("signal-300-dim"),
-    "tn-pulse": token("pulse-300-dim"),
+  lockupLight: () => ({
+    "tn-ink": token("ink"),
+    "tn-signal": token("signal"),
+    "tn-pulse": token("pulse"),
+    "tn-wordmark": token("ink"),
+    "tn-tagline": token("signal"),
+  }),
+  lockupDark: () => ({
+    "tn-wordmark": token("cream-dim"),
+    "tn-tagline": token("signal-300-dim"),
+  }),
+  mascotLight: () => ({
+    "tn-ink": token("ink"),
+    "tn-signal": token("signal"),
+    "tn-pulse": token("pulse"),
   }),
 };
 
 describe("brand SVG fills track tokens.css", () => {
   for (const svg of tokenTracked) {
     it(`${svg.name} uses the light-mode brand bases`, () => {
-      expect(svg.light).toEqual(expected.light());
+      expect(svg.light).toEqual(isLockup(svg) ? expected.lockupLight() : expected.mascotLight());
+    });
+  }
+
+  for (const svg of tokenTracked.filter(isLockup)) {
+    it(`${svg.name} adapts its wordmark and tagline in dark, and nothing else`, () => {
+      expect(svg.dark).toEqual(expected.lockupDark());
     });
 
-    it(`${svg.name} uses the dark-mode tints, so the mark never renders ink on ink`, () => {
-      expect(svg.dark).toEqual(expected.dark());
+    // The freeze itself, asserted on the raw block rather than on parsed fills: a
+    // `.tn-signal{fill:none}` or a var() the fill parser skips would still be a dark rule
+    // for a class that must have none.
+    it(`${svg.name} names no mascot class anywhere in its dark block`, () => {
+      for (const cls of MASCOT_CLASSES) {
+        expect(
+          svg.darkBlock,
+          `${cls} is frozen at its light fill in both schemes — a dark rule for it undoes that`,
+        ).not.toMatch(new RegExp(`\\.${cls}(?![\\w-])`));
+      }
+    });
+  }
+
+  for (const svg of tokenTracked.filter((s) => !isLockup(s))) {
+    it(`${svg.name} carries no scheme override at all`, () => {
+      expect(svg.dark).toEqual({});
+      expect(svg.source, `${svg.name} carries no text, so nothing in it adapts`).not.toMatch(/@media/i);
+      for (const cls of TEXT_CLASSES) {
+        expect(svg.source).not.toContain(cls);
+      }
     });
   }
 });
 
-// Two files, one icon: favicon.svg carries the light fills plus its own dark override, and
-// favicon-dark.svg carries the dark fills unconditionally. BaseLayout picks between them with
-// `media` on the <link>, because an icon resource is not reliably made to re-evaluate its own
-// @media on reload. favicon.svg's internal block is not a leftover of that arrangement — it is
-// the fallback for an engine (Gecko) that ignores `media` on an icon link but does honour the
-// query inside the file, so deleting it as dead weight would pin that engine to light forever.
-describe("the two-file favicon", () => {
-  it("favicon.svg keeps the internal dark block engines that ignore <link media> fall back to", () => {
-    expect(favicon.source).toMatch(/@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/);
+// One icon, one rendering. The two-file/two-link arrangement that preceded this existed to
+// switch between a light and a dark rendering of the same mark; freezing the mascot left it
+// with nothing to switch, and public/favicon-dark.svg was deleted rather than kept as a
+// byte-identical decoy. Note what still guards a re-added copy: the orphan-file suite below
+// fails on any file in public/ that src/ references nowhere, so a favicon-dark.svg that came
+// back without a link goes red there, and one that came back *with* a link goes red here.
+describe("the one-file favicon", () => {
+  it("ships no dark-only sibling", () => {
+    expect(existsSync(join(root, "public", "favicon-dark.svg"))).toBe(false);
   });
 
-  it("favicon-dark.svg states the dark tints unconditionally, with no @media of its own", () => {
-    expect(faviconDark.dark).toEqual(expected.dark());
-    expect(faviconDark.source).not.toMatch(/@media/i);
-  });
-
-  it("favicon-dark.svg is favicon.svg with a different <style>, and nothing else", () => {
-    const withoutStyle = (source: string) => source.replace(/<style>[\s\S]*?<\/style>/, "");
-    expect(withoutStyle(faviconDark.source)).toEqual(withoutStyle(favicon.source));
+  it("renders the same in both schemes, with no internal query to re-evaluate", () => {
+    expect(favicon.source).not.toMatch(/@media/i);
   });
 });
 
-// The document side of the same arrangement. The order is load-bearing, not cosmetic: an
-// engine that ignores `media` treats both links as unconditional and takes the last one, so
-// the last one must be the self-adapting file, never the dark-only one.
-describe("BaseLayout hands the scheme choice to the document", () => {
-  const icons = [...readFileSync(join(root, "dist", "index.html"), "utf8")
-    .matchAll(/<link[^>]+rel="icon"[^>]*>/g)].map((m) => m[0]);
+// The document side. Every built page, not just index.html: the links live in BaseLayout, so
+// a route that bypassed it would be invisible to a single-file check.
+describe("BaseLayout ships one scheme-invariant icon set", () => {
+  const walkHtml = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = join(dir, entry.name);
+      return entry.isDirectory() ? walkHtml(full) : full.endsWith(".html") ? [full] : [];
+    });
+
+  const pages = walkHtml(join(root, "dist"));
+  const iconsOn = (page: string) =>
+    [...readFileSync(page, "utf8").matchAll(/<link[^>]+rel="icon"[^>]*>/g)].map((m) => m[0]);
 
   const href = (tag: string) => /href="([^"]+)"/.exec(tag)?.[1];
   const media = (tag: string) => /media="([^"]+)"/.exec(tag)?.[1];
 
-  it("ships the raster fallback first, then one SVG per scheme, dark before light", () => {
-    expect(icons.map(href)).toEqual(["/favicon.ico", "/favicon-dark.svg", "/favicon.svg"]);
-    expect(icons.map(media)).toEqual([
-      undefined,
-      "(prefers-color-scheme: dark)",
-      "(prefers-color-scheme: light)",
-    ]);
+  it("builds pages to check", () => {
+    expect(pages.length).toBeGreaterThan(1);
   });
 
-  it("types both SVG links, and points every icon at a file that ships", () => {
-    for (const tag of icons.slice(1)) expect(tag).toContain('type="image/svg+xml"');
-    for (const tag of icons) {
+  for (const page of pages) {
+    const label = relative(join(root, "dist"), page).split(sep).join(posix.sep);
+
+    it(`/${label} links the raster fallback and exactly one SVG`, () => {
+      const icons = iconsOn(page);
+      expect(icons.map(href)).toEqual(["/favicon.ico", "/favicon.svg"]);
+      expect(icons[1]).toContain('type="image/svg+xml"');
+    });
+
+    // The specific regression a leftover attribute would cause: with
+    // media="(prefers-color-scheme: light)" still on the one SVG link, a dark-OS browser
+    // matches no SVG icon and silently downgrades to the .ico.
+    it(`/${label} puts no media attribute on any icon link`, () => {
+      expect(iconsOn(page).map(media)).toEqual([undefined, undefined]);
+    });
+  }
+
+  it("points every icon at a file that ships", () => {
+    for (const tag of iconsOn(join(root, "dist", "index.html"))) {
       const file = href(tag)!;
       expect(existsSync(join(root, "public", file)), `BaseLayout points at a missing ${file}`).toBe(true);
     }
@@ -204,7 +258,7 @@ describe("BaseLayout hands the scheme choice to the document", () => {
 });
 
 describe("brand SVG geometry the component CSS relies on", () => {
-  for (const svg of assetTracked) {
+  for (const svg of tokenTracked) {
     it(`${svg.name} declares a width/height matching its own viewBox`, () => {
       expect(svg.declared).toEqual([svg.viewBox[2], svg.viewBox[3]]);
     });
@@ -273,10 +327,9 @@ describe("brand SVG viewBoxes stay cropped to their ink", () => {
     "technoise-logo-presentation.svg": 0.83,
     "technoise-logo-full.svg": 0.68,
     "favicon.svg": 0.84,
-    "favicon-dark.svg": 0.84,
   };
 
-  for (const svg of assetTracked) {
+  for (const svg of tokenTracked) {
     it(`${svg.name} spends its viewBox height on ink, not transparent margin`, async () => {
       expect(await inkHeightFraction(svg.dir, svg.name)).toBeGreaterThanOrEqual(floors[svg.name]);
     });
@@ -364,6 +417,20 @@ describe("the header's inlined brand mark", () => {
     expect(brand![0]).not.toMatch(/<style/i);
     expect(brand![0]).toMatch(/class="tn-(ink|signal|pulse)"/);
   });
+
+  // The split is what lets the text adapt while the mascot stays frozen, and it lives in
+  // the source SVGs' path markup — nothing else in this suite would notice a rebuild that
+  // shipped the pre-split files, since their fills, geometry and inertness are unchanged.
+  it("ships both halves of the split: all five classes reach every rendered lockup", () => {
+    const brand = /<a class="site-header__brand"[\s\S]*?<\/a>/.exec(rendered())![0];
+    for (const variant of ["stacked", "wide"]) {
+      const mark = new RegExp(`<svg data-mark="${variant}"[\\s\\S]*?</svg>`).exec(brand);
+      expect(mark, `the built header renders no [data-mark="${variant}"] svg`).not.toBeNull();
+      for (const cls of [...MASCOT_CLASSES, ...TEXT_CLASSES]) {
+        expect(mark![0], `${variant} lockup paints nothing with .${cls}`).toContain(`class="${cls}"`);
+      }
+    }
+  });
 });
 
 // The suite above reads index.html, and "brand SVGs stay inert assets" further down reads the
@@ -414,7 +481,7 @@ describe("the header's inlined mark ships inert and tokenised on every page", ()
         /#[0-9a-fA-F]{3,8}\b/,
       );
       expect(injected).not.toMatch(/\s(fill|stroke)="(?!none\b)[^"]/i);
-      expect(injected).toMatch(/class="tn-(ink|signal|pulse)"/);
+      expect(injected).toMatch(/class="tn-(ink|signal|pulse|wordmark|tagline)"/);
     });
   }
 });
@@ -434,6 +501,13 @@ describe("the header's inlined fills track the same tokens the source files do",
   const fillsOf = (rules: typeof fillRules): Record<string, string> =>
     Object.fromEntries(rules.map((rule) => [/\.(tn-[a-z]+)/.exec(rule.selector)![1], token(rule.token)]));
 
+  // Every rule in the component that targets a mark class under a dark-scheme selector,
+  // whatever it declares. fillRules above only sees `fill: var(--…)`, so it cannot speak to
+  // the absence the freeze is made of — this can.
+  const darkMarkRules = [...style.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({ selector: m[1].trim().replace(/\s+/g, " "), declarations: m[2] }))
+    .filter((rule) => /\.tn-[a-z]+/.test(rule.selector) && rule.selector.includes(":root"));
+
   // A dark rule is one qualified by the document element, the shape tokens.css uses for
   // both of its own dark blocks. Grouping by that prefix rather than merging every dark
   // rule into one object is what keeps the [data-theme] twin from passing on the media
@@ -444,16 +518,36 @@ describe("the header's inlined fills track the same tokens the source files do",
     darkGroups.set(prefix, [...(darkGroups.get(prefix) ?? []), rule]);
   }
 
-  it("paints the light scheme in the brand bases", () => {
+  it("paints the light scheme in the brand bases, all five classes", () => {
     const light = fillRules.filter((rule) => !rule.selector.includes(":root"));
     expect(fillsOf(light)).toEqual(presentation.light);
   });
 
-  it("paints every dark-scheme selector in the dark tints, so the mark is never ink on ink", () => {
+  it("paints every dark-scheme selector in the text tints, so the wordmark is never ink on ink", () => {
     expect(darkGroups.size, "Header.astro overrides the mark's fills in no dark scheme").toBeGreaterThan(0);
     for (const [prefix, rules] of darkGroups) {
       expect(fillsOf(rules), prefix).toEqual(presentation.dark);
     }
+  });
+
+  // The other half of the same claim, and the one a passing loop cannot make: the mascot
+  // classes must appear in *no* dark rule. Inlined, they resolve through the page cascade,
+  // so a dark rule here would unfreeze the header's mascot while the footer's — which reads
+  // the file's own <style> — stayed frozen, and the two would disagree on one page.
+  it("gives the mascot classes no dark rule at all, which is what freezes them", () => {
+    const frozen = darkMarkRules.filter((rule) =>
+      MASCOT_CLASSES.some((cls) => new RegExp(`\\.${cls}(?![\\w-])`).test(rule.selector)),
+    );
+
+    expect(
+      frozen.map((rule) => `${rule.selector} {${rule.declarations.trim()}}`),
+      "the mascot is frozen at its light fills in both schemes — see the note in Header.astro",
+    ).toEqual([]);
+  });
+
+  it("scopes every dark mark rule to one of the two text classes", () => {
+    const targeted = darkMarkRules.map((rule) => /\.(tn-[a-z-]+)/.exec(rule.selector)![1]);
+    expect(new Set(targeted)).toEqual(new Set(TEXT_CLASSES));
   });
 
   it("keeps every dark override on screen, so the printed mark stays light", () => {
@@ -543,7 +637,7 @@ describe("public/ ships nothing the site references nowhere", () => {
 });
 
 describe("brand SVGs stay inert assets", () => {
-  for (const svg of assetTracked) {
+  for (const svg of tokenTracked) {
     it(`${svg.name} carries no script, external reference or event handler`, () => {
       expect(svg.source).not.toMatch(/<script/i);
       expect(svg.source).not.toMatch(/<(foreignObject|image|use)\b/i);
