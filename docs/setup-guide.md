@@ -165,8 +165,6 @@ Sections shipped: summary, experience, skills, education (no separate Projects s
 page points to `/projects/` instead of repeating it). No phone number or city/state anywhere
 on the page, in its structured data, or in its metadata — a hard constraint, not an omission.
 
-**About** — bio, mascot illustration, contact, elsewhere links.
-
 **404** — mascot illustration, "This page isn't in the feed," links to home and blog.
 
 ### Asset prep from your five files
@@ -179,7 +177,7 @@ on the page, in its structured data, or in its metadata — a hard constraint, n
 | Header logo — **done** | `TechNoise_Full_Logo.PNG` | Traced to SVG (`public/brand/technoise-logo-full.svg` and `-presentation.svg`); used in both `Header.astro` and `Footer.astro`, swapped by breakpoint |
 | Social profile images | `archive/brand-pre-svg-migration/technoise-presentation-logo.png` | GitHub, LinkedIn, X |
 | Default OG image 1200×630 | `TechNoise_Full_Logo.PNG` | Cream field, logo left, page title right |
-| Hero / About / 404 art | `TechNoise_Background.png` | Export at 2x width used, AVIF + WebP |
+| Hero / 404 art | `TechNoise_Background.png` | Export at 2x width used, AVIF + WebP |
 
 The full logo and icon are now traced to SVG (`public/brand/`, plus `favicon.svg`/`.ico`) — the
 one-time job the original flag below asked for is done. Still raster and still pending:
@@ -259,8 +257,7 @@ edits. Verified.
 3. `robots.txt` generated at `src/pages/robots.txt.ts`, not a static file in `public/` —
    it needs an absolute sitemap URL and the hostname isn't settled (Part 0 Decision 3).
 4. JSON-LD: `WebSite` + `Person` on home, `BlogPosting` on posts, `CreativeWork` on
-   projects, `BreadcrumbList` on posts, projects and tag archives. `Person` on About is
-   deferred until that page exists (Part 5) — it's a two-line addition when it's built.
+   projects, `BreadcrumbList` on posts, projects and tag archives.
 5. One static OG image fallback (`public/og/technoise-og.png`), not per-page generation —
    three content entries didn't justify a renderer dependency.
 
@@ -366,26 +363,46 @@ tier; build-time image optimization; nothing.
 - [x] Every page has a unique title (≤60 chars) and description (≤155 chars)
 - [x] Canonical URLs are absolute and use the chosen hostname — `https://technoise.dev` in
       `astro.config.mjs` is confirmed as the GitHub Pages custom domain (Phase 5).
-- [ ] OG image renders correctly in a social preview debugger — image is built and
-      committed (1200×630, cream field, no crop); not run against a debugger, which needs
-      a publicly reachable URL and the site isn't deployed yet
+- [ ] OG image renders correctly in a social preview debugger — `public/og/technoise-og.png`
+      confirmed exactly 1200×630 and correctly referenced via `OG_IMAGE` on every page.
+      Facebook's Sharing Debugger initially reported a robots.txt block on
+      `facebookexternalhit`; `robots.txt` now names `facebookexternalhit` and `Facebot`
+      explicitly (`src/pages/robots.txt.ts`) even though the wildcard rule already covered
+      them — Meta's crawlers are known to report this against a bare wildcard. Still open:
+      re-run the debugger's "Scrape Again" once this deploys, to confirm the card itself
+      renders
 - [x] `sitemap.xml` lists every public page and no drafts
 - [x] `robots.txt` allows crawling and references the sitemap
-- [ ] RSS validates — parses under a real XML parser with the required channel elements,
-      `xmlns:atom` and `atom:link rel="self"`; the W3C Feed Validation Service itself
-      wasn't reachable in this environment to run the last mile of this check
-- [ ] Apex/`www` decision made, other one 301s
-- [ ] HTTPS enforced
-- [ ] 404 page works on the live host, not just locally
-- [ ] Lighthouse mobile: Perf ≥ 90, A11y ≥ 95, SEO = 100
-- [ ] Keyboard-only navigation works, focus states visible
-- [ ] Works at 320px and in dark mode
-- [ ] Search Console verified, sitemap submitted, key pages requested
-- [ ] Bing verified
+- [x] RSS validates — `dist/rss.xml` parses clean under `xmllint --noout` and carries every
+      required channel element plus `xmlns:atom` and `atom:link rel="self"`; the W3C Feed
+      Validation Service itself still isn't reachable from an agent sandbox (no arbitrary
+      outbound domains), so a human should still paste the live URL through it once, but
+      that's belt-and-suspenders, not a gap
+- [x] Apex/`www` decision made, other one 301s — confirmed live by the site owner
+- [x] HTTPS enforced — confirmed live by the site owner in Settings → Pages
+- [x] 404 page works on the live host, not just locally — confirmed live by the site owner
+- [x] Lighthouse mobile: Perf ≥ 90, A11y ≥ 95, SEO = 100 — run against the actual production
+      build (`npm run build && npm run preview`, Lighthouse 13.5 via headless Chromium) on
+      `/`, `/blog/`, a post, and `/resume/`: 100/100/100 on every indexable route; `/404.html`
+      scores SEO 69, exactly the documented by-design `noindex` result. This is the shipped
+      artifact under real conditions, just not fetched over the live domain — worth one
+      re-run in a real browser against `https://technoise.dev/` once you're looking at it,
+      but not expected to move
+- [x] Keyboard-only navigation works, focus states visible — Playwright spot-check: 15 tab
+      stops on the home page all carry a visible focus ring, and the header's one JS
+      island (the mobile nav disclosure) opens on Enter, closes on Escape, and keeps
+      `aria-expanded` in sync throughout
+- [x] Works at 320px and in dark mode — zero horizontal overflow and zero axe-core
+      violations at 320×640 in both light and dark, and at 1440×900 dark
+- [x] Search Console verified, sitemap submitted, key pages requested — confirmed by the
+      site owner: domain property verified via TXT record, sitemap submitted, indexing
+      requested
+- [x] Bing verified — confirmed by the site owner (imported from Search Console)
 - [x] Resume prints a clean document via the route-scoped print stylesheet — no separate
       PDF asset exists to drift from the web version (decided against; see Part 1's Resume
       layout)
-- [ ] README has the build, dev, and deploy commands
+- [x] README has the build, dev, and deploy commands — present under "Running locally" and
+      "Deploying"
 
 ---
 

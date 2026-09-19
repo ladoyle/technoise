@@ -26,9 +26,8 @@ summary, experience, skills and education, indexable and in the sitemap — with
 phone number and location deliberately excluded from the page, its structured data, and its
 metadata (see `AGENTS.md`'s note on `src/lib/resume.ts`). A 404 page is live, with its own
 dedicated mascot illustration distinct from the home hero's, `noindex`ed and excluded from
-the sitemap since a static host can't pair it with a real 404 status. About is not built
-yet — it needs positioning copy that only the site owner can supply (see `docs/setup-guide.md`
-Part 5).
+the sitemap since a static host can't pair it with a real 404 status. There is no About
+page — out of scope for now.
 
 ## Running locally
 
@@ -38,7 +37,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 suites, 352 tests; see docs/testing.md for the map
+npm test             # vitest run — 16 suites, 418 tests; see docs/testing.md for the map
 ```
 
 Node `>=22.12.0` is required, pinned in `.nvmrc`.
