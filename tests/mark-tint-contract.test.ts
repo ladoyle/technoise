@@ -15,11 +15,20 @@ import { contrastRatio } from "../src/lib/contrast";
 //      ~7:1 to ~4.7:1 in a one-word edit, with no page looking broken and no other suite
 //      going red — tests/palette-tokens.test.ts pins the base behind each *swatched* token,
 //      and --accent-fill-hover is not swatched.
-//   2. .tn-signal is not a decorative fill. It paints the "HEAR THE FUTURE" tagline as well
-//      as the robot's face field (verified by rendering the class in isolation out of both
-//      lockups), so its dark tint carries text-as-image and is floored at the 4.5:1 text
-//      minimum, not at WCAG 1.4.11's 3:1 non-text one. .tn-pulse paints the headphone band
-//      and cups only — shapes, no text — and takes the 3:1 floor.
+//   2. Both fills take WCAG 1.4.11's 3:1 non-text floor, and the binding measurement is on
+//      --ink-sunken, the darkest surface tokens.css declares — not on --ink, the surface the
+//      mark actually paints on. That is what stopped the ramp at 60%: 3:1 on the sunken
+//      surface lands at 3.86:1 / 3.84:1 on the real one. .tn-signal was previously floored at
+//      the 4.5:1 text minimum because it paints the "HEAR THE FUTURE" tagline as well as the
+//      robot's face field. It no longer is, for two measured reasons: rasterising the class in
+//      isolation at the 48px block-size both the header and footer pin, that tagline renders
+//      2.66-2.75 CSS px of cap height in the stacked lockup and 4.30-4.48 px in the wide one —
+//      texture, not words — and SC 1.4.3 exempts logotype text from the text floor outright,
+//      at any size. technoise-icon.svg and both favicons carry no tagline at all, so for those
+//      three files the non-text floor was never in question. The face field and the headphones
+//      never abut the page: 0% of either region's boundary touches the surface, so what governs
+//      their shape-reading is the 10.72:1 --cream-dim outline enclosing them, and that contrast
+//      rises as the fills darken.
 //
 // Every value is read out of tokens.css and measured with the site's own contrast helper,
 // so a later tint change is judged here rather than transcribed from a report.
@@ -107,14 +116,17 @@ describe("the mark's dimmed tints keep the floors that set their values", () => 
   const page = hex("ink");
   const sunken = hex("ink-sunken");
 
-  it("--signal-300-dim clears 4.5:1, because .tn-signal paints the tagline", () => {
-    expect(contrastRatio(hex("signal-300-dim"), page)).toBeGreaterThanOrEqual(4.5);
+  it("--signal-300-dim clears WCAG 1.4.11's 3:1 non-text floor", () => {
+    expect(contrastRatio(hex("signal-300-dim"), page)).toBeGreaterThanOrEqual(3);
   });
 
   it("--pulse-300-dim clears the 3:1 non-text floor", () => {
     expect(contrastRatio(hex("pulse-300-dim"), page)).toBeGreaterThanOrEqual(3);
   });
 
+  // The binding floor, not a bonus check: measuring on the darkest declared surface rather
+  // than the one the mark paints on is what stopped the ramp at 60%. A 65% step measures
+  // 3.62:1 / 3.64:1 on --ink and still looks fine, but 2.88:1 / 2.89:1 here.
   it("both clear 3:1 on the darkest surface the site has", () => {
     expect(contrastRatio(hex("signal-300-dim"), sunken)).toBeGreaterThanOrEqual(3);
     expect(contrastRatio(hex("pulse-300-dim"), sunken)).toBeGreaterThanOrEqual(3);
