@@ -4,15 +4,16 @@
 // memo, which is what this page used to be. That material moved to /styleguide/,
 // where the reasoning and the specimens now sit together.
 //
-// The lede's positioning derives from src/lib/resume.ts — RESUME.title and RESUME.focus,
-// both human-authored and already public on /resume/ — rather than being invented here.
-// It stays literal prose instead of interpolating those fields: RESUME.focus is a
-// capitalised sentence fragment ending in a period, and splicing it mid-sentence would
-// mean lowercasing and trimming it at build time, which is brittle string surgery for
-// one line. The cost is that the positioning now lives in two places; keep them in step.
+// The lede's positioning derives from RESUME.focus in src/lib/resume.ts — human-authored
+// and already public on /resume/ — rather than being invented here. It stays literal
+// prose instead of interpolating that field: RESUME.focus is a capitalised fragment
+// ending in a period, and splicing it mid-sentence would mean lowercasing and trimming
+// it at build time, which is brittle string surgery for one line. The cost is that the
+// positioning now lives in two places; keep them in step.
 //
-// The closing beat is the brand tagline, already set in the logo lockup's .tn-tagline
-// and rendered in the header and footer of every page — not a new claim.
+// The lede opens on the brand, not the owner's name, and closes on the brand tagline
+// already set in the logo lockup's .tn-tagline and rendered in the header and footer of
+// every page. Neither is a new claim, and the person behind it is named on /resume/.
 //
 // The artwork is decorative: alt="" because the hero's meaning is entirely in the
 // text beside it, and a description of the mascot would be noise between the H1 and
@@ -81,8 +82,8 @@ const schema = [
       <div class="hero__text">
         <h1 class="hero__title">A blog and a project log</h1>
         <p class="hero__lede">
-          I'm Luke Doyle — distributed systems, cloud engineering, AI-assisted
-          development. Start with the posts, look through the projects, hear the future.
+          TechNoise — distributed systems, cloud engineering, AI-assisted development.
+          Start with the posts, look through the projects, hear the future.
         </p>
         <p class="hero__actions">
           <a class="button" href="/blog/">Read the blog</a>
