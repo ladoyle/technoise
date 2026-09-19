@@ -7,8 +7,10 @@
 // are inseparable parts of institution proper names, not the owner's whereabouts.
 //
 // `profiles` derives from SITE.author.sameAs, so a profile link is added or removed
-// in one place and lights up the visible contact list and the JSON-LD `sameAs`
-// together — never write a profile URL literally in this file.
+// in one place and lights up the visible contact list, the JSON-LD `sameAs` and the
+// site footer's Elsewhere block together — never write a profile URL literally in
+// this file. That third consumer is why the export outlives this page: it is the
+// site's one derivation point for a profile URL, not the resume's alone.
 
 import { SITE } from "./seo";
 
@@ -172,8 +174,9 @@ const PROFILE_LABELS: Record<string, string> = {
 };
 
 // Derived, never written literally: one profile URL lives in SITE.author.sameAs and
-// feeds both the visible contact list and the JSON-LD. A host with no label here is
-// dropped rather than rendered under a guessed name.
+// feeds the visible contact list, the JSON-LD and the site footer alike. A host with
+// no label here is dropped rather than rendered under a guessed name, so callers must
+// tolerate an empty list rather than assume two entries.
 export const profiles: Profile[] = SITE.author.sameAs.flatMap((href) => {
   const label = PROFILE_LABELS[new URL(href).host];
   return label ? [{ label, href }] : [];
