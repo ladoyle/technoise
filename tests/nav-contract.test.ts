@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { RESUME } from "../src/lib/resume";
+import { RESUME, profiles } from "../src/lib/resume";
+import { SITE } from "../src/lib/seo";
 
 // D3/D4 turned the primary nav into a disclosure and cut /about/ from both navs for
 // one reason: a nav item that promises a 404 is worse than no nav item. Nothing in the
@@ -64,6 +65,12 @@ function internalHrefs(html: string): string[] {
 }
 
 const NAV_ROUTES = ["/blog/", "/projects/", "/resume/", "/styleguide/"];
+
+function footerRegion(html: string, path: string): string {
+  const footer = html.match(/<footer class="site-footer"[\s\S]*?<\/footer>/)?.[0];
+  expect(footer, `${path} has no site footer`).toBeTruthy();
+  return footer!;
+}
 
 describe("the nav promises nothing that 404s", () => {
   it("emits a header nav item for exactly the routes D3 lists, on every page", () => {
@@ -207,6 +214,14 @@ describe("the resume page keeps the contract its content is published under", ()
 
   it("ships no placeholder link — a profile with no URL renders no list item", () => {
     expect(resumePage()).not.toContain('href="#"');
+    // The footer derives from the same `profiles` helper, so the same failure mode —
+    // an entry rendered under a guessed or missing URL — reaches every page, not just
+    // this one. A `#` or empty href is what that regression looks like in the output.
+    for (const page of pages) {
+      const footer = footerRegion(page.html, page.path);
+      expect(footer, `${page.path}: placeholder href in the footer`).not.toContain('href="#"');
+      expect(footer, `${page.path}: empty href in the footer`).not.toContain('href=""');
+    }
   });
 
   // D9/D10. The icons are decoration bolted onto three links that are the page's whole
@@ -279,5 +294,110 @@ describe("the resume page keeps the contract its content is published under", ()
     ];
     expect([...keys].filter((k) => forbidden.some((f) => k.includes(f)))).toEqual([]);
     expect(PHONE_SHAPED.exec(JSON.stringify(RESUME))?.[0] ?? null).toBeNull();
+  });
+});
+
+// D6. The footer's Elsewhere block publishes a real person's off-site profiles on all 19
+// pages, from one derivation point. Nothing above covered it: `internalHrefs()` matches
+// only href="/…", so an absolute profile URL is invisible to the route-resolution tests
+// by construction, and the header-nav assertion is scoped to .site-header__list. These
+// read the built HTML because the built HTML is what ships, and compare against the
+// imported helper because a literal expectation here would be the second source of truth
+// the block exists to avoid.
+
+describe("the footer's Elsewhere block stays tied to the profiles helper", () => {
+  function elsewhereItems(html: string, path: string): { href: string; label: string }[] {
+    const block = footerRegion(html, path).match(
+      /<div class="site-footer__elsewhere"[^>]*>([\s\S]*?)<\/div>/,
+    )?.[1];
+    expect(block, `${path} has no Elsewhere block`).toBeTruthy();
+    // <li> and <a> carry Astro's scoped-style attribute in the output, so neither tag
+    // can be matched as a bare "<li>".
+    return [...block!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => ({
+      href: m[1].match(/href="([^"]*)"/)?.[1] ?? "",
+      label: m[1].replace(/<[^>]*>/g, "").trim(),
+    }));
+  }
+
+  it("the footer's Elsewhere links are the profiles helper's output, in order, on every page", () => {
+    expect(profiles.length, "the helper produced no profile to assert against").toBeGreaterThan(0);
+    const expected = profiles.map((p) => ({ href: p.href, label: p.label }));
+    for (const page of pages) {
+      expect(elsewhereItems(page.html, page.path), page.path).toEqual(expected);
+    }
+  });
+
+  it("no page's footer publishes an email address", () => {
+    // Settled: the address stays on /resume/. A footer renders on every page, which is a
+    // different exposure decision from a contact line on one page a reader chose to open.
+    for (const page of pages) {
+      expect(footerRegion(page.html, page.path), `${page.path}: email in the footer`).not.toContain(
+        "mailto:",
+      );
+    }
+  });
+
+  it("each Elsewhere link is icon-only but keeps a hidden accessible name", () => {
+    // No visible "Elsewhere" heading and no visible link text — the glyph alone is the
+    // content, so the accessible name has to come from somewhere still in the DOM. A
+    // .visually-hidden span carries it, and the glyph itself is aria-hidden so a screen
+    // reader does not also announce an unlabelled <svg>.
+    for (const page of pages) {
+      const block = footerRegion(page.html, page.path).match(
+        /<div class="site-footer__elsewhere"[^>]*>([\s\S]*?)<\/div>/,
+      )?.[1];
+      expect(block, `${page.path} has no Elsewhere block`).toBeTruthy();
+      const items = [...block!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)];
+      expect(items.length, page.path).toBe(profiles.length);
+      items.forEach((item, i) => {
+        expect(item[1], `${page.path} item ${i}: glyph is not aria-hidden`).toMatch(
+          /<svg[^>]*aria-hidden="true"/,
+        );
+        const hidden = item[1].match(/<span class="visually-hidden"[^>]*>([^<]*)<\/span>/)?.[1];
+        expect(hidden, `${page.path} item ${i}: no hidden accessible name`).toBe(
+          profiles[i].label,
+        );
+      });
+    }
+  });
+
+  it("the footer's off-site links stay in the same tab", () => {
+    // The visible heading is the affordance that these leave the site, which is why no
+    // anchor opens a new tab and none needs a rel. /resume/ ships the same two URLs the
+    // same way; the footer matching it is the point.
+    for (const page of pages) {
+      expect(footerRegion(page.html, page.path), `${page.path}: footer link opens a new tab`).not.toMatch(
+        /\starget=/,
+      );
+    }
+  });
+
+  // QA. `profiles` matches a host against a label map and drops what it cannot name, so
+  // two failure modes live below the markup the assertions above read. Both are about a
+  // future edit to SITE.author.sameAs, the one input the derivation has.
+
+  it("names every host in sameAs, so no profile is dropped from the site in silence", () => {
+    // An unlabelled host vanishes from the footer, the resume's contact list and the
+    // JSON-LD at once, with a clean build and no warning. It is also what makes the
+    // component's `profiles.length > 0` guard unreachable: assert the reason, not the
+    // branch.
+    expect(profiles.map((p) => p.href)).toEqual([...SITE.author.sameAs]);
+  });
+
+  it("publishes profile links over https and no other scheme", () => {
+    // new URL() parses an authority for any scheme, so "javascript://github.com/%0a…"
+    // and a typo'd "htps://github.com" both resolve host "github.com", earn a label and
+    // render as a live href. The host allowlist does not see a scheme; this does.
+    for (const profile of profiles) {
+      expect(new URL(profile.href).protocol, profile.href).toBe("https:");
+    }
+    for (const page of pages) {
+      const hrefs = [...footerRegion(page.html, page.path).matchAll(/href="([^"]*)"/g)].map(
+        (m) => m[1],
+      );
+      for (const href of hrefs) {
+        expect(href, `${page.path}: ${href}`).toMatch(/^(?:https:\/\/|\/)/);
+      }
+    }
   });
 });

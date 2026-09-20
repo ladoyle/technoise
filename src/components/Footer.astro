@@ -3,10 +3,13 @@ import presentationSvg from "../../public/brand/technoise-logo-presentation.svg?
 import fullSvg from "../../public/brand/technoise-logo-full.svg?raw";
 
 import { brandMark } from "../lib/brand-mark";
+import { profiles } from "../lib/resume";
+import { PROFILE_ICONS } from "../lib/profile-icons";
 
-// Three blocks on the wide column: brand, navigation, colophon. All stacked below the
-// breakpoint; above it brand and navigation share a row and the colophon takes the next
-// one, because a horizontal five-link run and the colophon cannot both fit a row at 48em.
+// Four blocks on the wide column: brand, navigation, elsewhere, colophon. All stacked
+// below the breakpoint; above it brand and navigation share a row and elsewhere and the
+// colophon share the next, because a horizontal five-link run and the colophon cannot
+// both fit a row at 48em.
 //
 // The brand repeats the header's logo pair on the same 48em hinge, at the same 48px, and
 // by the same mechanism: both marks are inlined at build time so their fills resolve in
@@ -17,11 +20,17 @@ import { brandMark } from "../lib/brand-mark";
 // wordmark. The mascot's own 1.000:1 in dark mode is a separate, deliberate freeze; see
 // Header.astro, whose fill rules below are reproduced exactly.
 //
-// TODO(human input): an "Elsewhere" block — GitHub, LinkedIn, contact — is absent on
-// purpose. Those URLs are human input (setup-guide Part 5: contact preference and
-// elsewhere links). The feed is not: it exists as of Phase 4 and is linked below.
-// PLACEHOLDER: this footer ships with site navigation only until those URLs are
-// supplied. Do not invent them.
+// Elsewhere carries GitHub and LinkedIn and nothing else because `profiles` is the one
+// place a profile URL is derived: SITE.author.sameAs feeds the resume's contact list, its
+// JSON-LD sameAs and this block together, so a third profile is added there and never
+// typed here. The email address is deliberately not among them — it stays on /resume/,
+// which a reader reaches on purpose, rather than sitting on every page of the site.
+//
+// Icon-only, no visible "Elsewhere" heading: two marks a reader already recognises don't
+// need a caption, and PROFILE_ICONS is shared with resume.astro's contact row so the two
+// routes cannot drift onto different glyphs for the same two links. Each anchor keeps its
+// accessible name in a .visually-hidden span rather than aria-label, matching TagPill's
+// existing pattern for hidden text elsewhere in the codebase.
 //
 // About is absent for a different reason: /about/ does not exist yet and the link
 // would 404. It returns here, and to the header, when the page does.
@@ -74,6 +83,31 @@ const nav = [
         }
       </ul>
     </nav>
+
+    {
+      profiles.length > 0 && (
+        <div class="site-footer__elsewhere">
+          <ul class="site-footer__icon-list">
+            {profiles.map((profile) => (
+              <li>
+                <a class="site-footer__icon-link" href={profile.href}>
+                  <svg
+                    class="site-footer__icon"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d={PROFILE_ICONS[profile.label]} />
+                  </svg>
+                  <span class="visually-hidden">{profile.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
 
     <div class="site-footer__colophon">
       <p>&copy; {year} TechNoise</p>
@@ -181,7 +215,7 @@ const nav = [
     }
   }
 
-  /* One column below the hinge: five stacked rows, each a full-width 44px+ target. The
+  /* One column below the hinge for the nav list, each row a full-width 44px+ target. The
      4px gap is the same ladder Header.astro's stacked nav uses — the link's own 12px of
      block padding is what separates the rows, not the gap. */
   .site-footer__list {
@@ -209,6 +243,34 @@ const nav = [
     text-decoration-thickness: 2px;
   }
 
+  /* A row, not a column, at every width: two marks are compact enough that mobile does
+     not need the nav list's stacked treatment. */
+  .site-footer__icon-list {
+    display: flex;
+    gap: var(--space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* 12px padding around a 24px glyph is a 48px target on both axes, over the WCAG 2.5.5
+     floor, built from spacing-scale steps rather than a literal 44px. */
+  .site-footer__icon-link {
+    display: inline-flex;
+    padding: var(--space-12);
+    color: var(--link);
+  }
+
+  .site-footer__icon {
+    inline-size: var(--space-24);
+    block-size: var(--space-24);
+  }
+
+  .site-footer__elsewhere {
+    display: flex;
+    align-items: center;
+  }
+
   .site-footer__colophon {
     display: grid;
     gap: var(--space-8);
@@ -224,7 +286,8 @@ const nav = [
        longest line is 274px; with the 123px lockup and two 48px gaps that is 857px of track
        in the 672px this column has at the hinge, which squeezes the colophon to ~90px and
        wraps it four ways. Brand and nav share row one (534px of 672px, 137px spare); the
-       colophon takes row two. DOM order is unchanged, so nothing reorders. */
+       Elsewhere pair and the colophon share row two, which is why the colophon no longer
+       spans both columns. DOM order is unchanged, so nothing reorders. */
     .site-footer__inner {
       grid-template-columns: 1fr auto;
       gap: var(--space-32) var(--space-48);
@@ -254,7 +317,6 @@ const nav = [
     }
 
     .site-footer__colophon {
-      grid-column: 1 / -1;
       gap: var(--space-4);
       font-size: var(--text-meta);
       text-align: end;

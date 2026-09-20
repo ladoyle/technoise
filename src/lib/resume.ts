@@ -7,8 +7,10 @@
 // are inseparable parts of institution proper names, not the owner's whereabouts.
 //
 // `profiles` derives from SITE.author.sameAs, so a profile link is added or removed
-// in one place and lights up the visible contact list and the JSON-LD `sameAs`
-// together — never write a profile URL literally in this file.
+// in one place and lights up the visible contact list, the JSON-LD `sameAs` and the
+// site footer's Elsewhere block together — never write a profile URL literally in
+// this file. That third consumer is why the export outlives this page: it is the
+// site's one derivation point for a profile URL, not the resume's alone.
 
 import { SITE } from "./seo";
 
@@ -172,9 +174,18 @@ const PROFILE_LABELS: Record<string, string> = {
 };
 
 // Derived, never written literally: one profile URL lives in SITE.author.sameAs and
-// feeds both the visible contact list and the JSON-LD. A host with no label here is
-// dropped rather than rendered under a guessed name.
+// feeds the visible contact list, the JSON-LD and the site footer alike. A host with
+// no label here is dropped rather than rendered under a guessed name, so callers must
+// tolerate an empty list rather than assume two entries.
+//
+// Two guards on what reaches an href. The scheme is checked because new URL() parses an
+// authority for any scheme, so "javascript://github.com/..." has host "github.com" and
+// would otherwise earn the GitHub label and render as a live link; the duller version of
+// the same slip is a typo'd "htps://" shipping a dead link under a correct-looking name.
+// The lookup uses hasOwn because PROFILE_LABELS is an object literal, so an inherited key
+// like "constructor" is truthy and would put a function where this type promises a string.
 export const profiles: Profile[] = SITE.author.sameAs.flatMap((href) => {
-  const label = PROFILE_LABELS[new URL(href).host];
-  return label ? [{ label, href }] : [];
+  const { protocol, host } = new URL(href);
+  if (protocol !== "https:" || !Object.hasOwn(PROFILE_LABELS, host)) return [];
+  return [{ label: PROFILE_LABELS[host], href }];
 });
