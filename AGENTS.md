@@ -84,7 +84,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 files, 418 tests; see docs/testing.md
+npm test             # vitest run — 16 files, 424 tests; see docs/testing.md
 ```
 
 Three run rules, each binding:
