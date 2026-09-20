@@ -337,17 +337,27 @@ describe("the footer's Elsewhere block stays tied to the profiles helper", () =>
     }
   });
 
-  it("the Elsewhere list is named by the heading above it", () => {
+  it("each Elsewhere link is icon-only but keeps a hidden accessible name", () => {
+    // No visible "Elsewhere" heading and no visible link text — the glyph alone is the
+    // content, so the accessible name has to come from somewhere still in the DOM. A
+    // .visually-hidden span carries it, and the glyph itself is aria-hidden so a screen
+    // reader does not also announce an unlabelled <svg>.
     for (const page of pages) {
-      const footer = footerRegion(page.html, page.path);
-      const list = footer.match(/<ul[^>]*aria-labelledby="([^"]+)"[^>]*>/);
-      expect(list, `${page.path}: the Elsewhere list is not labelled`).toBeTruthy();
-      const id = list![1];
-      // Exactly once per document: a duplicate id leaves the name ambiguous, and it is
-      // the only accessible name the list has.
-      const occurrences = page.html.split(`id="${id}"`).length - 1;
-      expect(occurrences, `${page.path}: id="${id}" appears ${occurrences} times`).toBe(1);
-      expect(footer, `${page.path}: id="${id}" is not in the footer`).toContain(`id="${id}"`);
+      const block = footerRegion(page.html, page.path).match(
+        /<div class="site-footer__elsewhere"[^>]*>([\s\S]*?)<\/div>/,
+      )?.[1];
+      expect(block, `${page.path} has no Elsewhere block`).toBeTruthy();
+      const items = [...block!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)];
+      expect(items.length, page.path).toBe(profiles.length);
+      items.forEach((item, i) => {
+        expect(item[1], `${page.path} item ${i}: glyph is not aria-hidden`).toMatch(
+          /<svg[^>]*aria-hidden="true"/,
+        );
+        const hidden = item[1].match(/<span class="visually-hidden"[^>]*>([^<]*)<\/span>/)?.[1];
+        expect(hidden, `${page.path} item ${i}: no hidden accessible name`).toBe(
+          profiles[i].label,
+        );
+      });
     }
   });
 
