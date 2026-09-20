@@ -1,6 +1,6 @@
 ---
 title: "Building this site with Astro"
-description: "Why this site is a static Astro build that ships no client JavaScript, and what its first three phases actually produced."
+description: "Why this site is a static Astro build that ships no client JavaScript by default, and what its first three phases actually produced."
 pubDate: 2026-09-15
 tags: [astro, meta]
 draft: false

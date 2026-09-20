@@ -1,14 +1,15 @@
 ---
 title: "The TechNoise site"
-description: "A static personal site built on Astro with no client JavaScript, a token-only design system, and typed Markdown content collections."
+description: "A static personal site built on Astro with one JavaScript island, a token-only design system, and typed Markdown content collections."
 stack: ["Astro", "TypeScript", "CSS", "Markdown", "GitHub Actions"]
-status: in-progress
+status: shipped
 startDate: 2026-09-14
 repoUrl: "https://github.com/ladoyle/technoise"
 draft: false
 ---
 
-This is the site you are reading, built in public and still in progress.
+This is the site you are reading. It is built in public, live on its own domain over
+HTTPS, and indexed — the repository below is the code that served this page.
 
 ## Problem
 
@@ -30,9 +31,11 @@ every contrast ratio measured against the page colour. Components may name a sem
 role — `--link`, `--text`, `--surface` — and nothing else. There are no hex values
 outside the token file.
 
-Zero client JavaScript is a posture, not an aspiration. The navigation is links. The
-dark scheme is the same tokens bound to different values under
-`prefers-color-scheme: dark`. Nothing hydrates, so there is nothing to hydrate slowly.
+Zero client JavaScript is a posture, not an aspiration. The dark scheme is the same
+tokens bound to different values under `prefers-color-scheme: dark`, and the type and
+colour systems ask for no runtime at all. Exactly one island survived the rule: the
+header's mobile nav disclosure, which cannot keep `aria-expanded`, Escape-to-close and
+click-outside honest without script. Nothing else on the site hydrates.
 
 Content is typed at the schema level. A post with no description, a title over
 forty-eight characters, or a tag with a capital letter in it fails the build rather
@@ -44,7 +47,8 @@ Astro for static output and typed content collections. TypeScript for the conten
 schemas and the handful of helper functions that sort posts, count tags and format
 dates. Hand-written CSS — no framework, no preprocessor, no utility classes. Markdown
 for every post and project. A GitHub Actions workflow builds the site and hands it to
-GitHub Pages; it has not been allowed to run against a real domain yet.
+GitHub Pages, which serves it on the custom domain over HTTPS. A plain `git push` to
+`master` is the entire deploy.
 
 ## What was hard
 
