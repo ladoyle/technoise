@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { ABOUT } from "../src/lib/about";
+
 // These assertions are about the built HTML, not about source. They cover the two
 // things that would fail silently on an upgrade: Shiki writing its theme back onto
 // code blocks, and a page losing the title/description budget Phase 4 builds on.
@@ -310,5 +312,31 @@ describe("the 404 page", () => {
   it("crops that illustration from its own anchor, deliberately not the hero's", () => {
     expect(notFound()).toMatch(/object-position:\s*50% 18%/);
     expect(home()).toMatch(/object-position:\s*50% 35%/);
+  });
+});
+
+// D1/D2 of home-about-teaser: the hero holds one orange "do this" and one ghost
+// alternative, and About moved to a teaser strip whose lede is read from ABOUT rather
+// than copied into the page, so the two cannot drift.
+describe("the home page's calls to action and About teaser", () => {
+  const home = () => pages.find((p) => p.path === "index.html")!.html;
+  const main = () => home().match(/<main[\s\S]*?<\/main>/)?.[0] ?? "";
+  const hero = () => main().match(/<section class="hero"[\s\S]*?<\/section>/)?.[0] ?? "";
+
+  it("holds exactly two buttons in the hero, exactly one of them the orange fill", () => {
+    const actions = hero().match(/<p class="hero__actions"[\s\S]*?<\/p>/)?.[0] ?? "";
+    const classes = [...actions.matchAll(/<a class="(button[^"]*)"/g)].map((m) => m[1].split(/\s+/));
+    expect(classes).toHaveLength(2);
+    expect(classes.filter((c) => !c.includes("button--ghost"))).toHaveLength(1);
+  });
+
+  it("links to /about/ from the teaser, outside the hero", () => {
+    expect(hero()).not.toContain('href="/about/"');
+    expect(main().replace(hero(), "")).toContain('href="/about/"');
+  });
+
+  it("renders ABOUT.lede as the teaser's lede", () => {
+    const decoded = main().replaceAll("&#39;", "'").replaceAll("&amp;", "&");
+    expect(decoded).toContain(ABOUT.lede);
   });
 });
