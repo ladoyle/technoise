@@ -21,10 +21,21 @@ interface Props {
   breadcrumb?: TrailItem[];
   prevPath?: string;
   nextPath?: string;
+  noindex?: boolean;
 }
 
-const { title, description, heading, lede, tags, activeTag, breadcrumb, prevPath, nextPath } =
-  Astro.props;
+const {
+  title,
+  description,
+  heading,
+  lede,
+  tags,
+  activeTag,
+  breadcrumb,
+  prevPath,
+  nextPath,
+  noindex,
+} = Astro.props;
 
 // No trail on the page means no BreadcrumbList: structured data is never emitted
 // for a path the reader cannot see.
@@ -36,6 +47,7 @@ const schema = breadcrumb ? [breadcrumbList(breadcrumb, Astro.site)] : undefined
   description={description}
   prevPath={prevPath}
   nextPath={nextPath}
+  noindex={noindex}
   schema={schema}
 >
   <div class="wrap">
