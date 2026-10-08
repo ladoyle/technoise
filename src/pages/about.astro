@@ -78,7 +78,7 @@ const schema = [
       class="about-hero__art"
     />
 
-    <div class="wrap about-hero__inner">
+    <div class="wrap wrap--wide about-hero__inner">
       <Picture
         src={portrait}
         alt={ABOUT.portraitAlt}
@@ -173,6 +173,15 @@ const schema = [
     block-size: 100%;
     object-fit: cover;
     object-position: 50% 35%;
+    /* Fades the art's left and bottom edges into the page, so it reads as a scene behind
+       the hero rather than a pasted rectangle — most visibly in dark mode, where the
+       scrimmed art is lighter than the page. A mask, not a painted gradient: only the
+       stops' alpha is used, so no colour is drawn and the no-gradients rule holds.
+       Masking only ever reveals more plain --surface, so it cannot lower text contrast. */
+    mask-image:
+      linear-gradient(to right, transparent, var(--surface) var(--space-96)),
+      linear-gradient(to top, transparent, var(--surface) var(--space-64));
+    mask-composite: intersect;
   }
 
   .about-hero::after {
@@ -208,7 +217,11 @@ const schema = [
     letter-spacing: var(--tracking-tight);
   }
 
+  /* The inner sits on the wide column, like index.astro's hero, which moves the portrait
+     and text left over the mascot; the measure cap then ends the lede before the art's
+     binary-digit column, which starts about 70% of the way across at desktop widths. */
   .about-hero__lede {
+    max-inline-size: 26ch;
     margin: var(--space-16) 0 0;
     color: var(--text);
     font-size: var(--text-h3);
