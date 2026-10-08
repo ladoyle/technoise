@@ -53,7 +53,7 @@ const nav = [
 
 <footer class="site-footer">
   <div class="wrap wrap--wide site-footer__inner">
-    <div class="site-footer__brand">
+    <a class="site-footer__brand" href="/" aria-label="TechNoise — Hear the future">
       {
         (["stacked", "wide"] as const).map((variant) => (
           <svg
@@ -68,7 +68,7 @@ const nav = [
           </svg>
         ))
       }
-    </div>
+    </a>
 
     <nav aria-label="Footer">
       <ul class="site-footer__list">

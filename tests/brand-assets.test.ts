@@ -364,7 +364,7 @@ describe("the footer brand lockup", () => {
 
   it("reserves the box with each lockup file's intrinsic size", () => {
     const rendered = readFileSync(join(root, "dist", "index.html"), "utf8");
-    const brand = /<div class="site-footer__brand"[\s\S]*?<\/div>/.exec(rendered);
+    const brand = /<a class="site-footer__brand"[\s\S]*?<\/a>/.exec(rendered);
     expect(brand, "the built footer renders no .site-footer__brand").not.toBeNull();
 
     for (const { variant, svg } of [
@@ -469,7 +469,7 @@ describe("the header's inlined brand mark", () => {
 // and a re-export only has to reach one of them to ship a hardcoded fill on every page.
 const MARK_PLACEMENTS = [
   { name: "header", region: /<a class="site-header__brand"[\s\S]*?<\/a>/, cls: "site-header__brand" },
-  { name: "footer", region: /<div class="site-footer__brand"[\s\S]*?<\/div>/, cls: "site-footer__brand" },
+  { name: "footer", region: /<a class="site-footer__brand"[\s\S]*?<\/a>/, cls: "site-footer__brand" },
 ] as const;
 
 for (const placement of MARK_PLACEMENTS) {
