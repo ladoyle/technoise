@@ -19,7 +19,7 @@ function htmlFiles(dir: string): string[] {
 
 // astro.config.mjs `redirects` emit a bare meta-refresh document — no head budget, no
 // site chrome, no lang — so it is not a page in any sense the assertions below mean.
-const isRedirectStub = (html: string) => /http-equiv="refresh"/.test(html);
+const isRedirectStub = (html: string) => /<meta http-equiv="refresh"/.test(html);
 
 let pages: { path: string; html: string }[] = [];
 let stubs: { path: string; html: string }[] = [];

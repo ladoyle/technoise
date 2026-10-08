@@ -25,7 +25,7 @@ function htmlFiles(dir: string): string[] {
 // astro.config.mjs `redirects` emit a bare meta-refresh document with no OG tags, no
 // feed link and no site chrome. It is not a page, so the per-page head contract below
 // skips it, and the sitemap check names it separately.
-const isRedirectStub = (html: string) => /http-equiv="refresh"/.test(html);
+const isRedirectStub = (html: string) => /<meta http-equiv="refresh"/.test(html);
 
 let pages: { route: string; html: string }[] = [];
 let stubs: { route: string; html: string }[] = [];

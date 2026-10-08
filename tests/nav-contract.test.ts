@@ -25,7 +25,7 @@ function htmlFiles(dir: string): string[] {
 
 // astro.config.mjs `redirects` emit a bare meta-refresh document with no header, footer
 // or nav. It is not a page, so every walk below skips it; the stub gets its own block.
-const isRedirectStub = (html: string) => /http-equiv="refresh"/.test(html);
+const isRedirectStub = (html: string) => /<meta http-equiv="refresh"/.test(html);
 
 let pages: { path: string; html: string }[] = [];
 let stubs: { path: string; html: string }[] = [];

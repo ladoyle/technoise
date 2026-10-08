@@ -214,7 +214,7 @@ describe("the one-file favicon", () => {
 
 // astro.config.mjs `redirects` emit a bare meta-refresh document: no BaseLayout, so no icon
 // links, header or footer. It is not a page, so the every-page walks below skip it.
-const isRedirectStub = (page: string) => /http-equiv="refresh"/.test(readFileSync(page, "utf8"));
+const isRedirectStub = (page: string) => /<meta http-equiv="refresh"/.test(readFileSync(page, "utf8"));
 
 // The document side. Every built page, not just index.html: the links live in BaseLayout, so
 // a route that bypassed it would be invisible to a single-file check.
