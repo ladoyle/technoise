@@ -48,7 +48,7 @@ export const STATIC_SITEMAP_ROUTES: readonly string[] = [
   "/",
   "/blog/",
   "/projects/",
-  "/resume/",
+  "/about/",
 ];
 
 export class MissingSiteError extends Error {

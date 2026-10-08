@@ -109,10 +109,10 @@ to `48em`; there is no equivalent pin for the CSS-side values today.
 
 ## Route-scoped stylesheets
 
-`src/styles/print.css` is the first of these, and the repo's first `@media print` rules —
-imported only by `src/pages/resume.astro`, so the rules ship on that route alone.
+No route-scoped stylesheet exists today (`print.css` went with the `/resume/` page). The rule in
+`AGENTS.md` still holds for the next one: the page that needs it imports it.
 
-It carries no token reset, and needs none: `tokens.css` scopes both dark-scheme blocks to
+A print stylesheet needs no token reset: `tokens.css` scopes both dark-scheme blocks to
 `@media screen`, so a reader whose OS is dark already gets the light tokens under
 `@media print` without anything print-side asking for them.
 
@@ -123,6 +123,12 @@ add no specificity, so a bare `@media print { :root { … } }` loses to
 Keep any future dark-scheme rule scoped to `@media screen`. `tests/build-output.test.ts`'s
 "the dark scheme stays off the printed page" suite enforces this by scanning every shipped
 CSS rule, not just by convention.
+
+## The About hero's edge fade
+
+`about.astro` fades the hero art's left and bottom edges with `mask-image`. A mask uses only
+the stops' alpha, so no colour is painted and the no-gradients rule holds. It only ever reveals
+more plain `--surface`, so it cannot lower text contrast.
 
 ## The one JS island
 

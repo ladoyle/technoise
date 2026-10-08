@@ -1,12 +1,12 @@
-// Shared by resume.astro and Footer.astro so the same three marks cannot drift into two
+// Shared by about.astro and Footer.astro so the same three marks cannot drift into two
 // slightly different path sets, the way brand-mark.ts is shared by Header and Footer for
 // the same reason.
 //
 // Glyphs: Bootstrap Icons, MIT (https://github.com/twbs/icons). The path data is copied
 // rather than depended on — three marks across two routes do not justify a package.
 //
-// Keyed by the same labels PROFILE_LABELS produces in src/lib/resume.ts: a host with no
-// entry here renders as a plain text link on /resume/, or is skipped in the footer, rather
+// Keyed by the same labels PROFILE_LABELS produces in src/lib/about.ts: a host with no
+// entry here renders as a plain text link on /about/, or is skipped in the footer, rather
 // than rendering under a guessed mark.
 export const PROFILE_ICONS: Record<string, string> = {
   Email:

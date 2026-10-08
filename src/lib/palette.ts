@@ -1,4 +1,4 @@
-// The palette as /styleguide/ prints it — content, like resume.ts, not a helper.
+// The palette as /styleguide/ prints it — content, like about.ts, not a helper.
 //
 // Two facts are declared here and nothing else is: each brand base's literal hex
 // (mirrored from src/styles/tokens.css) and, per swatch, which base each semantic

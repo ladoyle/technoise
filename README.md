@@ -20,14 +20,13 @@ detail (`docs/setup-guide.md` Phase 3). Every page now carries a canonical URL, 
 and Twitter card tags, and a JSON-LD graph; `/sitemap.xml`, `/rss.xml` and `/robots.txt` are
 generated at build, and shared links render a committed 1200×630 OG card instead of a grey
 placeholder (`docs/setup-guide.md` Phase 4). The home page is a real front door — mascot
-hero, one heading, one lede, three calls to action, latest posts and projects — with a
-primary nav that collapses behind a labelled toggle below 768px. `/resume/` is real content —
-summary, experience, skills and education, indexable and in the sitemap — with the owner's
-phone number and location deliberately excluded from the page, its structured data, and its
-metadata (see `AGENTS.md`'s note on `src/lib/resume.ts`). A 404 page is live, with its own
+hero, one heading, one lede, two calls to action, latest posts and projects, an About teaser — with a
+primary nav that collapses behind a labelled toggle below 768px. `/about/` is a first-person page — story, skills, contact links and a portrait — indexable and in the
+sitemap, with the owner's phone number and location deliberately excluded from the page, its
+structured data, and its metadata (see `AGENTS.md`'s About privacy rule). `/resume/` redirects
+to it. A 404 page is live, with its own
 dedicated mascot illustration distinct from the home hero's, `noindex`ed and excluded from
-the sitemap since a static host can't pair it with a real 404 status. There is no About
-page — out of scope for now.
+the sitemap since a static host can't pair it with a real 404 status.
 
 ## Running locally
 
@@ -37,7 +36,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 suites, 424 tests; see docs/testing.md for the map
+npm test             # vitest run — 16 suites, 432 tests; see docs/testing.md for the map
 ```
 
 Node `>=22.12.0` is required, pinned in `.nvmrc`.

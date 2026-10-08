@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { ABOUT } from "../src/lib/about";
+
 // These assertions are about the built HTML, not about source. They cover the two
 // things that would fail silently on an upgrade: Shiki writing its theme back onto
 // code blocks, and a page losing the title/description budget Phase 4 builds on.
@@ -17,17 +19,28 @@ function htmlFiles(dir: string): string[] {
   );
 }
 
+// astro.config.mjs `redirects` emit a bare meta-refresh document — no head budget, no
+// site chrome, no lang — so it is not a page in any sense the assertions below mean.
+const isRedirectStub = (html: string) => /<meta http-equiv="refresh"/.test(html);
+
 let pages: { path: string; html: string }[] = [];
+let stubs: { path: string; html: string }[] = [];
 
 beforeAll(() => {
   // dist/ is built once per run by tests/global-setup.ts. Reusing an existing dist/
   // here meant a stale page count could be asserted against and reported green.
-  pages = htmlFiles(dist).map((path) => ({ path: relative(dist, path), html: readFileSync(path, "utf8") }));
+  const all = htmlFiles(dist).map((path) => ({ path: relative(dist, path), html: readFileSync(path, "utf8") }));
+  pages = all.filter((p) => !isRedirectStub(p.html));
+  stubs = all.filter((p) => isRedirectStub(p.html));
 });
 
 describe("the build output itself", () => {
   it("contains the nineteen pages this phase generates", () => {
     expect(pages.length).toBe(19);
+  });
+
+  it("emits exactly one redirect stub, for the retired /resume/", () => {
+    expect(stubs.map((s) => s.path)).toEqual([join("resume", "index.html")]);
   });
 });
 
@@ -151,10 +164,11 @@ describe("the hero's ghost CTA hover state", () => {
   });
 });
 
-// Gatekeeper audit G15: print.css resets no token, because tokens.css scopes both
-// dark-scheme blocks to `@media screen` and the light defaults are therefore already in
-// force on paper. That scoping is now the only thing holding the invariant, and a print
-// stylesheet could not repair it if it were dropped — a bare `:root` reset loses to
+// Gatekeeper audit G15: the site ships no print stylesheet, and needs none for colour,
+// because tokens.css scopes both dark-scheme blocks to `@media screen` and the light
+// defaults are therefore already in force when a browser prints a page. That scoping is
+// the only thing holding the invariant, and a print stylesheet could not repair it if it
+// were dropped — a bare `:root` reset loses to
 // `:root:not([data-theme="light"])` on specificity, and a media query adds none. So the
 // rule is asserted on the shipped CSS: nothing that paints the dark scheme may apply in
 // print. Losing it prints cream text on a dropped background for any dark-OS reader.
@@ -298,5 +312,31 @@ describe("the 404 page", () => {
   it("crops that illustration from its own anchor, deliberately not the hero's", () => {
     expect(notFound()).toMatch(/object-position:\s*50% 18%/);
     expect(home()).toMatch(/object-position:\s*50% 35%/);
+  });
+});
+
+// D1/D2 of home-about-teaser: the hero holds one orange "do this" and one ghost
+// alternative, and About moved to a teaser strip whose lede is read from ABOUT rather
+// than copied into the page, so the two cannot drift.
+describe("the home page's calls to action and About teaser", () => {
+  const home = () => pages.find((p) => p.path === "index.html")!.html;
+  const main = () => home().match(/<main[\s\S]*?<\/main>/)?.[0] ?? "";
+  const hero = () => main().match(/<section class="hero"[\s\S]*?<\/section>/)?.[0] ?? "";
+
+  it("holds exactly two buttons in the hero, exactly one of them the orange fill", () => {
+    const actions = hero().match(/<p class="hero__actions"[\s\S]*?<\/p>/)?.[0] ?? "";
+    const classes = [...actions.matchAll(/<a class="(button[^"]*)"/g)].map((m) => m[1].split(/\s+/));
+    expect(classes).toHaveLength(2);
+    expect(classes.filter((c) => !c.includes("button--ghost"))).toHaveLength(1);
+  });
+
+  it("links to /about/ from the teaser, outside the hero", () => {
+    expect(hero()).not.toContain('href="/about/"');
+    expect(main().replace(hero(), "")).toContain('href="/about/"');
+  });
+
+  it("renders ABOUT.lede as the teaser's lede", () => {
+    const decoded = main().replaceAll("&#39;", "'").replaceAll("&amp;", "&");
+    expect(decoded).toContain(ABOUT.lede);
   });
 });

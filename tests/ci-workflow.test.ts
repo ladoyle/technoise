@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
 // Issue #21: no workflow ran `npm test` or `astro check`, and nothing had a
 // `pull_request` trigger at all, so PR #20 opened with zero check runs. The resume
 // privacy guard in nav-contract.test.ts was the stated enforcement mechanism for a hard
-// requirement — no phone number, no city or state on /resume/ — and only ever ran when
-// someone remembered to run it locally.
+// requirement — no phone number, no city or state on /resume/ (now /about/) — and only
+// ever ran when someone remembered to run it locally.
 //
 // workflow-permissions.test.ts already covers ci.yml for permission scoping and action
 // pinning, because its `it.each` walks every file in .github/workflows/. What nothing

@@ -22,7 +22,13 @@ function htmlFiles(dir: string): string[] {
   );
 }
 
+// astro.config.mjs `redirects` emit a bare meta-refresh document with no OG tags, no
+// feed link and no site chrome. It is not a page, so the per-page head contract below
+// skips it, and the sitemap check names it separately.
+const isRedirectStub = (html: string) => /<meta http-equiv="refresh"/.test(html);
+
 let pages: { route: string; html: string }[] = [];
+let stubs: { route: string; html: string }[] = [];
 let sitemap = "";
 let feed = "";
 let robots = "";
@@ -32,11 +38,13 @@ beforeAll(() => {
   // The build this used to run itself now happens once per run in
   // tests/global-setup.ts, for the same reason: reusing an existing dist/ meant a tree
   // left behind by another branch could be asserted against and reported green.
-  pages = htmlFiles(dist).map((path) => ({
+  const all = htmlFiles(dist).map((path) => ({
     // dist/blog/index.html -> /blog/
     route: `/${relative(dist, path).replace(/index\.html$/, "").split(/[\\/]/).join("/")}`,
     html: readFileSync(path, "utf8"),
   }));
+  pages = all.filter((p) => !isRedirectStub(p.html));
+  stubs = all.filter((p) => isRedirectStub(p.html));
   sitemap = readFileSync(join(dist, "sitemap.xml"), "utf8");
   feed = readFileSync(join(dist, "rss.xml"), "utf8");
   robots = readFileSync(join(dist, "robots.txt"), "utf8");
@@ -82,6 +90,13 @@ describe("sitemap.xml", () => {
     // long as the page keeps its noindex tag. Dropping both together would
     // otherwise pass.
     expect(listed.has("/404.html")).toBe(false);
+    // A redirect stub is noindex and is excluded from `pages`, so the general rule above
+    // cannot see it. Asserted directly, and vacuity-guarded: /resume/ must still be one.
+    expect(stubs.map((s) => s.route)).toContain("/resume/");
+    for (const stub of stubs) {
+      expect(isNoindex(stub.html), stub.route).toBe(true);
+      expect(listed.has(stub.route), `${stub.route} is a redirect stub in the sitemap`).toBe(false);
+    }
   });
 
   it("lists each URL exactly once", () => {

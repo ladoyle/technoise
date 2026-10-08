@@ -32,7 +32,7 @@ install into a clean `node_modules`.
 
 ## Suite map
 
-16 files, 424 tests.
+16 files, 432 tests.
 
 | Suite | Covers |
 |---|---|
@@ -42,7 +42,7 @@ install into a clean `node_modules`.
 | `seo-helpers` | `src/lib/seo.ts` — absolute URLs, canonicals, root-deploy assertion |
 | `build-output` | Shipped HTML and CSS in `dist/` |
 | `discovery-output` | `sitemap.xml`, `rss.xml`, `robots.txt` |
-| `nav-contract` | Nav/route resolution, plus the resume privacy regression |
+| `nav-contract` | Nav/route resolution, plus the About privacy regression |
 | `brand-assets` | The brand SVGs, the header's inlined mark, `public/` orphan guard |
 | `mark-tint-contract` | Dark-mode tint roles and the frozen mascot contrast figures |
 | `mark-tagline-scale` | Mark geometry, tagline cap height, per-pixel fill boundaries |
@@ -55,10 +55,13 @@ install into a clean `node_modules`.
 
 ## Suites that carry more than their name suggests
 
-**`nav-contract`** also carries `/resume/`'s privacy regression assertions (see AGENTS.md's
-resume rule). Its phone-shape scan strips `<svg>…</svg>` from the visible HTML first, since
+**`nav-contract`** also carries `/about/`'s privacy regression assertions (see AGENTS.md's
+About privacy rule), including the home page's About teaser. Its phone-shape scan strips `<svg>…</svg>` from the visible HTML first, since
 the header's inlined brand mark puts viewBox coordinates on every page — including
-`/resume/` — that can otherwise look phone-shaped.
+`/about/` — that can otherwise look phone-shaped.
+
+Suites that walk built pages skip the `/resume/` redirect stub, detected by its
+`<meta http-equiv="refresh"` tag: it has no header, footer or OG tags by design.
 
 **`build-output`** also carries CSS-cascade/specificity assertions for the hero ghost-CTA
 hover rule; asserts every dark-scheme CSS rule in the shipped output stays `@media screen`-
