@@ -1,8 +1,8 @@
 ---
 // The front door. A first-time visitor arriving at / with no context gets one
 // sentence about what this is and two calls to action — the blog and the projects —
-// with a teaser of each below. Not a design-system memo, which is what this page
-// used to be. That material moved to /styleguide/,
+// with a teaser of each and a short About strip below. Not a design-system memo,
+// which is what this page used to be. That material moved to /styleguide/,
 // where the reasoning and the specimens now sit together.
 //
 // The lede's positioning line is human-authored and lives only here, as literal prose;
@@ -27,7 +27,9 @@ import PostCard from "../components/PostCard.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import { getPublishedPosts, getPublishedProjects, readingMinutes } from "../lib/content";
 import { SITE, absoluteUrl } from "../lib/seo";
+import { ABOUT } from "../lib/about";
 import heroArt from "../assets/technoise-background.png";
+import portrait from "../assets/about-portrait.jpg";
 
 // A hero on its own would be a splash screen hiding the two posts and the project
 // that already exist one click away, for no saving. The slices are the teaser, not
@@ -140,6 +142,25 @@ const schema = [
       <p class="teaser__more">
         <a href="/projects/">All projects <span aria-hidden="true">&rarr;</span></a>
       </p>
+    </section>
+
+    <section>
+      <h2 class="teaser__title">About</h2>
+      <div class="teaser__about">
+        <Picture
+          src={portrait}
+          alt={ABOUT.portraitAlt}
+          widths={[96, 192]}
+          sizes="96px"
+          class="teaser__portrait"
+        />
+        <div class="teaser__about-text">
+          <p class="teaser__lede">{ABOUT.lede}</p>
+          <p class="teaser__more">
+            <a href="/about/">About me <span aria-hidden="true">&rarr;</span></a>
+          </p>
+        </div>
+      </div>
     </section>
   </div>
 </BaseLayout>
@@ -265,6 +286,32 @@ const schema = [
     text-decoration-thickness: 2px;
   }
 
+  .teaser__about {
+    display: grid;
+    gap: var(--space-24);
+    justify-items: start;
+  }
+
+  .teaser__portrait {
+    display: block;
+    inline-size: var(--space-96);
+    block-size: var(--space-96);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-full);
+    object-fit: cover;
+  }
+
+  .teaser__about-text {
+    max-inline-size: var(--content);
+  }
+
+  .teaser__lede {
+    margin: 0;
+    color: var(--text);
+    font-size: var(--text-body);
+    line-height: var(--lh-body);
+  }
+
   @media (min-width: 48em) {
     .hero {
       padding-block: var(--space-96);
@@ -277,6 +324,12 @@ const schema = [
 
     .teaser__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .teaser__about {
+      grid-template-columns: auto 1fr;
+      gap: var(--space-32);
+      align-items: start;
     }
   }
 </style>
