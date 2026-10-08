@@ -17,17 +17,28 @@ function htmlFiles(dir: string): string[] {
   );
 }
 
+// astro.config.mjs `redirects` emit a bare meta-refresh document — no head budget, no
+// site chrome, no lang — so it is not a page in any sense the assertions below mean.
+const isRedirectStub = (html: string) => /http-equiv="refresh"/.test(html);
+
 let pages: { path: string; html: string }[] = [];
+let stubs: { path: string; html: string }[] = [];
 
 beforeAll(() => {
   // dist/ is built once per run by tests/global-setup.ts. Reusing an existing dist/
   // here meant a stale page count could be asserted against and reported green.
-  pages = htmlFiles(dist).map((path) => ({ path: relative(dist, path), html: readFileSync(path, "utf8") }));
+  const all = htmlFiles(dist).map((path) => ({ path: relative(dist, path), html: readFileSync(path, "utf8") }));
+  pages = all.filter((p) => !isRedirectStub(p.html));
+  stubs = all.filter((p) => isRedirectStub(p.html));
 });
 
 describe("the build output itself", () => {
   it("contains the nineteen pages this phase generates", () => {
     expect(pages.length).toBe(19);
+  });
+
+  it("emits exactly one redirect stub, for the retired /resume/", () => {
+    expect(stubs.map((s) => s.path)).toEqual([join("resume", "index.html")]);
   });
 });
 
@@ -151,10 +162,11 @@ describe("the hero's ghost CTA hover state", () => {
   });
 });
 
-// Gatekeeper audit G15: print.css resets no token, because tokens.css scopes both
-// dark-scheme blocks to `@media screen` and the light defaults are therefore already in
-// force on paper. That scoping is now the only thing holding the invariant, and a print
-// stylesheet could not repair it if it were dropped — a bare `:root` reset loses to
+// Gatekeeper audit G15: the site ships no print stylesheet, and needs none for colour,
+// because tokens.css scopes both dark-scheme blocks to `@media screen` and the light
+// defaults are therefore already in force when a browser prints a page. That scoping is
+// the only thing holding the invariant, and a print stylesheet could not repair it if it
+// were dropped — a bare `:root` reset loses to
 // `:root:not([data-theme="light"])` on specificity, and a media query adds none. So the
 // rule is asserted on the shipped CSS: nothing that paints the dark scheme may apply in
 // print. Losing it prints cream text on a dropped background for any dark-OS reader.

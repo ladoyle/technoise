@@ -212,6 +212,10 @@ describe("the one-file favicon", () => {
   });
 });
 
+// astro.config.mjs `redirects` emit a bare meta-refresh document: no BaseLayout, so no icon
+// links, header or footer. It is not a page, so the every-page walks below skip it.
+const isRedirectStub = (page: string) => /http-equiv="refresh"/.test(readFileSync(page, "utf8"));
+
 // The document side. Every built page, not just index.html: the links live in BaseLayout, so
 // a route that bypassed it would be invisible to a single-file check.
 describe("BaseLayout ships one scheme-invariant icon set", () => {
@@ -221,7 +225,7 @@ describe("BaseLayout ships one scheme-invariant icon set", () => {
       return entry.isDirectory() ? walkHtml(full) : full.endsWith(".html") ? [full] : [];
     });
 
-  const pages = walkHtml(join(root, "dist"));
+  const pages = walkHtml(join(root, "dist")).filter((page) => !isRedirectStub(page));
   const iconsOn = (page: string) =>
     [...readFileSync(page, "utf8").matchAll(/<link[^>]+rel="icon"[^>]*>/g)].map((m) => m[0]);
 
@@ -480,7 +484,7 @@ for (const placement of MARK_PLACEMENTS) {
         return entry.isDirectory() ? walk(full) : full.endsWith(".html") ? [full] : [];
       });
 
-    const pages = walk(join(root, "dist"));
+    const pages = walk(join(root, "dist")).filter((page) => !isRedirectStub(page));
 
     // Each region is captured non-greedily to its own closing tag, which is the whole lockup
     // only for as long as neither wrapper gains a nested element of the same name. Asserting

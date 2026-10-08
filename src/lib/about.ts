@@ -43,7 +43,7 @@ export const ABOUT: About = {
     "PLACEHOLDER — paragraph 2 from the approved copy brief goes here.",
     "PLACEHOLDER — paragraph 3 from the approved copy brief goes here.",
   ],
-  // The four groups already published on the old /resume/. The brief names six; the
+  // The four groups the site already published before this page. The brief names six; the
   // two it adds, and any relabelling, are pending with the rest of the copy.
   skills: [
     {

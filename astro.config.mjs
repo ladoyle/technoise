@@ -36,6 +36,14 @@ const stripShikiColours = {
 export default defineConfig({
   site: 'https://technoise.dev',
 
+  // /resume/ became /about/, and the old URL is indexed and linked from outside. GitHub
+  // Pages cannot send a real 301, so Astro writes a static stub instead: a 0s
+  // meta-refresh, robots noindex and a canonical at the new page, which search engines
+  // treat as a permanent move.
+  redirects: {
+    '/resume': '/about/',
+  },
+
   markdown: {
     shikiConfig: {
       transformers: [stripShikiColours],
