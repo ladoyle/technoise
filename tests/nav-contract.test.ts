@@ -220,6 +220,23 @@ describe("the about page keeps the contract its content is published under", () 
     expect(PHONE_SHAPED.exec(graph)?.[0] ?? null).toBeNull();
   });
 
+  // The home page renders the About teaser from the same module, so the rule that governs
+  // /about/ governs it too.
+  it("holds the same privacy rule on the home page, which renders the About teaser", () => {
+    const home = pages.find((p) => p.path === "index.html");
+    expect(home, "no home page built").toBeTruthy();
+    const html = home!.html;
+    expect(html).not.toContain("tel:");
+    expect(PHONE_SHAPED.exec(html.replace(/<svg[\s\S]*?<\/svg>/g, ""))?.[0] ?? null).toBeNull();
+    const ld = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
+    if (ld) {
+      const graph = JSON.stringify(JSON.parse(ld));
+      for (const key of FORBIDDEN_KEYS) {
+        expect(graph, `home JSON-LD carries "${key}"`).not.toContain(key);
+      }
+    }
+  });
+
   it("ships no placeholder link — a profile with no URL renders no list item", () => {
     expect(aboutPage()).not.toContain('href="#"');
     // The footer derives from the same `profiles` helper, so the same failure mode —
