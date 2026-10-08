@@ -49,7 +49,7 @@ export const ABOUT: About = {
     { label: "AI-assisted development", items: ["prompt engineering", "agent workflows"] },
     { label: "Leadership", items: ["mentoring", "Agile delivery"] },
   ],
-  portraitAlt: "Luke Doyle, smiling, wearing dark-framed glasses and a dark t-shirt",
+  portraitAlt: "Luke Doyle, smiling, wearing dark-framed glasses against a white background",
 };
 
 export interface Profile {
