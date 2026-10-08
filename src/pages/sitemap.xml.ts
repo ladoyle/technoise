@@ -4,8 +4,8 @@
 //
 // MAINTENANCE: this file and STATIC_SITEMAP_ROUTES are the only record of what is in
 // the sitemap. A new route must be added to that registry or to the expansion below,
-// or it will never be listed. /styleguide/ and /404.html are absent on purpose — both
-// are noindex, and a noindex page listed here contradicts itself.
+// or it will never be listed. /styleguide/, /404.html and every /blog/tags/ archive are
+// absent on purpose — all are noindex, and a noindex page listed here contradicts itself.
 //
 // Built from src/lib/content.ts's publishing rules rather than from getCollection, so
 // drafts fall out of a production build for free and the feed, the listings and this
@@ -15,7 +15,6 @@ import type { APIRoute } from "astro";
 
 import {
   PAGE_SIZE,
-  collectTags,
   getPublishedPosts,
   getPublishedProjects,
   isoDate,
@@ -54,10 +53,6 @@ export const GET: APIRoute = async ({ site }) => {
     ...STATIC_SITEMAP_ROUTES.map((path) => ({ path, lastmod: staticLastmod[path] })),
     ...paginated,
     ...posts.map((post) => ({ path: `/blog/${post.id}/`, lastmod: postDate(post) })),
-    ...collectTags(posts).map(({ tag }) => ({
-      path: `/blog/tags/${tag}/`,
-      lastmod: newestOf(posts.filter((post) => post.data.tags.includes(tag)).map(postDate)),
-    })),
     ...projects.map((project) => ({
       path: `/projects/${project.id}/`,
       lastmod: project.data.startDate,
