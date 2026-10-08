@@ -49,9 +49,7 @@ export const ABOUT: About = {
     { label: "AI-assisted development", items: ["prompt engineering", "agent workflows"] },
     { label: "Leadership", items: ["mentoring", "Agile delivery"] },
   ],
-  // Empty while the portrait is a flat placeholder: there is nothing in it to describe.
-  // The real alt text arrives with the real photo.
-  portraitAlt: "",
+  portraitAlt: "Luke Doyle, smiling, wearing dark-framed glasses and a dark t-shirt",
 };
 
 export interface Profile {
