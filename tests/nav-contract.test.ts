@@ -186,6 +186,11 @@ describe("the about page keeps the contract its content is published under", () 
     expect(aboutPage()).toMatch(/<meta name="robots" content="index, follow, max-image-preview:large"/);
   });
 
+  it("uses the lede as its meta description, so the two cannot drift", () => {
+    const content = aboutPage().match(/<meta name="description" content="([^"]*)"/)?.[1];
+    expect(content?.replaceAll("&#39;", "'").replaceAll("&amp;", "&")).toBe(ABOUT.lede);
+  });
+
   it("shows the two sections that have content, and no heading that promises more", () => {
     const html = aboutPage();
     const body = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;

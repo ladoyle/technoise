@@ -23,8 +23,9 @@ import heroArt from "../assets/technoise-background.png";
 import portrait from "../assets/about-portrait.jpg";
 
 const title = pageTitle("About Luke Doyle");
-const description =
-  "Luke Doyle, a lead software engineer: security roots, platform design, team leadership and AI-assisted development — and the skills behind them.";
+// The lede is the page's own one-line summary, so it is the meta description too: one
+// sentence in about.ts rather than two that can drift apart.
+const description = ABOUT.lede;
 
 const home = absoluteUrl("/", Astro.site);
 // The same id the home page emits, so the site describes one person, not two.
