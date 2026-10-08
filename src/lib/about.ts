@@ -31,47 +31,23 @@ export interface About {
   portraitAlt: string;
 }
 
-// PLACEHOLDER: the lede and P1–P3 below stand in for the approved about-page copy brief,
-// which has not reached the repo. Replace them word for word before this ships.
 export const ABOUT: About = {
   name: "Luke Doyle",
   jobTitle: "Lead Software Engineer",
   email: "doyleluke76@gmail.com",
-  lede: "PLACEHOLDER — the About lede from the approved copy brief goes here.",
+  lede: "I'm Luke, a lead software engineer building systems that people rely on with skills people can trust.",
   paragraphs: [
-    "PLACEHOLDER — paragraph 1 from the approved copy brief goes here.",
-    "PLACEHOLDER — paragraph 2 from the approved copy brief goes here.",
-    "PLACEHOLDER — paragraph 3 from the approved copy brief goes here.",
+    "Starting in security, I broke things on purpose to learn how they fail. That knowledge taught me how to build systems that hold up under pressure, and how to choose technology that lasts instead of technology that merely trends.",
+    "These skills have followed me through every level of my career. From the automotive industry to finance, I've grown from writing code to designing the platforms built from it, and then to leading the teams that build them. Each step reinforced the same lesson: reliability at scale comes from good decisions made early. The best way I've found to make those decisions stick is to share what I know, so mentoring is as much a part of my work as building.",
+    "Lately, I put my expertise into AI-assisted development and AI-powered systems, to better the ways that people work. I treat prompts and agent workflows like any other engineering surface, something to design, measure, and improve, so the tools save real time instead of adding noise. In the end, my goal is simple: build things that work, and let the people who depend on them rest easy.",
   ],
-  // The four groups the site already published before this page. The brief names six; the
-  // two it adds, and any relabelling, are pending with the rest of the copy.
   skills: [
-    {
-      label: "Languages and frameworks",
-      items: ["Java", "Spring Boot", "Python", "Go", "C/C++", "Bash", "Lombok", "REST APIs"],
-    },
-    {
-      label: "Cloud and infrastructure",
-      items: [
-        "AWS ECS",
-        "AWS API Gateway",
-        "AWS Lambda",
-        "AWS Glue",
-        "Amazon CloudWatch",
-        "Kubernetes",
-        "Docker",
-        "Terraform",
-        "Linux",
-      ],
-    },
-    {
-      label: "Data and messaging",
-      items: ["Snowflake", "DynamoDB", "Apache Kafka", "PySpark", "ETL"],
-    },
-    {
-      label: "Development and AI",
-      items: ["Copilot", "prompt engineering", "distributed systems", "API design", "CRUD"],
-    },
+    { label: "Systems", items: ["distributed systems", "API design", "data pipelines"] },
+    { label: "Cloud", items: ["AWS", "Kubernetes", "Docker", "Terraform"] },
+    { label: "Languages", items: ["Java", "Python", "Go"] },
+    { label: "Data", items: ["Snowflake", "Kafka", "PySpark"] },
+    { label: "AI-assisted development", items: ["prompt engineering", "agent workflows"] },
+    { label: "Leadership", items: ["mentoring", "Agile delivery"] },
   ],
   // Empty while the portrait is a flat placeholder: there is nothing in it to describe.
   // The real alt text arrives with the real photo.
