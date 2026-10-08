@@ -1,0 +1,306 @@
+---
+// A first-person page, not a document: who the owner is, what he works with, and where
+// else to find him. Every string and profile link comes from src/lib/about.ts, so the
+// visible page and the structured data below cannot disagree — and so the privacy rule
+// that module's types enforce (no phone number, no location) holds for this page's
+// metadata too.
+//
+// The hero reuses the home page's art-under-scrim construction and its tokens, so the
+// contrast of text over it is the known composite tokens.css documents rather than a new
+// guess. Only the H1, the lede and the portrait sit on the art; everything that is read
+// at length sits on plain --surface. Nothing in the hero is --text-muted, for the reason
+// index.astro gives.
+
+import { Picture } from "astro:assets";
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Prose from "../components/Prose.astro";
+import TagPill from "../components/TagPill.astro";
+import { ABOUT, profiles } from "../lib/about";
+import { PROFILE_ICONS } from "../lib/profile-icons";
+import { SITE, absoluteUrl, pageTitle } from "../lib/seo";
+import heroArt from "../assets/technoise-background.png";
+import portrait from "../assets/about-portrait.png";
+
+const title = pageTitle("About Luke Doyle");
+const description =
+  "Luke Doyle, a lead software engineer: security roots, platform design, team leadership and AI-assisted development — and the skills behind them.";
+
+const home = absoluteUrl("/", Astro.site);
+// The same id the home page emits, so the site describes one person, not two.
+const personId = `${home}#person`;
+const aboutUrl = absoluteUrl("/about/", Astro.site);
+
+const skillGroups = ABOUT.skills.filter((group) => group.items.length > 0);
+
+const contacts = [
+  { label: "Email", text: ABOUT.email, href: `mailto:${ABOUT.email}` },
+  ...profiles.map((profile) => ({
+    label: profile.label,
+    text: profile.label,
+    href: profile.href,
+  })),
+];
+
+const schema = [
+  {
+    "@type": "ProfilePage",
+    "@id": `${aboutUrl}#profilepage`,
+    url: aboutUrl,
+    name: title,
+    inLanguage: SITE.locale,
+    mainEntity: { "@id": personId },
+  },
+  {
+    "@type": "Person",
+    "@id": personId,
+    name: SITE.author.name,
+    url: home,
+    sameAs: SITE.author.sameAs,
+    jobTitle: ABOUT.jobTitle,
+    email: `mailto:${ABOUT.email}`,
+    description: ABOUT.lede,
+    knowsAbout: skillGroups.flatMap((group) => group.items),
+  },
+];
+---
+
+<BaseLayout title={title} description={description} schema={schema}>
+  <section class="about-hero">
+    <Picture
+      src={heroArt}
+      alt=""
+      widths={[640, 960, 1280, 1536]}
+      sizes="100vw"
+      formats={["avif", "webp"]}
+      loading="eager"
+      class="about-hero__art"
+    />
+
+    <div class="wrap about-hero__inner">
+      <Picture
+        src={portrait}
+        alt={ABOUT.portraitAlt}
+        widths={[96, 192, 384]}
+        sizes="(min-width: 48em) 192px, 96px"
+        loading="eager"
+        class="about-hero__portrait"
+      />
+      <div>
+        <h1 class="about-hero__title">About</h1>
+        <p class="about-hero__lede">{ABOUT.lede}</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <Prose class="about__prose">
+      {ABOUT.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+    </Prose>
+
+    {
+      skillGroups.length > 0 && (
+        <section aria-labelledby="skills">
+          <h2 class="about__heading" id="skills">
+            Skills
+          </h2>
+          <dl class="about__skills">
+            {skillGroups.map((group) => (
+              <div class="about__skill-group">
+                <dt class="eyebrow">{group.label}</dt>
+                <dd>
+                  <ul class="about__skill-list">
+                    {group.items.map((item) => (
+                      <li>
+                        <TagPill label={item} />
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )
+    }
+
+    <section aria-labelledby="elsewhere">
+      <h2 class="about__heading" id="elsewhere">Elsewhere</h2>
+      <ul class="about__contact">
+        {
+          contacts.map((contact) => (
+            <li>
+              <a href={contact.href}>
+                {PROFILE_ICONS[contact.label] && (
+                  <svg
+                    class="about__icon"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d={PROFILE_ICONS[contact.label]} />
+                  </svg>
+                )}
+                <span class="about__contact-label">{contact.text}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* index.astro's .hero, on the 720px column rather than the wide one: the negative top
+     margin cancels main's opening padding so the art sits flush under the header, and
+     isolation keeps the two negative-z-index layers inside this section. */
+  .about-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin-block-start: calc(var(--space-48) * -1);
+    padding-block: var(--space-64);
+  }
+
+  .about-hero__art {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: 50% 35%;
+  }
+
+  .about-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--surface);
+    opacity: var(--scrim-opacity);
+  }
+
+  .about-hero__inner {
+    display: grid;
+    gap: var(--space-24);
+    justify-items: start;
+  }
+
+  /* A circle reads as a person; a square would read as a ProjectCard screenshot. */
+  .about-hero__portrait {
+    display: block;
+    inline-size: var(--space-96);
+    block-size: var(--space-96);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-full);
+    object-fit: cover;
+  }
+
+  .about-hero__title {
+    margin: 0;
+    font-size: var(--text-h1);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .about-hero__lede {
+    margin: var(--space-16) 0 0;
+    color: var(--text);
+    font-size: var(--text-h3);
+    line-height: var(--lh-body);
+  }
+
+  .about__prose {
+    margin-block-start: var(--space-64);
+  }
+
+  .about__heading {
+    margin-block: var(--space-64) var(--space-24);
+    font-size: var(--text-h2);
+    font-weight: var(--weight-semibold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .about__skills {
+    display: grid;
+    gap: var(--space-24);
+    margin: 0;
+  }
+
+  /* .eyebrow supplies the label's type; this is only its rhythm. */
+  .about__skill-group dt {
+    margin-block-end: var(--space-12);
+  }
+
+  .about__skill-group dd {
+    margin: 0;
+  }
+
+  .about__skill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .about__contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8) var(--space-24);
+    margin: 0;
+    padding: 0;
+    font-size: var(--size-16);
+    list-style: none;
+  }
+
+  /* The underline moves to the label so it does not run under the glyph; the link keeps
+     one focus ring and one hit area around both. */
+  .about__contact a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding-block: var(--space-8);
+    color: var(--link);
+    text-decoration: none;
+  }
+
+  .about__contact-label {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .about__contact a:hover .about__contact-label {
+    text-decoration-thickness: 2px;
+  }
+
+  .about__icon {
+    flex: 0 0 auto;
+    inline-size: var(--space-24);
+    block-size: var(--space-24);
+  }
+
+  @media (min-width: 48em) {
+    .about-hero {
+      padding-block: var(--space-96);
+    }
+
+    .about-hero__inner {
+      grid-template-columns: auto 1fr;
+      gap: var(--space-32);
+      align-items: center;
+    }
+
+    .about-hero__portrait {
+      inline-size: calc(var(--space-96) * 2);
+      block-size: calc(var(--space-96) * 2);
+    }
+  }
+</style>
