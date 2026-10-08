@@ -32,10 +32,6 @@ import { brandMark } from "../lib/brand-mark";
 // display technique as the toggle's own icons, so the header still has exactly one
 // responsive breakpoint to reason about.
 //
-// Every route below returns 200. /about/ is not in the list because the page does not
-// exist yet — a nav item that promises a 404 is worse than no nav item, so About
-// returns to both this list and the footer's when the page does.
-//
 // The disclosure below is the site's one JS island, and it is deliberate. A toggle
 // with aria-expanded, aria-controls, Escape-to-close and click-outside cannot be built
 // from HTML and CSS: <details>/<summary> was the zero-JS candidate and loses on all
@@ -50,7 +46,7 @@ const marks = {
 const nav = [
   { href: "/blog/", label: "Blog" },
   { href: "/projects/", label: "Projects" },
-  { href: "/resume/", label: "Resume" },
+  { href: "/about/", label: "About" },
   { href: "/styleguide/", label: "Styleguide" },
 ];
 

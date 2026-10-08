@@ -4,16 +4,12 @@
 // memo, which is what this page used to be. That material moved to /styleguide/,
 // where the reasoning and the specimens now sit together.
 //
-// The lede's positioning derives from RESUME.focus in src/lib/resume.ts — human-authored
-// and already public on /resume/ — rather than being invented here. It stays literal
-// prose instead of interpolating that field: RESUME.focus is a capitalised fragment
-// ending in a period, and splicing it mid-sentence would mean lowercasing and trimming
-// it at build time, which is brittle string surgery for one line. The cost is that the
-// positioning now lives in two places; keep them in step.
+// The lede's positioning line is human-authored and lives only here, as literal prose;
+// no content module holds a copy of it, so this page is the one place to edit it.
 //
 // The lede opens on the brand, not the owner's name, and closes on the brand tagline
 // already set in the logo lockup's .tn-tagline and rendered in the header and footer of
-// every page. Neither is a new claim, and the person behind it is named on /resume/.
+// every page. Neither is a new claim, and the person behind it is named on /about/.
 //
 // The artwork is decorative: alt="" because the hero's meaning is entirely in the
 // text beside it, and a description of the mascot would be noise between the H1 and
@@ -63,7 +59,7 @@ const schema = [
 
 <BaseLayout
   title="TechNoise"
-  description="A personal blog and project log: posts about how this site is built, the projects behind it, and a resume."
+  description="A personal blog and project log: posts about how this site is built and the projects behind it."
   schema={schema}
 >
   <section class="hero">
@@ -88,7 +84,7 @@ const schema = [
         <p class="hero__actions">
           <a class="button" href="/blog/">Read the blog</a>
           <a class="button button--ghost" href="/projects/">See the projects</a>
-          <a class="button button--ghost" href="/resume/">Read the resume</a>
+          <a class="button button--ghost" href="/about/">About me</a>
         </p>
       </div>
     </div>

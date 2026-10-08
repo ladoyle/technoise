@@ -3,7 +3,7 @@ import presentationSvg from "../../public/brand/technoise-logo-presentation.svg?
 import fullSvg from "../../public/brand/technoise-logo-full.svg?raw";
 
 import { brandMark } from "../lib/brand-mark";
-import { profiles } from "../lib/resume";
+import { profiles } from "../lib/about";
 import { PROFILE_ICONS } from "../lib/profile-icons";
 
 // Four blocks on the wide column: brand, navigation, elsewhere, colophon. All stacked
@@ -21,19 +21,16 @@ import { PROFILE_ICONS } from "../lib/profile-icons";
 // Header.astro, whose fill rules below are reproduced exactly.
 //
 // Elsewhere carries GitHub and LinkedIn and nothing else because `profiles` is the one
-// place a profile URL is derived: SITE.author.sameAs feeds the resume's contact list, its
-// JSON-LD sameAs and this block together, so a third profile is added there and never
-// typed here. The email address is deliberately not among them — it stays on /resume/,
+// place a profile URL is derived: SITE.author.sameAs feeds the About page's contact list,
+// its JSON-LD sameAs and this block together, so a third profile is added there and never
+// typed here. The email address is deliberately not among them — it stays on /about/,
 // which a reader reaches on purpose, rather than sitting on every page of the site.
 //
 // Icon-only, no visible "Elsewhere" heading: two marks a reader already recognises don't
-// need a caption, and PROFILE_ICONS is shared with resume.astro's contact row so the two
+// need a caption, and PROFILE_ICONS is shared with about.astro's contact row so the two
 // routes cannot drift onto different glyphs for the same two links. Each anchor keeps its
 // accessible name in a .visually-hidden span rather than aria-label, matching TagPill's
 // existing pattern for hidden text elsewhere in the codebase.
-//
-// About is absent for a different reason: /about/ does not exist yet and the link
-// would 404. It returns here, and to the header, when the page does.
 
 const marks = {
   stacked: brandMark("technoise-logo-presentation.svg", presentationSvg),
@@ -45,7 +42,7 @@ const year = new Date().getFullYear();
 const nav = [
   { href: "/blog/", label: "Blog" },
   { href: "/projects/", label: "Projects" },
-  { href: "/resume/", label: "Resume" },
+  { href: "/about/", label: "About" },
   { href: "/styleguide/", label: "Styleguide" },
   { href: "/rss.xml", label: "RSS" },
 ];
