@@ -53,7 +53,7 @@ const nav = [
 
 <footer class="site-footer">
   <div class="wrap wrap--wide site-footer__inner">
-    <div class="site-footer__brand">
+    <a class="site-footer__brand" href="/" aria-label="TechNoise — Hear the future">
       {
         (["stacked", "wide"] as const).map((variant) => (
           <svg
@@ -68,7 +68,7 @@ const nav = [
           </svg>
         ))
       }
-    </div>
+    </a>
 
     <nav aria-label="Footer">
       <ul class="site-footer__list">
@@ -140,6 +140,7 @@ const nav = [
      text baseline and add a descender's worth of height under a 48px box. */
   .site-footer__brand {
     display: flex;
+    justify-self: start;
   }
 
   /* The same 48px box as the header's mark, either side of the hinge. It used to sit one
