@@ -195,7 +195,7 @@ describe("the about page keeps the contract its content is published under", () 
     const html = aboutPage();
     const body = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
     const headings = [...body.matchAll(/<h2[^>]*>([^<]*)<\/h2>/g)].map((m) => m[1].trim());
-    expect(headings).toEqual(["Skills", "Elsewhere"]);
+    expect(headings).toEqual(["Skills", "Contact"]);
   });
 
   it("publishes no phone number: no tel: href and no phone-shaped digit run", () => {
