@@ -136,7 +136,7 @@ Hero: mascot illustration left, "Name — what you build" right,
       one sentence of positioning, two buttons (Read the blog / See projects)
 Latest posts: 3 PostCards, "All posts →"
 Featured projects: 2–3 ProjectCards, "All projects →"
-Short about strip + links to resume and contact
+Short About teaser (portrait, lede, "About me →") below Projects
 Footer
 ```
 
@@ -158,12 +158,11 @@ Problem  → Approach  → Stack  → What was hard  → What I'd do differently
 Screenshots
 ```
 
-**Resume** — done. Web-native only, no "Download PDF" button and no committed
-`resume.pdf`: a route-scoped print stylesheet (`src/styles/print.css`) makes Ctrl+P produce
-the clean document instead, so there is no separate asset that can drift from the page.
-Sections shipped: summary, experience, skills, education (no separate Projects section — the
-page points to `/projects/` instead of repeating it). No phone number or city/state anywhere
-on the page, in its structured data, or in its metadata — a hard constraint, not an omission.
+**About** — done; it replaced the Resume page, and `/resume/` is a redirect stub to `/about/`.
+First-person story, skills chips, Contact links and a portrait (in `src/assets`, EXIF stripped),
+under a mascot hero whose art edge fades via `mask-image`. No phone number or city/state anywhere
+on the page, in its structured data, or in its metadata, nor in the home page's About teaser — a
+hard constraint, not an omission. Content lives in `src/lib/about.ts`.
 
 **404** — mascot illustration, "This page isn't in the feed," links to home and blog.
 
@@ -208,7 +207,6 @@ technoise/
 ├─ public/
 │  ├─ brand/             the three live logo SVGs, committed
 │  └─ favicon files
-│     (no resume.pdf — the print stylesheet is the PDF; see Part 1's Resume layout)
 ├─ .github/workflows/
 ├─ .nvmrc
 ├─ README.md
@@ -310,7 +308,7 @@ and every internal link uses the custom domain.
    Domain properties cover every subdomain and both protocols, which saves grief later.
 2. Submit `https://yourdomain/sitemap.xml` under Sitemaps. Confirm it reports "Success" and a
    page count matching reality.
-3. URL Inspection → Request Indexing for home, `/blog/`, `/projects/`, `/resume/`, `/about/`.
+3. URL Inspection → Request Indexing for home, `/blog/`, `/projects/`, `/about/`.
 4. **Bing Webmaster Tools** → add site → import from Search Console. Two minutes, covers Bing
    and every engine downstream of it.
 5. Run Lighthouse on mobile. Target Performance ≥ 90, Accessibility ≥ 95, SEO = 100.
@@ -382,7 +380,7 @@ tier; build-time image optimization; nothing.
 - [x] 404 page works on the live host, not just locally — confirmed live by the site owner
 - [x] Lighthouse mobile: Perf ≥ 90, A11y ≥ 95, SEO = 100 — run against the actual production
       build (`npm run build && npm run preview`, Lighthouse 13.5 via headless Chromium) on
-      `/`, `/blog/`, a post, and `/resume/`: 100/100/100 on every indexable route; `/404.html`
+      `/`, `/blog/`, a post, and `/about/`: 100/100/100 on every indexable route; `/404.html`
       scores SEO 69, exactly the documented by-design `noindex` result. This is the shipped
       artifact under real conditions, just not fetched over the live domain — worth one
       re-run in a real browser against `https://technoise.dev/` once you're looking at it,
@@ -397,8 +395,7 @@ tier; build-time image optimization; nothing.
       site owner: domain property verified via TXT record, sitemap submitted, indexing
       requested
 - [x] Bing verified — confirmed by the site owner (imported from Search Console)
-- [x] Resume prints a clean document via the route-scoped print stylesheet — no separate
-      PDF asset exists to drift from the web version (decided against; see Part 1's Resume
+- [x] About page replaced the Resume page; `/resume/` redirects to it (see Part 1's About
       layout)
 - [x] README has the build, dev, and deploy commands — present under "Running locally" and
       "Deploying"
@@ -409,9 +406,9 @@ tier; build-time image optimization; nothing.
 
 The site can be built without these, but it can't be filled:
 
-- Resume source material — roles, dates, responsibilities, measurable outcomes —
-  **supplied and shipped**; `/resume/` is real content, not a scaffold, with the owner's
-  phone number and location deliberately withheld per their own instruction
+- About source material — story, skills, portrait — **supplied and shipped**; `/about/` is
+  real content, not a scaffold, with the owner's phone number and location deliberately
+  withheld per their own instruction
 - Project list — name, one-line pitch, stack, demo URL, repo URL, screenshots
 - 2–3 blog post topics with your rough notes
 - Positioning sentence for the home hero: what you build and who it's for

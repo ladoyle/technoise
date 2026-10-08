@@ -111,7 +111,7 @@ What was built, in three sentences or fewer.
 |---|---|---|---|
 | D1 | done | `src/components/Header.astro` | |
 | D2 | done | `src/styles/tokens.css` | |
-| D3 | blocked | — | Needs the resume source material from the human |
+| D3 | blocked | — | Needs the project list from the human |
 
 Status is one of: done · deviated · blocked · skipped (with reason).
 

@@ -84,7 +84,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 files, 424 tests; see docs/testing.md
+npm test             # vitest run — 16 files, 431 tests; see docs/testing.md
 ```
 
 Three run rules, each binding:
@@ -112,12 +112,13 @@ technoise/
 ├─ docs/                setup-guide, testing, brand-assets, infrastructure
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
-│  ├─ assets/           astro:assets input — processed and hashed at build, unlike public/
+│  ├─ assets/           astro:assets input — processed and hashed at build, unlike public/;
+│  │                  the About portrait lives here, EXIF-stripped, never in public/
 │  ├─ content.config.ts schema for the collections below (Astro 7 path, not src/content/config.ts)
 │  ├─ content/          blog/ and projects/ — one Markdown file per entry
 │  ├─ components/       reusable, from the component inventory below
 │  ├─ layouts/          page shells
-│  ├─ lib/              shared TypeScript helpers, plus resume.ts (content, not logic)
+│  ├─ lib/              shared TypeScript helpers, plus about.ts (content, not logic)
 │  ├─ pages/            routes, plus sitemap.xml.ts, rss.xml.ts, robots.txt.ts
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        the three live logo SVGs — anything here is published
@@ -143,19 +144,22 @@ and [`docs/brand-assets.md`](docs/brand-assets.md):
 - **CI reports, it does not yet gate.** Marking `verify` a required status check on `master`
   is a GitHub repo setting no agent can make.
 
-### The resume privacy rule
+### The About privacy rule
 
-`src/lib/resume.ts` holds content rather than logic, and its types are load-bearing for a
+`src/lib/about.ts` holds content rather than logic, and its types are load-bearing for a
 standing rule:
 
-> **`/resume/` may never publish a phone number or a city/state/other location — not in its
-> visible text, its JSON-LD, or its metadata.**
+> **`/about/` may never publish a phone number or a city/state/other location — not in its
+> visible text, its JSON-LD, or its metadata — and the same holds wherever `ABOUT` content
+> renders elsewhere (the home page's About teaser).**
 
 The module's types carry no field either could occupy, and `tests/nav-contract.test.ts`
-asserts this at three layers: the built HTML, the parsed JSON-LD, and the exported `RESUME`
+asserts this at three layers: the built HTML, the parsed JSON-LD, and the exported `ABOUT`
 object's own keys — so a location field added before anything renders it still fails the
-suite. This rule outlives the cycle that added it. Treat any future edit to `resume.ts` or
-`resume.astro` as bound by it.
+suite. This rule outlives the cycle that added it. Treat any future edit to `about.ts`, `about.astro` or
+the home About teaser as bound by it. The portrait must stay EXIF/GPS-free in `src/assets/`;
+`/resume/` is only a redirect stub to `/about/` (`astro.config.mjs` `redirects`), skipped by
+tests via the `<meta http-equiv="refresh"` match.
 
 ---
 
@@ -210,7 +214,9 @@ Don't "fix" the hardcoded hex in those files without re-running `tests/brand-ass
    signage would. Illustration-of-the-page vs. identity-of-the-site is the distinction.
 
 Editorial layout, generous whitespace, one column of readable text. No cards-in-cards, no
-gradients, no shadow deeper than a hairline.
+gradients, no shadow deeper than a hairline. The About hero art's `mask-image` edge fade is
+not a gradient in this sense: it paints no colour, only alpha (see
+[`docs/infrastructure.md`](docs/infrastructure.md)).
 
 ### Type and rhythm
 
@@ -269,8 +275,8 @@ Non-negotiable on every change:
 - Styles go in `src/styles/` or a component's own `<style>` block. Tokens only — no raw hex,
   no off-scale sizes or spacing.
 - **Route-scoped stylesheets are imported by the page that needs them**, not by `BaseLayout`
-  or a shared component. `src/styles/print.css` is the first, imported only by
-  `resume.astro`.
+  or a shared component. No route-scoped stylesheet exists today; see
+  [`docs/infrastructure.md`](docs/infrastructure.md).
 - Semantic HTML first: a `<button>` is a button, a `<nav>` is a nav.
 - Absolute canonical URLs; unique title (≤60 chars) and description (≤155 chars) per page.
 - Comments explain *why*, never *what*. Default to none.
@@ -294,7 +300,7 @@ crawler or social client reads. A page passes:
   absent from `STATIC_SITEMAP_ROUTES`: `/styleguide/` is real content nobody searched for;
   `/404.html` is not content at all, and a static host cannot pair it with a real 404 status,
   so an indexed one would be a soft 404. Lifting `noindex` and adding the route is the
-  one-line change when a stub gains real content — as `/resume/` did.
+  one-line change when a stub gains real content — as `/about/` did.
 - `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
   page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.
