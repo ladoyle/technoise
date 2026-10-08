@@ -32,8 +32,6 @@ const home = absoluteUrl("/", Astro.site);
 const personId = `${home}#person`;
 const aboutUrl = absoluteUrl("/about/", Astro.site);
 
-const skillGroups = ABOUT.skills.filter((group) => group.items.length > 0);
-
 const contacts = [
   { label: "Email", text: ABOUT.email, href: `mailto:${ABOUT.email}` },
   ...profiles.map((profile) => ({
@@ -61,7 +59,7 @@ const schema = [
     jobTitle: ABOUT.jobTitle,
     email: `mailto:${ABOUT.email}`,
     description: ABOUT.lede,
-    knowsAbout: skillGroups.flatMap((group) => group.items),
+    knowsAbout: ABOUT.skills.flatMap((group) => group.items),
   },
 ];
 ---
@@ -99,31 +97,27 @@ const schema = [
       {ABOUT.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
     </Prose>
 
-    {
-      skillGroups.length > 0 && (
-        <section aria-labelledby="skills">
-          <h2 class="about__heading" id="skills">
-            Skills
-          </h2>
-          <dl class="about__skills">
-            {skillGroups.map((group) => (
-              <div class="about__skill-group">
-                <dt class="eyebrow">{group.label}</dt>
-                <dd>
-                  <ul class="about__skill-list">
-                    {group.items.map((item) => (
-                      <li>
-                        <TagPill label={item} />
-                      </li>
-                    ))}
-                  </ul>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )
-    }
+    <section aria-labelledby="skills">
+      <h2 class="about__heading" id="skills">
+        Skills
+      </h2>
+      <dl class="about__skills">
+        {ABOUT.skills.map((group) => (
+          <div class="about__skill-group">
+            <dt class="eyebrow">{group.label}</dt>
+            <dd>
+              <ul class="about__skill-list">
+                {group.items.map((item) => (
+                  <li>
+                    <TagPill label={item} />
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
 
     <section aria-labelledby="contact">
       <h2 class="about__heading" id="contact">Contact</h2>
@@ -315,6 +309,14 @@ const schema = [
     .about-hero__portrait {
       inline-size: calc(var(--space-96) * 2);
       block-size: calc(var(--space-96) * 2);
+    }
+  }
+
+  /* A browser drops backgrounds when printing, which takes the scrim with it but leaves
+     this <img>, so the heading and lede would print over full-strength art. */
+  @media print {
+    .about-hero__art {
+      display: none;
     }
   }
 </style>

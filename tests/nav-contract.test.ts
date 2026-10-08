@@ -99,7 +99,7 @@ describe("the nav promises nothing that 404s", () => {
   it("links to the retired /resume/ from no page", () => {
     // resolves() accepts any built file, and the redirect stub is one, so a stale link to
     // /resume/ would pass the two checks above while costing every reader a refresh hop.
-    const stale = pages.filter((p) => p.html.includes('href="/resume/"')).map((p) => p.path);
+    const stale = pages.filter((p) => /href="\/resume(?:[\/#?"])/.test(p.html)).map((p) => p.path);
     expect(stale).toEqual([]);
   });
 });
@@ -229,10 +229,29 @@ describe("the about page keeps the contract its content is published under", () 
     expect(html).not.toContain("tel:");
     expect(PHONE_SHAPED.exec(html.replace(/<svg[\s\S]*?<\/svg>/g, ""))?.[0] ?? null).toBeNull();
     const ld = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
-    if (ld) {
-      const graph = JSON.stringify(JSON.parse(ld));
-      for (const key of FORBIDDEN_KEYS) {
-        expect(graph, `home JSON-LD carries "${key}"`).not.toContain(key);
+    expect(ld, "no JSON-LD block on the home page").toBeTruthy();
+    const graph = JSON.stringify(JSON.parse(ld!));
+    for (const key of FORBIDDEN_KEYS) {
+      expect(graph, `home JSON-LD carries "${key}"`).not.toContain(key);
+    }
+  });
+
+  // The portrait is a phone photo's crop; camera EXIF can carry GPS. sharp strips it from
+  // the built derivatives only while nothing emits the original, so check both ends.
+  it("ships no image carrying EXIF, XMP or GPS metadata", () => {
+    const dirs = [join(root, "src", "assets"), join(dist, "_astro")];
+    const images = dirs.flatMap((dir) =>
+      existsSync(dir)
+        ? readdirSync(dir)
+            .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+            .map((f) => join(dir, f))
+        : [],
+    );
+    expect(images.length, "no images found to scan").toBeGreaterThan(0);
+    for (const file of images) {
+      const bytes = readFileSync(file).toString("latin1");
+      for (const marker of ["Exif\0\0", "http://ns.adobe.com/xap", "eXIf", "EXIF"]) {
+        expect(bytes.includes(marker), `${relative(root, file)} carries ${marker}`).toBe(false);
       }
     }
   });

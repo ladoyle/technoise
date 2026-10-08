@@ -380,11 +380,12 @@ tier; build-time image optimization; nothing.
 - [x] 404 page works on the live host, not just locally — confirmed live by the site owner
 - [x] Lighthouse mobile: Perf ≥ 90, A11y ≥ 95, SEO = 100 — run against the actual production
       build (`npm run build && npm run preview`, Lighthouse 13.5 via headless Chromium) on
-      `/`, `/blog/`, a post, and `/about/`: 100/100/100 on every indexable route; `/404.html`
+      `/`, `/blog/`, a post, and the since-retired `/resume/`: 100/100/100 on every indexable route; `/404.html`
       scores SEO 69, exactly the documented by-design `noindex` result. This is the shipped
       artifact under real conditions, just not fetched over the live domain — worth one
       re-run in a real browser against `https://technoise.dev/` once you're looking at it,
       but not expected to move
+- [ ] Lighthouse mobile on `/about/` (new since the run above)
 - [x] Keyboard-only navigation works, focus states visible — Playwright spot-check: 15 tab
       stops on the home page all carry a visible focus ring, and the header's one JS
       island (the mobile nav disclosure) opens on Enter, closes on Escape, and keeps

@@ -84,7 +84,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 files, 431 tests; see docs/testing.md
+npm test             # vitest run — 16 files, 432 tests; see docs/testing.md
 ```
 
 Three run rules, each binding:
@@ -300,7 +300,7 @@ crawler or social client reads. A page passes:
   absent from `STATIC_SITEMAP_ROUTES`: `/styleguide/` is real content nobody searched for;
   `/404.html` is not content at all, and a static host cannot pair it with a real 404 status,
   so an indexed one would be a soft 404. Lifting `noindex` and adding the route is the
-  one-line change when a stub gains real content — as `/about/` did.
+  one-line change when a stub gains real content — as `/resume/` did before it became `/about/`.
 - `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
   page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.
