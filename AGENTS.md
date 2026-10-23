@@ -72,7 +72,7 @@ costs a pipeline nobody needed; guessing down ships a structural change with no 
 | | |
 |---|---|
 | Generator | Astro 7, static output, one justified JS island (the header's mobile nav — see [`docs/infrastructure.md`](docs/infrastructure.md)) |
-| Node | floor `>=22.12.0` in `engines`; `.nvmrc` names the major line (`24`) both workflows build on, pinned by `tests/ci-workflow.test.ts` |
+| Node | floor `>=22.23.4` in `engines` (astro 7.4.2's own floor, enforced at install by `.npmrc` `engine-strict`); `.nvmrc` names the major line (`24`) both workflows build on, pinned by `tests/ci-workflow.test.ts` |
 | Package manager | npm, lockfile committed |
 | Host | GitHub Pages via `.github/workflows/deploy.yml` on push to `master` |
 | CI | `.github/workflows/ci.yml` — `npm ci`, `npx astro check`, `npm test` on every PR and push to `master` |
@@ -84,7 +84,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 files, 432 tests; see docs/testing.md
+npm test             # vitest run — 16 files, 433 tests; see docs/testing.md
 ```
 
 Three run rules, each binding:
@@ -137,7 +137,7 @@ and [`docs/brand-assets.md`](docs/brand-assets.md):
   served goes in `archive/`. `public/` may hold no file `src/` references nowhere;
   `technoise-icon.svg` is the one documented exception.
 - **Permission grants live on jobs, not on workflows.** Workflow level is `permissions: {}`.
-  A third-party action is pinned to a full commit SHA with its version in a trailing comment.
+  Every action, first-party included, is pinned to a full commit SHA with its version in a trailing comment.
   `tests/workflow-permissions.test.ts` enforces both on every file in `.github/workflows/`.
 - **`sharp` is a declared `devDependency` and stays one.** Its range tracks astro's own
   `optionalDependencies.sharp`; bump them together.
