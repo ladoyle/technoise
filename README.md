@@ -36,10 +36,10 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 suites, 432 tests; see docs/testing.md for the map
+npm test             # vitest run — 16 suites, 433 tests; see docs/testing.md for the map
 ```
 
-Node `>=22.12.0` is required, pinned in `.nvmrc`.
+Node `>=22.23.4` is required (`.npmrc` sets `engine-strict`, so older Node fails `npm install`); `.nvmrc` pins the major line.
 
 If a content file was deleted or renamed and a rebuild still shows it, clear Astro's content
 cache: `rm -rf node_modules/.astro`. It lives there, not in `.astro/`, so a plain

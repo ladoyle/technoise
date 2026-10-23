@@ -42,11 +42,10 @@ level, readable by every job including one running third-party code.
    with no access at all. `build`, which runs third-party code, holds only `contents: read`.
    `pages: write` and `id-token: write` live on `deploy` alone, which runs no third-party
    action.
-2. **A third-party action is pinned to a full commit SHA, with its version in a trailing
-   comment** (`withastro/action@<40-char sha> # v6.1.3`), never to a mutable tag. Bumping it
-   means re-resolving with `git ls-remote` and updating the SHA and the comment together.
-   First-party `actions/*` refs stay on tags today; if that changes, it changes for
-   `actions/checkout` and `actions/deploy-pages` in the same edit.
+2. **Every action is pinned to a full commit SHA, with its version in a trailing comment**
+   (`withastro/action@<40-char sha> # v6.1.4`), never to a mutable tag. First-party
+   `actions/*` refs are included. Bumping one means re-resolving with `git ls-remote` and
+   updating the SHA and the comment together, and checking the new SHA runs on `node24`.
 
 `tests/workflow-permissions.test.ts` is what makes both binding — the rule holds because a
 test goes red, not because a reviewer remembers. It parses every file under
@@ -72,7 +71,7 @@ It has two consumers: Astro's default `astro:assets` image service (the `<Pictur
 to rasterise the brand SVGs for the Issue #22 ink-floor guard.
 
 Before Issue #31 it was only present as astro's *optional* transitive, so an Astro release
-inside `^7.3.2` that changed image service would have dropped it and taken the whole
+inside astro 7.x that changed image service would have dropped it and taken the whole
 brand-asset suite down as a vitest *collection* error — a broken-harness message, not a
 brand regression.
 
@@ -80,6 +79,19 @@ Its range tracks astro's own `optionalDependencies.sharp` so the build and the t
 one copy. Bump the two together, and don't tidy the declaration back out.
 `tests/dependency-contract.test.ts` makes the range-matching rule binding and asserts the
 lockfile holds exactly one `sharp`, not one marked `optional: true`.
+
+## Install-time policy: `.npmrc`
+
+`.npmrc` holds exactly two lines, and no registry or auth line:
+
+- `engine-strict=true` makes the `engines.node` floor (`>=22.23.4`, equal to astro 7.4.2's own
+  floor) fail `npm install` / `npm ci` with `EBADENGINE` rather than warn.
+  `tests/dependency-contract.test.ts` compares the floor against astro's.
+- `strict-allow-scripts=true` makes an install script with no `allowScripts` verdict an error
+  (`ESTRICTALLOWSCRIPTS`). `package.json` `allowScripts` is `{ "fsevents": false }` and
+  nothing else: fsevents is the only package with an install script, and its prebuilt
+  binary makes the script unnecessary. A new dependency with an install script must be
+  decided there explicitly.
 
 ## The `48em` hinge, and why it lives in four places
 

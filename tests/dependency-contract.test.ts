@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 // Issue #31 declared `sharp` in devDependencies because tests/brand-assets.test.ts imports
 // it directly; before that it resolved only as astro's *optional* transitive, so an astro
-// release inside ^7.3.2 that swapped image service would have taken every Issue #22 brand
+// release inside astro 7.x that swapped image service would have taken every Issue #22 brand
 // guard down as a vitest collection error. Two things have to stay true for that fix to
 // keep holding, and neither is enforced by anything the type checker or the build reads:
 //
