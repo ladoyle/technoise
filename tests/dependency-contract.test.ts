@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 // Issue #31 declared `sharp` in devDependencies because tests/brand-assets.test.ts imports
 // it directly; before that it resolved only as astro's *optional* transitive, so an astro
-// release inside ^7.3.2 that swapped image service would have taken every Issue #22 brand
+// release inside astro 7.x that swapped image service would have taken every Issue #22 brand
 // guard down as a vitest collection error. Two things have to stay true for that fix to
 // keep holding, and neither is enforced by anything the type checker or the build reads:
 //
@@ -23,12 +23,14 @@ const json = (...parts: string[]): Record<string, never> =>
   JSON.parse(readFileSync(join(root, ...parts), "utf8"));
 
 const pkg = json("package.json") as unknown as {
+  engines?: { node?: string };
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 };
 
 const astroPkg = json("node_modules", "astro", "package.json") as unknown as {
   version: string;
+  engines?: { node?: string };
   optionalDependencies?: Record<string, string>;
 };
 
@@ -75,5 +77,29 @@ describe("sharp is declared, deduped, and not riding on an optional edge (Issue 
       entry.optional,
       "`optional: true` is the pre-#31 state: a plain `npm ci` is then free to omit sharp",
     ).not.toBe(true);
+  });
+});
+
+// astro's CLI hard-exits below its own engines floor (7.4.2 hardcodes `>=22.23.4` in
+// bin/astro.mjs). A package.json floor below it lets `npm ci` succeed under engine-strict
+// on a Node that then cannot run `astro build` — the install gate passes and the build
+// fails, which is the wrong place to learn it.
+describe("the engines floor is not below astro's own", () => {
+  const floor = (range: string | undefined): number[] | undefined =>
+    /(\d+)\.(\d+)\.(\d+)/.exec(range ?? "")?.slice(1).map(Number);
+
+  it("declares a Node floor at least as high as the installed astro's", () => {
+    const ours = floor(pkg.engines?.node);
+    const astros = floor(astroPkg.engines?.node);
+    expect(ours, `package.json engines.node "${pkg.engines?.node}" has no x.y.z floor`).toBeDefined();
+    expect(astros, `astro@${astroPkg.version} engines.node "${astroPkg.engines?.node}" has no x.y.z floor`).toBeDefined();
+
+    const [a, b] = [ours!, astros!];
+    const cmp = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+    expect(
+      cmp,
+      `package.json engines.node (${pkg.engines?.node}) is below astro@${astroPkg.version}'s ` +
+        `(${astroPkg.engines?.node}); raise the floor with the astro bump`,
+    ).toBeGreaterThanOrEqual(0);
   });
 });

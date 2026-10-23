@@ -36,16 +36,20 @@ const workflowFiles = readdirSync(workflowDir).filter((name) => /\.ya?ml$/.test(
 const source = (file: string) => readFileSync(join(workflowDir, file), "utf8");
 const workflow = (file: string) => parse(source(file)) as Workflow;
 
-// A `uses:` ref is "third party" when its owner is not GitHub's own `actions` org. Local
-// (`./…`) and container (`docker://…`) refs are neither, and are not pinned by SHA.
-const thirdPartyUses = (file: string): { line: number; text: string; ref: string }[] =>
+// Every remote `uses:` ref is pinned by SHA, GitHub's own `actions` org included: a tag
+// on a first-party action is just as mutable, and `deploy` holds the write scopes. Local
+// (`./…`) and container (`docker://…`) refs are not actions on a tag and are skipped.
+const remoteUses = (file: string): { line: number; text: string; ref: string }[] =>
   source(file)
     .split("\n")
     .map((text, index) => ({ text, line: index + 1 }))
     .filter(({ text }) => /^\s*-?\s*uses:\s*\S/.test(text))
     .map(({ text, line }) => ({ text, line, ref: /uses:\s*(\S+)/.exec(text)![1] }))
-    .filter(({ ref }) => !ref.startsWith("./") && !ref.startsWith("docker://"))
-    .filter(({ ref }) => !ref.startsWith("actions/"));
+    .filter(({ ref }) => !ref.startsWith("./") && !ref.startsWith("docker://"));
+
+// "Third party" means an owner other than GitHub's own `actions` org.
+const thirdPartyUses = (file: string) =>
+  remoteUses(file).filter(({ ref }) => !ref.startsWith("actions/"));
 
 describe("deploy workflow permissions", () => {
   it("finds the deploy workflow", () => {
@@ -75,7 +79,7 @@ describe("deploy workflow permissions", () => {
     // The permission split is only worth anything while `deploy` — the job holding the
     // write scopes — runs nothing but GitHub's own action.
     const uses = (workflow("deploy.yml").jobs.deploy.steps ?? []).map((step) => step.uses);
-    expect(uses).toEqual(["actions/deploy-pages@v4"]);
+    expect(uses).toEqual(["actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346"]);
   });
 
   it("wires deploy to the build artifact and the github-pages environment", () => {
@@ -111,7 +115,7 @@ describe("workflow permission hygiene", () => {
   });
 });
 
-describe("third-party action pinning", () => {
+describe("action pinning", () => {
   it("has a third-party action to check", () => {
     // If this ever legitimately drops to zero the assertions below pass vacuously, so
     // fail loudly instead of reporting green on an empty set.
@@ -120,8 +124,8 @@ describe("third-party action pinning", () => {
     ]);
   });
 
-  it.each(workflowFiles)("%s pins every third-party action to a commit SHA", (file) => {
-    for (const { ref, line } of thirdPartyUses(file)) {
+  it.each(workflowFiles)("%s pins every action to a commit SHA", (file) => {
+    for (const { ref, line } of remoteUses(file)) {
       const pin = ref.split("@")[1] ?? "";
       expect(pin, `${file}:${line} — ${ref} is not a 40-char commit SHA`).toMatch(
         /^[0-9a-f]{40}$/,
@@ -130,7 +134,7 @@ describe("third-party action pinning", () => {
   });
 
   it.each(workflowFiles)("%s records the pinned version in a trailing comment", (file) => {
-    for (const { text, line } of thirdPartyUses(file)) {
+    for (const { text, line } of remoteUses(file)) {
       // A bare SHA is unreadable and unbumpable; the comment is what makes the pin
       // maintainable, so it is part of the acceptance criteria, not decoration.
       expect(text, `${file}:${line} has no "# vX.Y.Z" comment`).toMatch(/#\s*v\d+(\.\d+)*\s*$/);
