@@ -35,8 +35,8 @@ beforeAll(() => {
 });
 
 describe("the build output itself", () => {
-  it("contains the nineteen pages this phase generates", () => {
-    expect(pages.length).toBe(19);
+  it("contains the twenty-three pages this phase generates", () => {
+    expect(pages.length).toBe(23);
   });
 
   it("emits exactly one redirect stub, for the retired /resume/", () => {
