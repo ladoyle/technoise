@@ -2,7 +2,7 @@
 title: "A colour system that passes"
 description: "The brand blue measures 4.1:1 on cream and fails the body-text floor. The measurement, the darker blue that replaced it, and the button it did not save."
 pubDate: 2026-09-15
-tags: [accessibility, design-systems, css, ai-generated]
+tags: [ai-generated]
 draft: false
 ---
 
