@@ -1,6 +1,6 @@
 ---
 title: "Lessons from running a team of AI agents"
-description: "People are saying AI will replace engineers. I as an engineer have built a couple ai agent systems and products to find the truth and pitfalls in that statement. Here is my journey and some lessons along the way."
+description: "People say AI will replace engineers. As an engineer who has built AI agent systems, here is my journey, the pitfalls, and the lessons along the way."
 pubDate: 2026-11-08
 tags: [ai-agents, claude-code, security]
 draft: false
