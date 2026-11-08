@@ -2,7 +2,7 @@
 title: "Gmail with FastAPI"
 description: "In a world where technology moves at the speed of light, FastAPI provides developers with a fast-setup, fast-network solution for controlling backend APIs"
 pubDate: 2026-09-19
-tags: [python, fastapi, gmail-api, backend]
+tags: [python, fastapi, gmail-api]
 draft: false
 ---
 
