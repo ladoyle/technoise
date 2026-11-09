@@ -41,7 +41,7 @@ install into a clean `node_modules`.
 | `content-helpers` | Slug, date, tag, pagination, reading-time helpers |
 | `seo-helpers` | `src/lib/seo.ts` and `og-image.ts`; `SeoHead` alt tags via `experimental_AstroContainer` |
 | `build-output` | Shipped HTML and CSS in `dist/` |
-| `discovery-output` | `sitemap.xml`, `rss.xml`, `robots.txt` |
+| `discovery-output` | `sitemap.xml`, `rss.xml`, `robots.txt`; per-entry OG alt tags against frontmatter |
 | `nav-contract` | Nav/route resolution, plus the About privacy regression |
 | `brand-assets` | The brand SVGs, the header's inlined mark, `public/` orphan guard |
 | `mark-tint-contract` | Dark-mode tint roles and the frozen mascot contrast figures |
