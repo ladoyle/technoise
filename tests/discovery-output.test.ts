@@ -320,6 +320,21 @@ describe("per-entry Open Graph images", () => {
       expect(names.some((n) => n.startsWith(slug)), slug).toBe(false);
     }
   });
+
+  // Astro emits an image()'s original alongside its derivatives the moment anything
+  // renders the ImageMetadata itself; only the one cover-cropped JPEG may ship.
+  it("emits only the JPEG derivative of an ogImage source into dist/, never the original", () => {
+    const shipped = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? shipped(join(dir, e.name)) : [e.name],
+      );
+    const names = shipped(dist);
+    for (const slug of entriesWithOgImage.values()) {
+      const copies = names.filter((n) => n.startsWith(`${slug}.`));
+      expect(copies, slug).toHaveLength(1);
+      expect(copies[0], slug).toMatch(/\.jpg$/);
+    }
+  });
 });
 
 describe("the head contract every page shares", () => {
