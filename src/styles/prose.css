@@ -186,13 +186,13 @@
   font-style: italic;
 }
 
-/* Below the breakpoint a code block runs to the gutter edges rather than
-   squeezing an already narrow column further. */
+/* Below the breakpoint the box keeps its border inside the gutter, so a scrolled
+   block visibly ends at its own edge rather than at the screen's. Tighter padding and
+   a smaller mono size buy back the width the bleed used to. */
 @media (max-width: 47.99em) {
   .prose :where(pre) {
-    margin-inline: calc(var(--gutter) * -1);
-    border-inline: 0;
-    border-radius: 0;
+    padding: var(--space-16);
+    font-size: var(--size-14);
   }
 }
 
