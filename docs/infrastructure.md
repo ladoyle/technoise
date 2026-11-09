@@ -175,7 +175,9 @@ class-only markup.
 
 ## Per-entry OG images
 
-A post or project may set `ogImage: { src, alt }`. The source sits in `src/assets/og/`, so
+A post or project may set `ogImage: { src, alt? }`; with `alt` omitted, neither
+`og:image:alt` nor `twitter:image:alt` ships — the shared card's alt describes a
+different picture, so it is never borrowed. The source sits in `src/assets/og/`, so
 `astro:assets` processes it; it is never in `public/`, and must be EXIF/GPS-free (the
 `nav-contract` EXIF scan walks `src/assets` recursively). The page emits a generated
 1200×630 JPEG, and `discovery-output` asserts the source itself is never emitted into `dist/`.

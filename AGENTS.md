@@ -302,7 +302,7 @@ crawler or social client reads. A page passes:
   a real 404 status on a static host (indexing it = soft 404). A stub gaining content lifts it.
 - `ogType?`, `article?` — Open Graph/Twitter overrides.
 - `ogImage?` — defaults to the shared card (`OG_IMAGE` in `src/lib/seo.ts`); post and project
-  layouts pass the entry's `ogImage`, resolved by `src/lib/og-image.ts`.
+  layouts pass the entry's `ogImage` via `src/lib/og-image.ts`. No alt, no `image:alt` tags.
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.
 - `schema?` — an array of JSON-LD `@graph` nodes; omitted or empty emits no `<script>` tag.
 
@@ -334,7 +334,7 @@ schema in `src/content.config.ts`:
 - Both slug rules are enforced in `assertRoutableId()` in `src/lib/content.ts`, called from
   `getPublishedPosts()` and `getPublishedProjects()` — the one path every route already takes.
   Keep future slug rules there rather than adding a route-local guard.
-- `ogImage` is optional: `{ src, alt }`, `alt` 1–420 characters and required with `src`. Source
+- `ogImage` is optional: `{ src, alt? }`; `alt`, if set, is 1–420 non-blank characters. Source
   in `src/assets/og/`, never `public/`; EXIF/GPS-free; at least 1200×630, ratio 1.6–2.1. Pages
   serve a generated 1200×630 JPEG. The size rule runs as each page renders
   (`assertOgImageSize`/`entryOgImage`), not in the schema: Astro 7's `image()` gives it no

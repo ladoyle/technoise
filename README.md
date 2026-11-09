@@ -63,7 +63,7 @@ updatedDate: 2026-01-15 # optional, must not be earlier than pubDate
 tags: [design-systems, astro] # 1–3 tags, lowercase-hyphenated, ≤24 characters each
 ogImage: # optional, hand-made card for link previews
   src: ../../assets/og/<file>.webp # ≥1200×630, ratio 1.6–2.1, EXIF-free
-  alt: string, 1–420 characters
+  alt: string, 1–420 characters # optional
 draft: false # optional, defaults to false
 ---
 ```
