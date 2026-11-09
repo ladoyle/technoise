@@ -47,7 +47,7 @@ const blog = defineCollection({
       description,
       pubDate: z.coerce.date(),
       updatedDate: z.coerce.date().optional(),
-      tags: z.array(tag).min(1).max(4),
+      tags: z.array(tag).min(1).max(3, { error: "A post carries at most 3 tags." }),
       draft: z.boolean().default(false),
     })
     .refine((data) => !data.updatedDate || data.updatedDate >= data.pubDate, {

@@ -324,7 +324,7 @@ schema in `src/content.config.ts`:
   of the 60-character `<title>` budget, so 48 is the full remaining allowance.
 - `description` ≤155 characters. It is the card summary, the detail-page lede, and the meta
   description — one field, not three.
-- `tags`: lowercase, hyphenated (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤24 characters each, 1–4 per
+- `tags`: lowercase, hyphenated (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤24 characters each, 1–3 per
   entry. Stored and displayed in slug form so `"Astro"` and `"astro"` can't open two archives
   for one idea.
 - Entries sit **directly** in the collection directory — `src/content/blog/<slug>.md`, never

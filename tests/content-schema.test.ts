@@ -77,10 +77,10 @@ describe("blog schema", () => {
     expect(blog.safeParse({ ...validPost, tags: ["a".repeat(25)] }).success).toBe(false);
   });
 
-  it("requires between one and four tags", () => {
+  it("requires between one and three tags", () => {
     expect(blog.safeParse({ ...validPost, tags: [] }).success).toBe(false);
-    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c", "d"] }).success).toBe(true);
-    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c", "d", "e"] }).success).toBe(false);
+    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c"] }).success).toBe(true);
+    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c", "d"] }).success).toBe(false);
   });
 
   it("coerces YAML dates to Date objects at UTC midnight", () => {

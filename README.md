@@ -60,7 +60,7 @@ title: string, 1–48 characters
 description: string, 1–155 characters
 pubDate: 2026-01-01
 updatedDate: 2026-01-15 # optional, must not be earlier than pubDate
-tags: [design-systems, astro] # 1–4 tags, lowercase-hyphenated, ≤24 characters each
+tags: [design-systems, astro] # 1–3 tags, lowercase-hyphenated, ≤24 characters each
 draft: false # optional, defaults to false
 ---
 ```
