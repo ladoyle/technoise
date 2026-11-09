@@ -39,16 +39,22 @@ const description = z
     error: "Descriptions are capped at 155 characters — they ship as the meta description.",
   });
 
-// Optional per-entry link-preview image. `alt` is required with `src`: it ships as
-// og:image:alt and twitter:image:alt, and 420 is X's cap. The size and ratio rule
-// cannot live here: under the glob loader image() yields an unresolved import, not
-// dimensions, so src/lib/og-image.ts enforces it when the page renders. EXIF is
-// not checked at build either — tests/nav-contract.test.ts scans src/assets.
+// Optional per-entry link-preview image. `alt` is optional too: when set it ships as
+// og:image:alt and twitter:image:alt, must not be blank, and 420 is X's cap; when
+// omitted neither tag ships. The size and ratio rule cannot live here: under the
+// glob loader image() yields an unresolved import, not dimensions, so
+// src/lib/og-image.ts enforces it when the page renders. EXIF is not checked at
+// build either — tests/nav-contract.test.ts scans src/assets.
 const ogImage = (image: SchemaContext["image"]) =>
   z
     .object({
       src: image(),
-      alt: z.string().min(1).max(420, { error: "ogImage alt is capped at 420 characters (X's limit)." }),
+      alt: z
+        .string()
+        .trim()
+        .min(1)
+        .max(420, { error: "ogImage alt is capped at 420 characters (X's limit)." })
+        .optional(),
     })
     .optional();
 

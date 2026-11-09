@@ -11,7 +11,7 @@ import { OG_IMAGE, assertOgImageSize, type OgImage } from "./seo";
 // ratio rule bounds how much a centre crop can take. `where` names the entry in the
 // build error, since the schema cannot see dimensions to reject it earlier.
 export async function entryOgImage(
-  field: { src: ImageMetadata | string; alt: string } | undefined,
+  field: { src: ImageMetadata | string; alt?: string } | undefined,
   where: string,
 ): Promise<OgImage> {
   if (!field) return OG_IMAGE;
@@ -30,5 +30,7 @@ export async function entryOgImage(
     format: "jpg",
     quality: 80,
   });
-  return { src: image.src, type: "image/jpeg", width: 1200, height: 630, alt: field.alt };
+  // No fallback to OG_IMAGE.alt: it describes a different picture.
+  const alt = field.alt ? { alt: field.alt } : {};
+  return { src: image.src, type: "image/jpeg", width: 1200, height: 630, ...alt };
 }

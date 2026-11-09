@@ -32,7 +32,7 @@ export type OgImage = {
   type: string;
   width: number;
   height: number;
-  alt: string;
+  alt?: string;
 };
 
 export const OG_IMAGE = {
