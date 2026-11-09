@@ -9,7 +9,15 @@
 // because two places composing titles is how a duplicate appears.
 
 import { isoDate } from "../lib/content";
-import { OG_IMAGE, RSS_PATH, SITE, absoluteUrl, assertMetaBudget, jsonLdSafe } from "../lib/seo";
+import {
+  OG_IMAGE,
+  RSS_PATH,
+  SITE,
+  absoluteUrl,
+  assertMetaBudget,
+  jsonLdSafe,
+  type OgImage,
+} from "../lib/seo";
 
 interface Props {
   title: string;
@@ -21,6 +29,7 @@ interface Props {
   prevPath?: string;
   nextPath?: string;
   schema?: Record<string, unknown>[];
+  ogImage?: OgImage;
 }
 
 const {
@@ -33,12 +42,13 @@ const {
   prevPath,
   nextPath,
   schema = [],
+  ogImage = OG_IMAGE,
 } = Astro.props;
 
 assertMetaBudget(title, description, canonicalPath);
 
 const canonical = absoluteUrl(canonicalPath, Astro.site);
-const imageUrl = absoluteUrl(OG_IMAGE.src, Astro.site);
+const imageUrl = absoluteUrl(ogImage.src, Astro.site);
 const feedUrl = absoluteUrl(RSS_PATH, Astro.site);
 ---
 
@@ -57,10 +67,10 @@ const feedUrl = absoluteUrl(RSS_PATH, Astro.site);
 <meta property="og:description" content={description} />
 <meta property="og:url" content={canonical} />
 <meta property="og:image" content={imageUrl} />
-<meta property="og:image:type" content={OG_IMAGE.type} />
-<meta property="og:image:width" content={String(OG_IMAGE.width)} />
-<meta property="og:image:height" content={String(OG_IMAGE.height)} />
-<meta property="og:image:alt" content={OG_IMAGE.alt} />
+<meta property="og:image:type" content={ogImage.type} />
+<meta property="og:image:width" content={String(ogImage.width)} />
+<meta property="og:image:height" content={String(ogImage.height)} />
+<meta property="og:image:alt" content={ogImage.alt} />
 
 {
   article && (
@@ -80,7 +90,7 @@ const feedUrl = absoluteUrl(RSS_PATH, Astro.site);
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={imageUrl} />
-<meta name="twitter:image:alt" content={OG_IMAGE.alt} />
+<meta name="twitter:image:alt" content={ogImage.alt} />
 
 <link rel="alternate" type="application/rss+xml" title={SITE.name} href={feedUrl} />
 

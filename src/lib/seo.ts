@@ -26,13 +26,22 @@ export const SITE = {
   },
 } as const;
 
+// `src` is root-relative; every consumer absolutises it through absoluteUrl().
+export type OgImage = {
+  src: string;
+  type: string;
+  width: number;
+  height: number;
+  alt: string;
+};
+
 export const OG_IMAGE = {
   src: "/og/technoise-og.png",
   type: "image/png",
   width: 1200,
   height: 630,
   alt: "The TechNoise robot mascot wearing headphones, beside the TechNoise wordmark on a cream field.",
-} as const;
+} as const satisfies OgImage;
 
 export const RSS_PATH = "/rss.xml";
 export const SITEMAP_PATH = "/sitemap.xml";
