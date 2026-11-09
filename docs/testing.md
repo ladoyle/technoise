@@ -32,14 +32,14 @@ install into a clean `node_modules`.
 
 ## Suite map
 
-16 files, 460 tests (the authoritative count is the `npm test` summary).
+16 files, 470 tests (the authoritative count is the `npm test` summary).
 
 | Suite | Covers |
 |---|---|
 | `content-schema` | Frontmatter schemas in `src/content.config.ts` |
 | `publishing-rules` | Draft handling, publish gating |
 | `content-helpers` | Slug, date, tag, pagination, reading-time helpers |
-| `seo-helpers` | `src/lib/seo.ts` — absolute URLs, canonicals, root-deploy assertion |
+| `seo-helpers` | `src/lib/seo.ts` and `og-image.ts`; `SeoHead` alt tags via `experimental_AstroContainer` |
 | `build-output` | Shipped HTML and CSS in `dist/` |
 | `discovery-output` | `sitemap.xml`, `rss.xml`, `robots.txt` |
 | `nav-contract` | Nav/route resolution, plus the About privacy regression |

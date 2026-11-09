@@ -302,6 +302,22 @@ describe("per-entry Open Graph images", () => {
     }
   });
 
+  // Pairing alone passes if an entry card's alt is silently dropped (both tags absent)
+  // or swapped for the shared card's; this pins each entry to its own frontmatter alt.
+  it("gives every entry card exactly its own frontmatter alt, or no alt tags at all", () => {
+    for (const route of entriesWithOgImage.keys()) {
+      const [collection, slug] = route.split("/").filter(Boolean);
+      const md = readFileSync(join(root, "src", "content", collection, `${slug}.md`), "utf8");
+      const block = md.match(/^ogImage:\s*\n((?:[ \t]+\S.*\n)+)/m)?.[1] ?? "";
+      const raw = block.match(/^\s+alt:\s*(.+?)\s*$/m)?.[1];
+      const want = raw?.replace(/^(["'])(.*)\1$/, "$2");
+      const html = pages.find((p) => p.route === route)!.html;
+      const got = metas(html, "property", "og:image:alt")?.replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+      expect(got, route).toBe(want);
+      if (want) expect(got, route).not.toBe(OG_IMAGE.alt);
+    }
+  });
+
   it("gives every page on the shared card exactly the shared card's alt", () => {
     const onShared = pages.filter(
       (p) => new URL(metas(p.html, "property", "og:image")!).pathname === OG_IMAGE.src,

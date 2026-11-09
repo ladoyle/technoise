@@ -25,6 +25,7 @@ import {
   rfc822,
 } from "../src/lib/seo";
 import { entryOgImage } from "../src/lib/og-image";
+import agentsCard from "../src/assets/og/what-running-a-team-of-ai-agents-taught-me.webp";
 
 const SITE_URL = new URL("https://example.test/");
 
@@ -207,6 +208,15 @@ describe("assertOgImageSize", () => {
 });
 
 describe("entryOgImage", () => {
+  // The resolver, not SeoHead, decides whether an entry card has alt; a fallback to
+  // OG_IMAGE.alt here would describe a different picture and no built page would show it.
+  it("carries the entry's own alt when set and none at all when absent", async () => {
+    const withAlt = await entryOgImage({ src: agentsCard, alt: "Described." }, "blog → a");
+    expect(withAlt.alt).toBe("Described.");
+    const without = await entryOgImage({ src: agentsCard }, "blog → b");
+    expect(without).not.toHaveProperty("alt");
+  });
+
   it("rejects a remote-URL src, naming the entry, before any size check", async () => {
     await expect(
       entryOgImage({ src: "https://example.com/tiny.png" }, "blog → remote"),
@@ -238,6 +248,16 @@ describe("SeoHead image alt", () => {
     const html = await render({ ...card, alt: "Described." });
     expect(html).toContain('<meta property="og:image:alt" content="Described.">');
     expect(html).toContain('<meta name="twitter:image:alt" content="Described.">');
+  });
+
+  // Alt is author-written frontmatter; a quote in it must not end the attribute.
+  it("escapes the alt so authored text cannot break out of the content attribute", async () => {
+    const html = await render({ ...card, alt: `A "quoted" <b>bold</b> & more` });
+    expect(html).not.toContain('"quoted"');
+    // < needs no escape inside a quoted attribute; " and & do.
+    const tag = `content="A &quot;quoted&quot; <b>bold</b> &amp; more">`;
+    expect(html).toContain(`<meta property="og:image:alt" ${tag}`);
+    expect(html).toContain(`<meta name="twitter:image:alt" ${tag}`);
   });
 
   it("emits the shared card's alt when no card is passed", async () => {
