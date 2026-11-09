@@ -276,6 +276,7 @@ describe("per-entry Open Graph images", () => {
       expect([meta.width, meta.height], route).toEqual([1200, 630]);
       expect(meta.exif, route).toBeUndefined();
       expect(meta.xmp, route).toBeUndefined();
+      expect(meta.icc, route).toBeUndefined();
     }
   });
 

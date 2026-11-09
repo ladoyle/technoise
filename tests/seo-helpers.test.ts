@@ -21,6 +21,7 @@ import {
   pageTitle,
   rfc822,
 } from "../src/lib/seo";
+import { entryOgImage } from "../src/lib/og-image";
 
 const SITE_URL = new URL("https://example.test/");
 
@@ -190,6 +191,27 @@ describe("assertOgImageSize", () => {
   it("rejects a ratio outside 1.6–2.1 even above the size floor", () => {
     expect(() => assertOgImageSize(1500, 1000, "projects → tall")).toThrow(/projects → tall.*1\.50:1/s);
     expect(() => assertOgImageSize(2200, 1000, "projects → wide")).toThrow(/2\.20:1/);
+  });
+
+  // A remote image() src has no dimensions; every comparison against NaN is false.
+  it("fails closed on NaN, undefined or non-number dimensions", () => {
+    expect(() => assertOgImageSize(NaN, NaN, "x")).toThrow(/x:/);
+    expect(() => assertOgImageSize(undefined as never, undefined as never, "x")).toThrow(/x:/);
+    expect(() => assertOgImageSize(1672, undefined as never, "x")).toThrow(/x:/);
+    expect(() => assertOgImageSize("1672" as never, "941" as never, "x")).toThrow(/x:/);
+    expect(() => assertOgImageSize(Infinity, Infinity, "x")).toThrow(/x:/);
+  });
+});
+
+describe("entryOgImage", () => {
+  it("rejects a remote-URL src, naming the entry, before any size check", async () => {
+    await expect(
+      entryOgImage({ src: "https://example.com/tiny.png", alt: "a" }, "blog → remote"),
+    ).rejects.toThrow(/blog → remote: ogImage\.src must be a local file under src\/assets\/og\//);
+  });
+
+  it("falls back to the shared card when an entry sets no ogImage", async () => {
+    expect(await entryOgImage(undefined, "blog → none")).toBe(OG_IMAGE);
   });
 });
 

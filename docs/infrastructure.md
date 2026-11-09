@@ -183,6 +183,7 @@ A post or project may set `ogImage: { src, alt }`. The source sits in `src/asset
 The size rule (at least 1200×630, ratio 1.6–2.1) is checked as each page renders, by
 `assertOgImageSize` in `src/lib/seo.ts` called from `entryOgImage` in `src/lib/og-image.ts`,
 not in the schema. Under the `glob()` loader Astro 7's `image()` hands the schema no
-dimensions, so a schema `refine` cannot see them. The build still fails and names the entry.
+dimensions, so a schema `refine` cannot see them. The build still fails and names the entry,
+including for a remote-URL `src`, which `image()` passes through as a dimensionless string.
 `getPublishedPosts`/`getPublishedProjects` feed every published entry through that path; a
 draft is checked once it is published. `seo.ts` imports nothing from `astro:assets`.
