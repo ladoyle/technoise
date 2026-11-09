@@ -18,7 +18,7 @@ import { defineConfig } from 'astro/config';
  */
 const technoiseTheme = {
   name: 'technoise',
-  type: 'light',
+  type: /** @type {const} */ ('light'),
   colors: {
     'editor.foreground': 'var(--text)',
     'editor.background': 'var(--surface-sunken)',
