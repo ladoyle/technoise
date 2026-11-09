@@ -172,6 +172,20 @@
   font-size: inherit;
 }
 
+.prose :where(pre .tok-keyword) {
+  color: var(--code-keyword);
+  font-weight: var(--weight-bold);
+}
+
+.prose :where(pre .tok-literal) {
+  color: var(--code-literal);
+}
+
+.prose :where(pre .tok-comment) {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
 /* Below the breakpoint a code block runs to the gutter edges rather than
    squeezing an already narrow column further. */
 @media (max-width: 47.99em) {

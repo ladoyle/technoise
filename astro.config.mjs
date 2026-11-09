@@ -2,33 +2,63 @@
 import { defineConfig } from 'astro/config';
 
 /**
- * Shiki writes its theme onto every fenced block as inline `style` attributes — a
- * background colour and a colour per token, all raw hex from outside the palette, and
- * all of them outranking prose.css. On the cream page that lands as a dark slab.
+ * Shiki writes its theme onto every token as an inline `style` colour, which would
+ * outrank prose.css and carry hues from outside the palette. This theme's colours are
+ * therefore not colours at all but `var(--code-*)` names, one per role, and the span
+ * hook turns each into a `tok-*` class and drops the inline style. Markup stays
+ * style-free, the role-to-token map lives in prose.css, and the values live in
+ * tokens.css, so the dark scheme and print swap them like any other token.
  *
- * Stripping those attributes hands code blocks back to the tokens (sunken surface,
- * --text, the mono stack, the gutter bleed below the breakpoint) while keeping the
- * `tabindex="0"` Astro puts on the block — prose.css gives it `overflow-x: auto`, and
- * a region that scrolls has to be reachable by keyboard (WCAG 2.1.1).
+ * The `pre` hook keeps the `tabindex="0"` Astro puts on the block — prose.css gives it
+ * `overflow-x: auto`, and a region that scrolls has to be reachable by keyboard
+ * (WCAG 2.1.1). Turning highlighting off would strip the tabindex with it.
  *
- * Turning highlighting off entirely would strip the tabindex with it; a rehype plugin
- * to put it back needs @astrojs/markdown-remark, which is a dependency this does not
- * need to add.
- *
+ * The theme is written inline rather than built with shiki's createCssVariablesTheme,
+ * because shiki is an undeclared transitive dependency.
  */
-const stripShikiColours = {
-  name: 'technoise:strip-shiki-colours',
+const technoiseTheme = {
+  name: 'technoise',
+  type: 'light',
+  colors: {
+    'editor.foreground': 'var(--text)',
+    'editor.background': 'var(--surface-sunken)',
+  },
+  tokenColors: [
+    {
+      scope: ['keyword', 'storage.type', 'storage.modifier'],
+      settings: { foreground: 'var(--code-keyword)' },
+    },
+    {
+      scope: ['keyword.operator', 'punctuation', 'string.unquoted.argument'],
+      settings: { foreground: 'var(--text)' },
+    },
+    {
+      scope: ['string', 'constant', 'support.constant', 'punctuation.definition.string'],
+      settings: { foreground: 'var(--code-literal)' },
+    },
+    {
+      scope: ['comment', 'punctuation.definition.comment', 'string.quoted.docstring'],
+      settings: { foreground: 'var(--code-comment)' },
+    },
+  ],
+};
+
+const tokenClasses = {
+  name: 'technoise:token-classes',
   /** @param {{ properties: Record<string, unknown> }} node */
   pre(node) {
     delete node.properties.style;
-    // The theme name would otherwise stay on the element claiming a theme that is no
-    // longer applied.
+    // The theme name would otherwise stay on the element as a class nothing styles.
     delete node.properties.class;
     node.properties.className = ['astro-code'];
   },
   /** @param {{ properties: Record<string, unknown> }} node */
   span(node) {
+    const role = /var\(--code-(keyword|literal|comment)\)/.exec(
+      String(node.properties.style ?? ''),
+    )?.[1];
     delete node.properties.style;
+    if (role) node.properties.className = [`tok-${role}`];
   },
 };
 
@@ -46,7 +76,8 @@ export default defineConfig({
 
   markdown: {
     shikiConfig: {
-      transformers: [stripShikiColours],
+      theme: technoiseTheme,
+      transformers: [tokenClasses],
     },
   },
 });

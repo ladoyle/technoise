@@ -60,6 +60,9 @@
   --accent-on-fill-hover: var(--cream);
   --select-bg: var(--slate);
   --select-fg: var(--ink);
+  --code-keyword: var(--ink);
+  --code-literal: var(--signal-700);
+  --code-comment: var(--ink-muted);
 
   /* Type */
   --font-sans: "Inter", "Inter Fallback", ui-sans-serif, system-ui, -apple-system,
@@ -176,6 +179,9 @@
     --accent-on-fill-hover: var(--ink);
     --select-bg: var(--ink-border);
     --select-fg: var(--cream);
+    --code-keyword: var(--cream-dim);
+    --code-literal: var(--signal-300);
+    --code-comment: var(--cream-muted);
     --scrim-opacity: 0.86;
   }
 }
@@ -195,6 +201,9 @@
     --accent-on-fill-hover: var(--ink);
     --select-bg: var(--ink-border);
     --select-fg: var(--cream);
+    --code-keyword: var(--cream-dim);
+    --code-literal: var(--signal-300);
+    --code-comment: var(--cream-muted);
     --scrim-opacity: 0.86;
   }
 }
