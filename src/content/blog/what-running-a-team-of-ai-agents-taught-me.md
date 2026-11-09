@@ -4,6 +4,9 @@ description: "My journey as an engineer into how AI agent systems work and how t
 pubDate: 2026-11-08
 tags: [ai-agents, claude-code, security]
 draft: false
+ogImage:
+  src: ../../assets/og/what-running-a-team-of-ai-agents-taught-me.webp
+  alt: "A hiker on a rocky summit at sunrise beneath glowing panels for Architect, Security, Financial, Developer, QA and Documenter agents. Title: Lessons from running a team of AI agents."
 ---
 
 **The short version.** AI agents are not a replacement for engineers or for deterministic software. They are a force multiplier for a human who gives them narrow roles, small context, real tools, and a person to answer to. It took me two projects, one blown usage limit and a security audit to learn this.

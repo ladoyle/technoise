@@ -238,15 +238,21 @@ describe("the about page keeps the contract its content is published under", () 
 
   // The portrait is a phone photo's crop; camera EXIF can carry GPS. sharp strips it from
   // the built derivatives only while nothing emits the original, so check both ends.
+  // Recursive: per-entry OG sources live in src/assets/og/, and a source committed to a
+  // public repo is exposed whether or not the build ever emits it.
   it("ships no image carrying EXIF, XMP or GPS metadata", () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)],
+      );
     const dirs = [join(root, "src", "assets"), join(dist, "_astro")];
-    const images = dirs.flatMap((dir) =>
-      existsSync(dir)
-        ? readdirSync(dir)
-            .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
-            .map((f) => join(dir, f))
-        : [],
-    );
+    const images = dirs
+      .flatMap((dir) => (existsSync(dir) ? walk(dir) : []))
+      .filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
+    expect(
+      images.some((f) => relative(root, f).split(/[\\/]/).slice(0, 3).join("/") === "src/assets/og"),
+      "the scan no longer reaches src/assets/og/",
+    ).toBe(true);
     expect(images.length, "no images found to scan").toBeGreaterThan(0);
     for (const file of images) {
       const bytes = readFileSync(file).toString("latin1");

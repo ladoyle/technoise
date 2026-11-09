@@ -234,3 +234,19 @@ describe("the styleguide's prose figures are measurements too", () => {
     });
   }
 });
+
+describe("syntax-highlighting roles read as text on the code surface", () => {
+  // Each role colours code characters, so each is held to the body-text floor against
+  // the sunken surface code sits on, in both schemes.
+  for (const token of ["--code-keyword", "--code-literal", "--code-comment"]) {
+    for (const scheme of ["light", "dark"] as const) {
+      it(`${token} clears 4.5:1 on --surface-sunken in ${scheme}`, () => {
+        const ratio = contrastRatio(
+          hexOf(resolve(token, scheme)),
+          hexOf(resolve("--surface-sunken", scheme)),
+        );
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+  }
+});

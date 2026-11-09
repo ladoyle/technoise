@@ -156,10 +156,34 @@ See AGENTS.md's accessibility floors for the standard that justifies an island, 
 
 ## Shiki
 
-`astro.config.mjs` carries a transformer that strips Shiki's own inline colours from fenced
-code blocks so `prose.css` — not Shiki's theme — styles them, and keeps the `tabindex="0"`
-Astro puts on the resulting `<pre>` (required for a scrolling region to be
+`astro.config.mjs` gives Shiki a custom theme whose colours are not hex but token names —
+`var(--code-keyword)`, `var(--code-literal)`, `var(--code-comment)`, plus `var(--text)` for
+everything else. Its transformer turns each span's inline colour into a `tok-keyword`,
+`tok-literal` or `tok-comment` class and deletes the `style`, so the markup carries no inline
+colour and `prose.css` maps each class to its token (keyword bold, comment italic). The
+`--code-*` values live in `tokens.css`, in `:root` and both dark blocks, so highlighting
+swaps scheme and falls back to light in print like every other token. The `pre` hook keeps
+the `tabindex="0"` Astro puts on the block (required for a scrolling region to be
 keyboard-reachable).
 
-Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false` without accounting for
-both.
+The theme is written inline rather than built with shiki's `createCssVariablesTheme`:
+`shiki` is a transitive dependency, not a declared one. Don't switch to a stock theme or
+`markdown.syntaxHighlight: false` without accounting for the transformer — a stock theme
+brings raw hex, and turning highlighting off drops the tabindex. `palette-tokens.test.ts`
+pins each `--code-*` at 4.5:1 on `--surface-sunken`; `build-output.test.ts` pins the
+class-only markup.
+
+## Per-entry OG images
+
+A post or project may set `ogImage: { src, alt }`. The source sits in `src/assets/og/`, so
+`astro:assets` processes it; it is never in `public/`, and must be EXIF/GPS-free (the
+`nav-contract` EXIF scan walks `src/assets` recursively). The page emits a generated
+1200×630 JPEG, and `discovery-output` asserts the source itself is never emitted into `dist/`.
+
+The size rule (at least 1200×630, ratio 1.6–2.1) is checked as each page renders, by
+`assertOgImageSize` in `src/lib/seo.ts` called from `entryOgImage` in `src/lib/og-image.ts`,
+not in the schema. Under the `glob()` loader Astro 7's `image()` hands the schema no
+dimensions, so a schema `refine` cannot see them. The build still fails and names the entry,
+including for a remote-URL `src`, which `image()` passes through as a dimensionless string.
+`getPublishedPosts`/`getPublishedProjects` feed every published entry through that path; a
+draft is checked once it is published. `seo.ts` imports nothing from `astro:assets`.

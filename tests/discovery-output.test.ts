@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import sharp from "sharp";
 import { beforeAll, describe, expect, it } from "vitest";
 
 // The three non-HTML routes and the OG card are the surfaces no page renders, so
@@ -50,6 +51,22 @@ beforeAll(() => {
   robots = readFileSync(join(dist, "robots.txt"), "utf8");
   locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 });
+
+// Route -> source file stem of each entry whose frontmatter sets ogImage, read from
+// src/content so a new entry with a card is covered without editing this file.
+const entriesWithOgImage = new Map<string, string>();
+for (const [collection, prefix] of [["blog", "/blog/"], ["projects", "/projects/"]] as const) {
+  const dir = join(root, "src", "content", collection);
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
+    const front = readFileSync(join(dir, file), "utf8").match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
+    if (!/^draft:\s*true\s*$/m.test(front)) {
+      const src = front.match(/^ogImage:\s*\n\s+src:\s*(\S+)/m)?.[1];
+      if (src) {
+        entriesWithOgImage.set(`${prefix}${file.replace(/\.md$/, "")}/`, src.split("/").pop()!.replace(/\.[^.]+$/, ""));
+      }
+    }
+  }
+}
 
 const isNoindex = (html: string) => /<meta name="robots" content="noindex/.test(html);
 const pathOf = (loc: string) => new URL(loc).pathname;
@@ -222,10 +239,102 @@ describe("the Open Graph card", () => {
     for (const page of pages) {
       const og = page.html.match(/property="og:image" content="([^"]+)"/)?.[1];
       const tw = page.html.match(/name="twitter:image" content="([^"]+)"/)?.[1];
-      expect(og, page.route).toMatch(/^https?:\/\/.+\/og\/technoise-og\.png$/);
+      const slug = entriesWithOgImage.get(page.route);
+      if (slug) {
+        expect(og, page.route).toMatch(new RegExp(`^https?://.+/_astro/${slug}\\.[^/]+\\.jpg$`));
+      } else {
+        expect(og, page.route).toMatch(/^https?:\/\/.+\/og\/technoise-og\.png$/);
+      }
       expect(tw, page.route).toBe(og);
     }
     expect(existsSync(join(dist, "og", "technoise-og.png"))).toBe(true);
+  });
+});
+
+// An entry's ogImage is resolved once (src/lib/og-image.ts) and fed to the card tags
+// and the JSON-LD; these assert that one result reaches every consumer, and that the
+// tags describe the file actually shipped.
+describe("per-entry Open Graph images", () => {
+  const metas = (html: string, attr: string, key: string) =>
+    html.match(new RegExp(`${attr}="${key}" content="([^"]+)"`))?.[1];
+
+  it("finds at least one entry carrying an ogImage, so the cases below are not vacuous", () => {
+    expect(entriesWithOgImage.size).toBeGreaterThan(0);
+    for (const route of entriesWithOgImage.keys()) {
+      expect(pages.some((p) => p.route === route), route).toBe(true);
+    }
+  });
+
+  it("ships a 1200x630 JPEG under 200 KB with no EXIF, XMP or ICC payload", async () => {
+    for (const route of entriesWithOgImage.keys()) {
+      const og = metas(pages.find((p) => p.route === route)!.html, "property", "og:image")!;
+      const file = join(dist, new URL(og).pathname);
+      const bytes = readFileSync(file);
+      expect(bytes.subarray(0, 3).toString("hex"), route).toBe("ffd8ff");
+      expect(statSync(file).size, route).toBeLessThan(200 * 1024);
+      const meta = await sharp(file).metadata();
+      expect([meta.width, meta.height], route).toEqual([1200, 630]);
+      expect(meta.exif, route).toBeUndefined();
+      expect(meta.xmp, route).toBeUndefined();
+      expect(meta.icc, route).toBeUndefined();
+    }
+  });
+
+  it("makes og:image:type/width/height describe the file each page references", async () => {
+    for (const page of pages) {
+      const og = metas(page.html, "property", "og:image");
+      expect(og, page.route).toBeTruthy();
+      const meta = await sharp(join(dist, new URL(og!).pathname)).metadata();
+      expect(metas(page.html, "property", "og:image:type"), page.route).toBe(`image/${meta.format}`);
+      expect(metas(page.html, "property", "og:image:width"), page.route).toBe(String(meta.width));
+      expect(metas(page.html, "property", "og:image:height"), page.route).toBe(String(meta.height));
+    }
+  });
+
+  it("pairs twitter:image:alt with og:image:alt, non-empty, on every page", () => {
+    for (const page of pages) {
+      const alt = metas(page.html, "property", "og:image:alt");
+      expect(alt?.length, page.route).toBeGreaterThan(0);
+      expect(metas(page.html, "name", "twitter:image:alt"), page.route).toBe(alt);
+    }
+  });
+
+  it("gives every post and project a JSON-LD image identical to its og:image", () => {
+    const entryRoutes = pages.filter((p) => POST_ROUTE.test(p.route) || /^\/projects\/[^/]+\/$/.test(p.route));
+    expect(entryRoutes.length).toBeGreaterThan(0);
+    for (const page of entryRoutes) {
+      const json = page.html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
+      const entity = JSON.parse(json!)["@graph"].find((n: Record<string, unknown>) =>
+        ["BlogPosting", "CreativeWork"].includes(n["@type"] as string),
+      );
+      expect(entity.image, page.route).toEqual([metas(page.html, "property", "og:image")]);
+    }
+  });
+
+  it("emits no copy of an ogImage source into public/", () => {
+    const publicFiles = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? publicFiles(join(dir, e.name)) : [e.name],
+      );
+    const names = publicFiles(join(root, "public"));
+    for (const slug of entriesWithOgImage.values()) {
+      expect(names.some((n) => n.startsWith(slug)), slug).toBe(false);
+    }
+  });
+
+  // Astro emits an image()'s original alongside its derivatives the moment anything
+  // renders the ImageMetadata itself; only the one cover-cropped JPEG may ship.
+  it("emits only the JPEG derivative of an ogImage source into dist/, never the original", () => {
+    const shipped = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? shipped(join(dir, e.name)) : [e.name],
+      );
+    const names = shipped(dist);
+    for (const slug of entriesWithOgImage.values()) {
+      const copies = names.filter((n) => n.startsWith(`${slug}.`));
+      expect(copies, slug).toHaveLength(1);
+      expect(copies[0], slug).toMatch(/\.jpg$/);
+    }
   });
 });
 

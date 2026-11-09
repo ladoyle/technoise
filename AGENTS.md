@@ -113,7 +113,7 @@ technoise/
 ├─ reports/             agent handoff reports (git-ignored)
 ├─ src/
 │  ├─ assets/           astro:assets input — processed and hashed at build, unlike public/;
-│  │                  the About portrait lives here, EXIF-stripped, never in public/
+│  │                  the About portrait and og/ (per-entry card sources) live here, EXIF-stripped
 │  ├─ content.config.ts schema for the collections below (Astro 7 path, not src/content/config.ts)
 │  ├─ content/          blog/ and projects/ — one Markdown file per entry
 │  ├─ components/       reusable, from the component inventory below
@@ -123,7 +123,7 @@ technoise/
 │  └─ styles/           tokens.css and global styles
 ├─ public/brand/        the three live logo SVGs — anything here is published
 ├─ public/fonts/        the self-hosted Inter woff2 that fonts.css loads
-├─ public/og/           the one committed Open Graph card (OG_IMAGE in src/lib/seo.ts)
+├─ public/og/           the shared fallback Open Graph card (OG_IMAGE in src/lib/seo.ts)
 ├─ public/favicon.*     .ico plus one scheme-invariant SVG — two files, two links
 ├─ archive/             versioned but never built or served
 ├─ tests/               vitest suites, plus global-setup.ts — the one build they all read
@@ -280,10 +280,11 @@ Non-negotiable on every change:
 - Semantic HTML first: a `<button>` is a button, a `<nav>` is a nav.
 - Absolute canonical URLs; unique title (≤60 chars) and description (≤155 chars) per page.
 - Comments explain *why*, never *what*. Default to none.
-- Do not add dependencies without flagging it — every dependency is a future upgrade and a
-  supply-chain surface.
-- Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false` without accounting for
-  the transformer in `astro.config.mjs` (see [`docs/infrastructure.md`](docs/infrastructure.md)).
+- Do not add dependencies without flagging it — each is an upgrade and supply-chain surface.
+- Shiki uses a custom theme whose colours are `var(--code-*)` tokens, rewritten to `tok-*`
+  classes by a transformer in `astro.config.mjs`. Don't switch to a stock or hex theme, or set
+  `markdown.syntaxHighlight: false`, without that transformer (see
+  [`docs/infrastructure.md`](docs/infrastructure.md)).
 
 ### Page SEO
 
@@ -296,13 +297,12 @@ crawler or social client reads. A page passes:
 - `canonicalPath?` — omit it and the layout derives one from the page's own URL, so a new
   route is canonical by default, not by remembering.
 - `noindex?` — emits `noindex, nofollow` instead of the default
-  `index, follow, max-image-preview:large`. Two pages use it, and both are the only routes
-  absent from `STATIC_SITEMAP_ROUTES`: `/styleguide/` is real content nobody searched for;
-  `/404.html` is not content at all, and a static host cannot pair it with a real 404 status,
-  so an indexed one would be a soft 404. Lifting `noindex` and adding the route is the
-  one-line change when a stub gains real content — as `/resume/` did before it became `/about/`.
-- `ogType?`, `article?` — Open Graph/Twitter overrides. The card image is not a prop: every
-  page shares the committed OG card (`OG_IMAGE` in `src/lib/seo.ts`).
+  `index, follow, max-image-preview:large`. Its two users are the only routes absent from
+  `STATIC_SITEMAP_ROUTES`: `/styleguide/` is not searchable content; `/404.html` cannot carry
+  a real 404 status on a static host (indexing it = soft 404). A stub gaining content lifts it.
+- `ogType?`, `article?` — Open Graph/Twitter overrides.
+- `ogImage?` — defaults to the shared card (`OG_IMAGE` in `src/lib/seo.ts`); post and project
+  layouts pass the entry's `ogImage`, resolved by `src/lib/og-image.ts`.
 - `prevPath?` / `nextPath?` — paginated listings only; emits `rel="prev"` / `rel="next"`.
 - `schema?` — an array of JSON-LD `@graph` nodes; omitted or empty emits no `<script>` tag.
 
@@ -324,17 +324,21 @@ schema in `src/content.config.ts`:
   of the 60-character `<title>` budget, so 48 is the full remaining allowance.
 - `description` ≤155 characters. It is the card summary, the detail-page lede, and the meta
   description — one field, not three.
-- `tags`: lowercase, hyphenated (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤24 characters each, 1–4 per
+- `tags`: lowercase, hyphenated (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤24 characters each, 1–3 per
   entry. Stored and displayed in slug form so `"Astro"` and `"astro"` can't open two archives
   for one idea.
 - Entries sit **directly** in the collection directory — `src/content/blog/<slug>.md`, never
   `<dir>/<slug>.md`. A nested id keeps its directory prefix and cannot become a single URL
   segment, so the build fails with `TypeError: Missing parameter: slug` and no filename.
-- A post's filename may not be a bare number — it collides with the `/blog/<n>/` pagination
-  routes.
+- A post's filename may not be a bare number — it collides with `/blog/<n>/` pagination.
 - Both slug rules are enforced in `assertRoutableId()` in `src/lib/content.ts`, called from
   `getPublishedPosts()` and `getPublishedProjects()` — the one path every route already takes.
   Keep future slug rules there rather than adding a route-local guard.
+- `ogImage` is optional: `{ src, alt }`, `alt` 1–420 characters and required with `src`. Source
+  in `src/assets/og/`, never `public/`; EXIF/GPS-free; at least 1200×630, ratio 1.6–2.1. Pages
+  serve a generated 1200×630 JPEG. The size rule runs as each page renders
+  (`assertOgImageSize`/`entryOgImage`), not in the schema: Astro 7's `image()` gives it no
+  dimensions. Why: [`docs/infrastructure.md`](docs/infrastructure.md).
 - `draft: true` hides an entry from production builds only; `astro dev` still shows it.
 - Astro renders raw HTML inside Markdown by default, so a `.md` file is as privileged as a
   component. Every file in `src/content/` today is repo-authored and reviewed; if content is

@@ -26,13 +26,36 @@ export const SITE = {
   },
 } as const;
 
+// `src` is root-relative; every consumer absolutises it through absoluteUrl().
+export type OgImage = {
+  src: string;
+  type: string;
+  width: number;
+  height: number;
+  alt: string;
+};
+
 export const OG_IMAGE = {
   src: "/og/technoise-og.png",
   type: "image/png",
   width: 1200,
   height: 630,
   alt: "The TechNoise robot mascot wearing headphones, beside the TechNoise wordmark on a cream field.",
-} as const;
+} as const satisfies OgImage;
+
+// A per-entry card is cover-cropped to 1200x630. The floor stops an upscale; the
+// ratio band stops a portrait source being cropped to a strip of itself.
+export function assertOgImageSize(width: number, height: number, where: string): void {
+  const ratio = width / height;
+  // Positive form plus isFinite, so NaN, a missing dimension or a numeric string
+  // fails rather than slipping past a comparison.
+  const ok = Number.isFinite(width) && Number.isFinite(height);
+  if (!(ok && width >= 1200 && height >= 630 && ratio >= 1.6 && ratio <= 2.1)) {
+    throw new Error(
+      `${where}: ogImage is ${width}x${height} (${ratio.toFixed(2)}:1); it must be at least 1200x630 with a width:height ratio between 1.6 and 2.1.`,
+    );
+  }
+}
 
 export const RSS_PATH = "/rss.xml";
 export const SITEMAP_PATH = "/sitemap.xml";

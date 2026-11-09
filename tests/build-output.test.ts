@@ -35,8 +35,8 @@ beforeAll(() => {
 });
 
 describe("the build output itself", () => {
-  it("contains the twenty-four pages this phase generates", () => {
-    expect(pages.length).toBe(24);
+  it("contains the eighteen pages this phase generates", () => {
+    expect(pages.length).toBe(18);
   });
 
   it("emits exactly one redirect stub, for the retired /resume/", () => {
@@ -63,6 +63,20 @@ describe("code blocks", () => {
   it("emit no raw hex colours into the markup", () => {
     const leaked = pages.filter((p) => /<(pre|span)[^>]*(color|background)\s*:\s*#/.test(p.html));
     expect(leaked.map((p) => p.path)).toEqual([]);
+  });
+
+  it("carry highlighting as tok-* classes, never as inline style on a token span", () => {
+    const blocks = pages.flatMap((p) =>
+      (p.html.match(/<pre[\s\S]*?<\/pre>/g) ?? []).map((pre) => ({ path: p.path, pre })),
+    );
+    expect(blocks.length).toBeGreaterThan(0);
+    for (const { path, pre } of blocks) {
+      expect(pre, path).not.toMatch(/<span[^>]*\sstyle=/);
+      for (const [, role] of pre.matchAll(/class="tok-([a-z]+)"/g)) {
+        expect(["keyword", "literal", "comment"], path).toContain(role);
+      }
+    }
+    expect(blocks.some(({ pre }) => pre.includes('class="tok-keyword"'))).toBe(true);
   });
 });
 
@@ -253,6 +267,48 @@ describe("routing contract", () => {
     const styleguide = pages.find((p) => p.path === join("styleguide", "index.html"));
     expect(styleguide?.html).toContain('name="robots"');
     expect(styleguide?.html).toContain("noindex");
+  });
+});
+
+describe("the blog tag filter", () => {
+  const filterLinks = (path: string) => {
+    const html = pages.find((p) => p.path === path)?.html ?? "";
+    const nav = /<nav[^>]*aria-label="Filter posts by tag"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1];
+    expect(nav, path).toBeDefined();
+    return [...(nav ?? "").matchAll(/<a([^>]*)>([^<]*)/g)].map(([, attrs, text]) => ({
+      href: /href="([^"]*)"/.exec(attrs)?.[1],
+      current: /aria-current="([^"]*)"/.exec(attrs)?.[1],
+      text: text.trim(),
+    }));
+  };
+
+  it("leads /blog/ with All as the current page, then at most seven tags", () => {
+    const [all, ...rest] = filterLinks(join("blog", "index.html"));
+    expect(all).toEqual({ href: "/blog/", current: "page", text: "All" });
+    expect(rest.length).toBeGreaterThan(0);
+    expect(rest.length).toBeLessThanOrEqual(7);
+    expect(rest.every((link) => link.current === undefined)).toBe(true);
+  });
+
+  it("marks the open tag current on its archive, and All not", () => {
+    const archive = pages.find((p) => p.path.startsWith(join("blog", "tags") + "/"));
+    expect(archive).toBeDefined();
+    const tag = archive!.path.split("/")[2];
+    const [all, ...rest] = filterLinks(archive!.path);
+    expect(all).toEqual({ href: "/blog/", current: undefined, text: "All" });
+    expect(rest.length).toBeLessThanOrEqual(8);
+    expect(rest.filter((link) => link.current).map((link) => [link.href, link.current])).toEqual([
+      [`/blog/tags/${tag}/`, "page"],
+    ]);
+  });
+
+  // Vacuous until an eleventh post builds /blog/2/; then it pins ListingLayout's
+  // allCurrent branch, which has no other test.
+  it("marks All as the current set, not the current page, on /blog/2/ onward", () => {
+    const later = pages.filter((p) => /^blog\/\d+\/index\.html$/.test(p.path.split("\\").join("/")));
+    for (const { path } of later) {
+      expect(filterLinks(path)[0], path).toEqual({ href: "/blog/", current: "true", text: "All" });
+    }
   });
 });
 

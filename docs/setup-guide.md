@@ -140,7 +140,7 @@ Short About teaser (portrait, lede, "About me →") below Projects
 Footer
 ```
 
-**Blog index** — title, one-line description, tag filter row, PostCards in a single column
+**Blog index** — title, one-line description, tag filter row (All plus the seven most-used tags, `TAG_CLUSTER_SIZE`; an active tag outside the top seven is appended), PostCards in a single column
 (date, title, description, tags, read time), pagination at 10 per page.
 
 **Post** — breadcrumb, H1, date and updated date, tags, optional hero image, prose column,
@@ -256,8 +256,9 @@ edits. Verified.
    it needs an absolute sitemap URL and the hostname isn't settled (Part 0 Decision 3).
 4. JSON-LD: `WebSite` + `Person` on home, `BlogPosting` on posts, `CreativeWork` on
    projects, `BreadcrumbList` on posts, projects and tag archives.
-5. One static OG image fallback (`public/og/technoise-og.png`), not per-page generation —
-   three content entries didn't justify a renderer dependency.
+5. One static OG image fallback (`public/og/technoise-og.png`), plus an optional hand-made
+   per-entry `ogImage` (`src/assets/og/`, served as a generated JPEG) — still no
+   per-page generation; three content entries didn't justify a renderer dependency.
 
 **Done when:** view-source on three different page types shows three different titles,
 descriptions, and canonicals — no duplicates. Verified.

@@ -9,6 +9,7 @@
 import BaseLayout from "./BaseLayout.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import TagPill from "../components/TagPill.astro";
+import { clusterTags } from "../lib/content";
 import { breadcrumbList, type TrailItem } from "../lib/seo";
 
 interface Props {
@@ -40,6 +41,12 @@ const {
 // No trail on the page means no BreadcrumbList: structured data is never emitted
 // for a path the reader cannot see.
 const schema = breadcrumb ? [breadcrumbList(breadcrumb, Astro.site)] : undefined;
+
+// "All" is this page on /blog/ itself; on /blog/2/ and later it is the set the reader is
+// in, not the URL they are on.
+const onBlogIndex = Astro.url.pathname.replace(/\/?$/, "/") === "/blog/";
+const allCurrent = activeTag ? undefined : onBlogIndex ? "page" : "true";
+const cluster = clusterTags(tags, activeTag);
 ---
 
 <BaseLayout
@@ -63,15 +70,15 @@ const schema = breadcrumb ? [breadcrumbList(breadcrumb, Astro.site)] : undefined
         <nav class="listing__tags" aria-label="Filter posts by tag">
           <ul>
             <li>
-              <TagPill label="all" href="/blog/" current={activeTag === undefined} />
+              <TagPill label="All" href="/blog/" current={allCurrent} />
             </li>
-            {tags.map(({ tag, count }) => (
+            {cluster.map(({ tag, count }) => (
               <li>
                 <TagPill
                   label={tag}
                   href={`/blog/tags/${tag}/`}
                   count={count}
-                  current={tag === activeTag}
+                  current={tag === activeTag ? "page" : undefined}
                 />
               </li>
             ))}

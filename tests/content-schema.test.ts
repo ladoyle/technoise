@@ -1,13 +1,22 @@
 import { describe, expect, it } from "vitest";
 
+import { z } from "astro/zod";
+
 import { collections } from "../src/content.config";
 
-// defineCollection keeps the zod object it was handed, so the build-time contract can
-// be exercised directly instead of only through a full `astro build`.
-const blog = collections.blog.schema as unknown as {
+// Both schemas are `({ image }) => …` so ogImage.src can use astro:assets' image().
+// Under the glob loader that helper is a string transform to an unresolved import —
+// no dimensions exist at parse time — so a plain string stub is faithful to it.
+// The size and ratio rule is assertOgImageSize, tested in seo-helpers.test.ts.
+const stubImage = () => z.string();
+type SchemaFn = (ctx: { image: typeof stubImage }) => unknown;
+
+// defineCollection keeps the schema function it was handed, so the build-time
+// contract can be exercised directly instead of only through a full `astro build`.
+const blog = (collections.blog.schema as unknown as SchemaFn)({ image: stubImage }) as {
   safeParse: (v: unknown) => { success: boolean; error?: { issues: { message: string }[] } };
 };
-const projects = collections.projects.schema as unknown as {
+const projects = (collections.projects.schema as unknown as SchemaFn)({ image: stubImage }) as {
   safeParse: (v: unknown) => {
     success: boolean;
     data?: Record<string, unknown>;
@@ -77,10 +86,10 @@ describe("blog schema", () => {
     expect(blog.safeParse({ ...validPost, tags: ["a".repeat(25)] }).success).toBe(false);
   });
 
-  it("requires between one and four tags", () => {
+  it("requires between one and three tags", () => {
     expect(blog.safeParse({ ...validPost, tags: [] }).success).toBe(false);
-    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c", "d"] }).success).toBe(true);
-    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c", "d", "e"] }).success).toBe(false);
+    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c"] }).success).toBe(true);
+    expect(blog.safeParse({ ...validPost, tags: ["a", "b", "c", "d"] }).success).toBe(false);
   });
 
   it("coerces YAML dates to Date objects at UTC midnight", () => {
@@ -138,4 +147,34 @@ describe("projects schema", () => {
   it("allows a project title up to the same 48-character cap", () => {
     expect(projects.safeParse({ ...validProject, title: "x".repeat(49) }).success).toBe(false);
   });
+});
+
+describe("ogImage, on both collections", () => {
+  const src = "../../assets/og/x.webp";
+  const cases = [
+    ["blog", blog, validPost],
+    ["projects", projects, validProject],
+  ] as const;
+
+  for (const [name, schema, valid] of cases) {
+    it(`${name}: is optional — an entry without it parses unchanged`, () => {
+      const result = schema.safeParse(valid) as { success: boolean; data?: Record<string, unknown> };
+      expect(result.success).toBe(true);
+      expect(result.data?.ogImage).toBeUndefined();
+    });
+
+    it(`${name}: requires a non-empty alt of at most 420 characters alongside src`, () => {
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "Described." } }).success).toBe(true);
+      expect(schema.safeParse({ ...valid, ogImage: { src } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "" } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(420) } }).success).toBe(true);
+      const long = schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(421) } });
+      expect(long.success).toBe(false);
+      expect(messages(long)).toMatch(/420 characters/);
+    });
+
+    it(`${name}: requires src alongside alt`, () => {
+      expect(schema.safeParse({ ...valid, ogImage: { alt: "Described." } }).success).toBe(false);
+    });
+  }
 });

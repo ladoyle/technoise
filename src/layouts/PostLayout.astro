@@ -10,8 +10,8 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import Prose from "../components/Prose.astro";
 import TagPill from "../components/TagPill.astro";
 import { formatDate, isoDate, readingMinutes, type Post } from "../lib/content";
+import { entryOgImage } from "../lib/og-image";
 import {
-  OG_IMAGE,
   SITE,
   absoluteUrl,
   breadcrumbList,
@@ -28,6 +28,9 @@ interface Props {
 
 const { post, newer, older } = Astro.props;
 const { title, description, pubDate, updatedDate, tags } = post.data;
+
+// One resolved image feeds the card tags and the JSON-LD, so they cannot disagree.
+const ogImage = await entryOgImage(post.data.ogImage, `blog → ${post.id}`);
 
 const minutes = readingMinutes(post.body);
 
@@ -57,7 +60,7 @@ const schema = [
     keywords: tags.join(", "),
     timeRequired: `PT${minutes}M`,
     inLanguage: SITE.locale,
-    image: [absoluteUrl(OG_IMAGE.src, Astro.site)],
+    image: [absoluteUrl(ogImage.src, Astro.site)],
     author: {
       "@type": "Person",
       name: SITE.author.name,
@@ -76,6 +79,7 @@ const schema = [
   ogType="article"
   article={{ published: pubDate, modified: updatedDate, tags }}
   schema={schema}
+  ogImage={ogImage}
 >
   <div class="wrap">
     <Breadcrumb items={trail} />

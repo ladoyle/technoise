@@ -4,7 +4,7 @@
 //
 // zod here is v4: z.url() and z.coerce.date(), not the v3 z.string().url().
 
-import { defineCollection } from "astro:content";
+import { defineCollection, type SchemaContext } from "astro:content";
 import { glob } from "astro/loaders";
 // `z` re-exported from astro:content is deprecated for removal in Astro 8 and
 // astro check reports it. astro/zod is the stable re-export of the same zod v4.
@@ -39,34 +39,51 @@ const description = z
     error: "Descriptions are capped at 155 characters — they ship as the meta description.",
   });
 
+// Optional per-entry link-preview image. `alt` is required with `src`: it ships as
+// og:image:alt and twitter:image:alt, and 420 is X's cap. The size and ratio rule
+// cannot live here: under the glob loader image() yields an unresolved import, not
+// dimensions, so src/lib/og-image.ts enforces it when the page renders. EXIF is
+// not checked at build either — tests/nav-contract.test.ts scans src/assets.
+const ogImage = (image: SchemaContext["image"]) =>
+  z
+    .object({
+      src: image(),
+      alt: z.string().min(1).max(420, { error: "ogImage alt is capped at 420 characters (X's limit)." }),
+    })
+    .optional();
+
 const blog = defineCollection({
   loader: glob({ base: "./src/content/blog", pattern: "**/*.md" }),
-  schema: z
-    .object({
-      title,
-      description,
-      pubDate: z.coerce.date(),
-      updatedDate: z.coerce.date().optional(),
-      tags: z.array(tag).min(1).max(4),
-      draft: z.boolean().default(false),
-    })
-    .refine((data) => !data.updatedDate || data.updatedDate >= data.pubDate, {
-      error: "updatedDate cannot be earlier than pubDate.",
-    }),
+  schema: ({ image }) =>
+    z
+      .object({
+        title,
+        description,
+        pubDate: z.coerce.date(),
+        updatedDate: z.coerce.date().optional(),
+        tags: z.array(tag).min(1).max(3, { error: "A post carries at most 3 tags." }),
+        draft: z.boolean().default(false),
+        ogImage: ogImage(image),
+      })
+      .refine((data) => !data.updatedDate || data.updatedDate >= data.pubDate, {
+        error: "updatedDate cannot be earlier than pubDate.",
+      }),
 });
 
 const projects = defineCollection({
   loader: glob({ base: "./src/content/projects", pattern: "**/*.md" }),
-  schema: z.object({
-    title,
-    description,
-    stack: z.array(z.string().min(1)).min(1).max(6),
-    status: z.enum(["in-progress", "shipped", "archived"]).default("in-progress"),
-    startDate: z.coerce.date(),
-    demoUrl: z.url().optional(),
-    repoUrl: z.url().optional(),
-    draft: z.boolean().default(false),
-  }),
+  schema: ({ image }) =>
+    z.object({
+      title,
+      description,
+      stack: z.array(z.string().min(1)).min(1).max(6),
+      status: z.enum(["in-progress", "shipped", "archived"]).default("in-progress"),
+      startDate: z.coerce.date(),
+      demoUrl: z.url().optional(),
+      repoUrl: z.url().optional(),
+      draft: z.boolean().default(false),
+      ogImage: ogImage(image),
+    }),
 });
 
 export const collections = { blog, projects };
