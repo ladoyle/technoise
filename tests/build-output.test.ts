@@ -64,6 +64,20 @@ describe("code blocks", () => {
     const leaked = pages.filter((p) => /<(pre|span)[^>]*(color|background)\s*:\s*#/.test(p.html));
     expect(leaked.map((p) => p.path)).toEqual([]);
   });
+
+  it("carry highlighting as tok-* classes, never as inline style on a token span", () => {
+    const blocks = pages.flatMap((p) =>
+      (p.html.match(/<pre[\s\S]*?<\/pre>/g) ?? []).map((pre) => ({ path: p.path, pre })),
+    );
+    expect(blocks.length).toBeGreaterThan(0);
+    for (const { path, pre } of blocks) {
+      expect(pre, path).not.toMatch(/<span[^>]*\sstyle=/);
+      for (const [, role] of pre.matchAll(/class="tok-([a-z]+)"/g)) {
+        expect(["keyword", "literal", "comment"], path).toContain(role);
+      }
+    }
+    expect(blocks.some(({ pre }) => pre.includes('class="tok-keyword"'))).toBe(true);
+  });
 });
 
 describe("head budget", () => {
