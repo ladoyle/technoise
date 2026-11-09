@@ -140,7 +140,7 @@ Short About teaser (portrait, lede, "About me →") below Projects
 Footer
 ```
 
-**Blog index** — title, one-line description, tag filter row, PostCards in a single column
+**Blog index** — title, one-line description, tag filter row (All plus the seven most-used tags, `TAG_CLUSTER_SIZE`; an active tag outside the top seven is appended), PostCards in a single column
 (date, title, description, tags, read time), pagination at 10 per page.
 
 **Post** — breadcrumb, H1, date and updated date, tags, optional hero image, prose column,

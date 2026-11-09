@@ -282,8 +282,10 @@ Non-negotiable on every change:
 - Comments explain *why*, never *what*. Default to none.
 - Do not add dependencies without flagging it — every dependency is a future upgrade and a
   supply-chain surface.
-- Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false` without accounting for
-  the transformer in `astro.config.mjs` (see [`docs/infrastructure.md`](docs/infrastructure.md)).
+- Shiki uses a custom theme whose colours are `var(--code-*)` tokens, rewritten to `tok-*`
+  classes by a transformer in `astro.config.mjs`. Don't switch to a stock or hex theme, or set
+  `markdown.syntaxHighlight: false`, without that transformer (see
+  [`docs/infrastructure.md`](docs/infrastructure.md)).
 
 ### Page SEO
 
