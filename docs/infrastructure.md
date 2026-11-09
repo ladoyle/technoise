@@ -156,10 +156,19 @@ See AGENTS.md's accessibility floors for the standard that justifies an island, 
 
 ## Shiki
 
-`astro.config.mjs` carries a transformer that strips Shiki's own inline colours from fenced
-code blocks so `prose.css` — not Shiki's theme — styles them, and keeps the `tabindex="0"`
-Astro puts on the resulting `<pre>` (required for a scrolling region to be
+`astro.config.mjs` gives Shiki a custom theme whose colours are not hex but token names —
+`var(--code-keyword)`, `var(--code-literal)`, `var(--code-comment)`, plus `var(--text)` for
+everything else. Its transformer turns each span's inline colour into a `tok-keyword`,
+`tok-literal` or `tok-comment` class and deletes the `style`, so the markup carries no inline
+colour and `prose.css` maps each class to its token (keyword bold, comment italic). The
+`--code-*` values live in `tokens.css`, in `:root` and both dark blocks, so highlighting
+swaps scheme and falls back to light in print like every other token. The `pre` hook keeps
+the `tabindex="0"` Astro puts on the block (required for a scrolling region to be
 keyboard-reachable).
 
-Don't reintroduce a Shiki theme or `markdown.syntaxHighlight: false` without accounting for
-both.
+The theme is written inline rather than built with shiki's `createCssVariablesTheme`:
+`shiki` is a transitive dependency, not a declared one. Don't switch to a stock theme or
+`markdown.syntaxHighlight: false` without accounting for the transformer — a stock theme
+brings raw hex, and turning highlighting off drops the tabindex. `palette-tokens.test.ts`
+pins each `--code-*` at 4.5:1 on `--surface-sunken`; `build-output.test.ts` pins the
+class-only markup.
