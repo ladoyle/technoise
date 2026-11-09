@@ -301,6 +301,15 @@ describe("the blog tag filter", () => {
       [`/blog/tags/${tag}/`, "page"],
     ]);
   });
+
+  // Vacuous until an eleventh post builds /blog/2/; then it pins ListingLayout's
+  // allCurrent branch, which has no other test.
+  it("marks All as the current set, not the current page, on /blog/2/ onward", () => {
+    const later = pages.filter((p) => /^blog\/\d+\/index\.html$/.test(p.path.split("\\").join("/")));
+    for (const { path } of later) {
+      expect(filterLinks(path)[0], path).toEqual({ href: "/blog/", current: "true", text: "All" });
+    }
+  });
 });
 
 // Issue #15. The filename is the contract: GitHub Pages serves dist/404.html — that
