@@ -270,6 +270,39 @@ describe("routing contract", () => {
   });
 });
 
+describe("the blog tag filter", () => {
+  const filterLinks = (path: string) => {
+    const html = pages.find((p) => p.path === path)?.html ?? "";
+    const nav = /<nav[^>]*aria-label="Filter posts by tag"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1];
+    expect(nav, path).toBeDefined();
+    return [...(nav ?? "").matchAll(/<a([^>]*)>([^<]*)/g)].map(([, attrs, text]) => ({
+      href: /href="([^"]*)"/.exec(attrs)?.[1],
+      current: /aria-current="([^"]*)"/.exec(attrs)?.[1],
+      text: text.trim(),
+    }));
+  };
+
+  it("leads /blog/ with All as the current page, then at most seven tags", () => {
+    const [all, ...rest] = filterLinks(join("blog", "index.html"));
+    expect(all).toEqual({ href: "/blog/", current: "page", text: "All" });
+    expect(rest.length).toBeGreaterThan(0);
+    expect(rest.length).toBeLessThanOrEqual(7);
+    expect(rest.every((link) => link.current === undefined)).toBe(true);
+  });
+
+  it("marks the open tag current on its archive, and All not", () => {
+    const archive = pages.find((p) => p.path.startsWith(join("blog", "tags") + "/"));
+    expect(archive).toBeDefined();
+    const tag = archive!.path.split("/")[2];
+    const [all, ...rest] = filterLinks(archive!.path);
+    expect(all).toEqual({ href: "/blog/", current: undefined, text: "All" });
+    expect(rest.length).toBeLessThanOrEqual(8);
+    expect(rest.filter((link) => link.current).map((link) => [link.href, link.current])).toEqual([
+      [`/blog/tags/${tag}/`, "page"],
+    ]);
+  });
+});
+
 // Issue #15. The filename is the contract: GitHub Pages serves dist/404.html — that
 // exact name, at the deploy root — for any unmatched path, so a rename or a move is a
 // silent regression back to GitHub's generic error page. The chrome assertions are the
