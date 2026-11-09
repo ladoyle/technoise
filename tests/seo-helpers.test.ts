@@ -12,6 +12,7 @@ import {
   SubpathDeployError,
   absoluteUrl,
   assertMetaBudget,
+  assertOgImageSize,
   assertRootDeploy,
   breadcrumbList,
   canonicalPath,
@@ -169,6 +170,26 @@ describe("pageTitle and the meta budget", () => {
   it("applies the same rule to the description at 155", () => {
     expect(() => assertMetaBudget("t", "d".repeat(155), "/p/")).not.toThrow();
     expect(() => assertMetaBudget("t", "d".repeat(156), "/p/")).toThrow(/\/p\/.*156 characters/s);
+  });
+});
+
+// The schema cannot see an ogImage's dimensions (image() is an unresolved import
+// under the glob loader), so this is the whole size-and-ratio gate.
+describe("assertOgImageSize", () => {
+  it("accepts the 1200x630 floor, the first asset's 1672x941 and both ratio edges", () => {
+    for (const [w, h] of [[1200, 630], [1672, 941], [1600, 1000], [2100, 1000]]) {
+      expect(() => assertOgImageSize(w, h, "blog → x"), `${w}x${h}`).not.toThrow();
+    }
+  });
+
+  it("rejects an image under 1200x630, naming the entry", () => {
+    expect(() => assertOgImageSize(1199, 630, "blog → small")).toThrow(/blog → small.*1199x630/s);
+    expect(() => assertOgImageSize(1260, 629, "blog → short")).toThrow(/blog → short/);
+  });
+
+  it("rejects a ratio outside 1.6–2.1 even above the size floor", () => {
+    expect(() => assertOgImageSize(1500, 1000, "projects → tall")).toThrow(/projects → tall.*1\.50:1/s);
+    expect(() => assertOgImageSize(2200, 1000, "projects → wide")).toThrow(/2\.20:1/);
   });
 });
 

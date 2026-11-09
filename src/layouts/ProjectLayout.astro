@@ -25,7 +25,7 @@ const { project } = Astro.props;
 const { title, description, stack, status, startDate, demoUrl, repoUrl } = project.data;
 
 // One resolved image feeds the card tags and the JSON-LD, so they cannot disagree.
-const ogImage = await entryOgImage(project.data.ogImage);
+const ogImage = await entryOgImage(project.data.ogImage, `projects → ${project.id}`);
 
 const statusLabel = {
   "in-progress": "In progress",

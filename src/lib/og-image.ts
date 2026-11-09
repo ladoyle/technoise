@@ -4,13 +4,18 @@
 import { getImage } from "astro:assets";
 import type { ImageMetadata } from "astro";
 
-import { OG_IMAGE, type OgImage } from "./seo";
+import { OG_IMAGE, assertOgImageSize, type OgImage } from "./seo";
 
 // JPEG, not WebP: LinkedIn and several scrapers drop WebP cards. Cover-cropped to
-// exactly 1200x630 so no platform has to crop it uncontrolled; the schema's 1.6–2.1
-// ratio rule bounds how much a centre crop can take.
-export async function entryOgImage(field?: { src: ImageMetadata; alt: string }): Promise<OgImage> {
+// exactly 1200x630 so no platform has to crop it uncontrolled; the 1.6–2.1
+// ratio rule bounds how much a centre crop can take. `where` names the entry in the
+// build error, since the schema cannot see dimensions to reject it earlier.
+export async function entryOgImage(
+  field: { src: ImageMetadata; alt: string } | undefined,
+  where: string,
+): Promise<OgImage> {
   if (!field) return OG_IMAGE;
+  assertOgImageSize(field.src.width, field.src.height, where);
   const image = await getImage({
     src: field.src,
     width: 1200,

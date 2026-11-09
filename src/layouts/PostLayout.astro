@@ -30,7 +30,7 @@ const { post, newer, older } = Astro.props;
 const { title, description, pubDate, updatedDate, tags } = post.data;
 
 // One resolved image feeds the card tags and the JSON-LD, so they cannot disagree.
-const ogImage = await entryOgImage(post.data.ogImage);
+const ogImage = await entryOgImage(post.data.ogImage, `blog → ${post.id}`);
 
 const minutes = readingMinutes(post.body);
 

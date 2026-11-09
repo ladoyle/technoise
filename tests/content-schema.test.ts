@@ -5,11 +5,10 @@ import { z } from "astro/zod";
 import { collections } from "../src/content.config";
 
 // Both schemas are `({ image }) => …` so ogImage.src can use astro:assets' image().
-// The real helper resolves a file path into ImageMetadata inside the content layer;
-// this stub accepts that resolved shape directly, so the refine on it — the part
-// this repo owns — is what the cases below exercise.
-const stubImage = () =>
-  z.object({ src: z.string(), width: z.number(), height: z.number(), format: z.string() });
+// Under the glob loader that helper is a string transform to an unresolved import —
+// no dimensions exist at parse time — so a plain string stub is faithful to it.
+// The size and ratio rule is assertOgImageSize, tested in seo-helpers.test.ts.
+const stubImage = () => z.string();
 type SchemaFn = (ctx: { image: typeof stubImage }) => unknown;
 
 // defineCollection keeps the schema function it was handed, so the build-time
@@ -151,8 +150,7 @@ describe("projects schema", () => {
 });
 
 describe("ogImage, on both collections", () => {
-  const img = (width: number, height: number) => ({ src: "/x.webp", width, height, format: "webp" });
-  const alt = "A described image.";
+  const src = "../../assets/og/x.webp";
   const cases = [
     ["blog", blog, validPost],
     ["projects", projects, validProject],
@@ -165,32 +163,18 @@ describe("ogImage, on both collections", () => {
       expect(result.data?.ogImage).toBeUndefined();
     });
 
-    it(`${name}: accepts the 1200x630 floor and the first asset's 1672x941`, () => {
-      expect(schema.safeParse({ ...valid, ogImage: { src: img(1200, 630), alt } }).success).toBe(true);
-      expect(schema.safeParse({ ...valid, ogImage: { src: img(1672, 941), alt } }).success).toBe(true);
-    });
-
-    it(`${name}: rejects an image under 1200x630`, () => {
-      const narrow = schema.safeParse({ ...valid, ogImage: { src: img(1199, 630), alt } });
-      expect(narrow.success).toBe(false);
-      expect(messages(narrow)).toMatch(/at least 1200x630/);
-      expect(schema.safeParse({ ...valid, ogImage: { src: img(1260, 629), alt } }).success).toBe(false);
-    });
-
-    it(`${name}: rejects a ratio outside 1.6–2.1`, () => {
-      // 1.5:1 and 2.2:1, both above the size floor, so only the ratio can fail them.
-      expect(schema.safeParse({ ...valid, ogImage: { src: img(1500, 1000), alt } }).success).toBe(false);
-      expect(schema.safeParse({ ...valid, ogImage: { src: img(2200, 1000), alt } }).success).toBe(false);
-      expect(schema.safeParse({ ...valid, ogImage: { src: img(1600, 1000), alt } }).success).toBe(true);
-      expect(schema.safeParse({ ...valid, ogImage: { src: img(2100, 1000), alt } }).success).toBe(true);
-    });
-
-    it(`${name}: requires a non-empty alt of at most 420 characters`, () => {
-      const src = img(1200, 630);
+    it(`${name}: requires a non-empty alt of at most 420 characters alongside src`, () => {
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "Described." } }).success).toBe(true);
       expect(schema.safeParse({ ...valid, ogImage: { src } }).success).toBe(false);
       expect(schema.safeParse({ ...valid, ogImage: { src, alt: "" } }).success).toBe(false);
       expect(schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(420) } }).success).toBe(true);
-      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(421) } }).success).toBe(false);
+      const long = schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(421) } });
+      expect(long.success).toBe(false);
+      expect(messages(long)).toMatch(/420 characters/);
+    });
+
+    it(`${name}: requires src alongside alt`, () => {
+      expect(schema.safeParse({ ...valid, ogImage: { alt: "Described." } }).success).toBe(false);
     });
   }
 });

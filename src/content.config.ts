@@ -40,16 +40,14 @@ const description = z
   });
 
 // Optional per-entry link-preview image. `alt` is required with `src`: it ships as
-// og:image:alt and twitter:image:alt, and 420 is X's cap. The ratio band stops a
-// portrait source being cover-cropped to a 1200x630 strip; the size floor stops an
-// upscale. EXIF is not checked here — tests/nav-contract.test.ts scans src/assets.
+// og:image:alt and twitter:image:alt, and 420 is X's cap. The size and ratio rule
+// cannot live here: under the glob loader image() yields an unresolved import, not
+// dimensions, so src/lib/og-image.ts enforces it when the page renders. EXIF is
+// not checked at build either — tests/nav-contract.test.ts scans src/assets.
 const ogImage = (image: SchemaContext["image"]) =>
   z
     .object({
-      src: image().refine(
-        (i) => i.width >= 1200 && i.height >= 630 && i.width / i.height >= 1.6 && i.width / i.height <= 2.1,
-        { error: "ogImage must be at least 1200x630 with a width:height ratio between 1.6 and 2.1." },
-      ),
+      src: image(),
       alt: z.string().min(1).max(420, { error: "ogImage alt is capped at 420 characters (X's limit)." }),
     })
     .optional();
