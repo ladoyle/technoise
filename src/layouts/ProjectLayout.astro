@@ -7,8 +7,8 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import Prose from "../components/Prose.astro";
 import TagPill from "../components/TagPill.astro";
 import { isoDate, type Project } from "../lib/content";
+import { entryOgImage } from "../lib/og-image";
 import {
-  OG_IMAGE,
   SITE,
   absoluteUrl,
   breadcrumbList,
@@ -23,6 +23,9 @@ interface Props {
 
 const { project } = Astro.props;
 const { title, description, stack, status, startDate, demoUrl, repoUrl } = project.data;
+
+// One resolved image feeds the card tags and the JSON-LD, so they cannot disagree.
+const ogImage = await entryOgImage(project.data.ogImage);
 
 const statusLabel = {
   "in-progress": "In progress",
@@ -54,7 +57,7 @@ const schema = [
     keywords: stack.join(", "),
     creativeWorkStatus: statusLabel,
     inLanguage: SITE.locale,
-    image: [absoluteUrl(OG_IMAGE.src, Astro.site)],
+    image: [absoluteUrl(ogImage.src, Astro.site)],
     ...(sameAs.length > 0 ? { sameAs } : {}),
     author: {
       "@type": "Person",
@@ -72,6 +75,7 @@ const schema = [
   description={description}
   canonicalPath={path}
   schema={schema}
+  ogImage={ogImage}
 >
   <div class="wrap">
     <Breadcrumb items={trail} />

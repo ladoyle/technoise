@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 
+import { z } from "astro/zod";
+
 import { collections } from "../src/content.config";
 
-// defineCollection keeps the zod object it was handed, so the build-time contract can
-// be exercised directly instead of only through a full `astro build`.
-const blog = collections.blog.schema as unknown as {
+// Both schemas are `({ image }) => …` so ogImage.src can use astro:assets' image().
+// The real helper resolves a file path into ImageMetadata inside the content layer;
+// this stub accepts that resolved shape directly, so the refine on it — the part
+// this repo owns — is what the cases below exercise.
+const stubImage = () =>
+  z.object({ src: z.string(), width: z.number(), height: z.number(), format: z.string() });
+type SchemaFn = (ctx: { image: typeof stubImage }) => unknown;
+
+// defineCollection keeps the schema function it was handed, so the build-time
+// contract can be exercised directly instead of only through a full `astro build`.
+const blog = (collections.blog.schema as unknown as SchemaFn)({ image: stubImage }) as {
   safeParse: (v: unknown) => { success: boolean; error?: { issues: { message: string }[] } };
 };
-const projects = collections.projects.schema as unknown as {
+const projects = (collections.projects.schema as unknown as SchemaFn)({ image: stubImage }) as {
   safeParse: (v: unknown) => {
     success: boolean;
     data?: Record<string, unknown>;
@@ -138,4 +148,49 @@ describe("projects schema", () => {
   it("allows a project title up to the same 48-character cap", () => {
     expect(projects.safeParse({ ...validProject, title: "x".repeat(49) }).success).toBe(false);
   });
+});
+
+describe("ogImage, on both collections", () => {
+  const img = (width: number, height: number) => ({ src: "/x.webp", width, height, format: "webp" });
+  const alt = "A described image.";
+  const cases = [
+    ["blog", blog, validPost],
+    ["projects", projects, validProject],
+  ] as const;
+
+  for (const [name, schema, valid] of cases) {
+    it(`${name}: is optional — an entry without it parses unchanged`, () => {
+      const result = schema.safeParse(valid) as { success: boolean; data?: Record<string, unknown> };
+      expect(result.success).toBe(true);
+      expect(result.data?.ogImage).toBeUndefined();
+    });
+
+    it(`${name}: accepts the 1200x630 floor and the first asset's 1672x941`, () => {
+      expect(schema.safeParse({ ...valid, ogImage: { src: img(1200, 630), alt } }).success).toBe(true);
+      expect(schema.safeParse({ ...valid, ogImage: { src: img(1672, 941), alt } }).success).toBe(true);
+    });
+
+    it(`${name}: rejects an image under 1200x630`, () => {
+      const narrow = schema.safeParse({ ...valid, ogImage: { src: img(1199, 630), alt } });
+      expect(narrow.success).toBe(false);
+      expect(messages(narrow)).toMatch(/at least 1200x630/);
+      expect(schema.safeParse({ ...valid, ogImage: { src: img(1260, 629), alt } }).success).toBe(false);
+    });
+
+    it(`${name}: rejects a ratio outside 1.6–2.1`, () => {
+      // 1.5:1 and 2.2:1, both above the size floor, so only the ratio can fail them.
+      expect(schema.safeParse({ ...valid, ogImage: { src: img(1500, 1000), alt } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src: img(2200, 1000), alt } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src: img(1600, 1000), alt } }).success).toBe(true);
+      expect(schema.safeParse({ ...valid, ogImage: { src: img(2100, 1000), alt } }).success).toBe(true);
+    });
+
+    it(`${name}: requires a non-empty alt of at most 420 characters`, () => {
+      const src = img(1200, 630);
+      expect(schema.safeParse({ ...valid, ogImage: { src } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "" } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(420) } }).success).toBe(true);
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(421) } }).success).toBe(false);
+    });
+  }
 });
