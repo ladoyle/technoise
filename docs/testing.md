@@ -32,7 +32,7 @@ install into a clean `node_modules`.
 
 ## Suite map
 
-16 files, 444 tests (the authoritative count is the `npm test` summary).
+16 files, 460 tests (the authoritative count is the `npm test` summary).
 
 | Suite | Covers |
 |---|---|

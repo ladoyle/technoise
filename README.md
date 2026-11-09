@@ -18,8 +18,8 @@ freeze) and [infrastructure](docs/infrastructure.md) (workflows, `public/`/`arch
 Blog and project routes are live: listing, post, tag archives, projects index, project
 detail (`docs/setup-guide.md` Phase 3). Every page now carries a canonical URL, Open Graph
 and Twitter card tags, and a JSON-LD graph; `/sitemap.xml`, `/rss.xml` and `/robots.txt` are
-generated at build, and shared links render a committed 1200×630 OG card instead of a grey
-placeholder (`docs/setup-guide.md` Phase 4). The home page is a real front door — mascot
+generated at build, and shared links render a 1200×630 OG card instead of a grey
+placeholder — a shared committed card, or an optional hand-made per-entry image (`docs/setup-guide.md` Phase 4). The home page is a real front door — mascot
 hero, one heading, one lede, two calls to action, latest posts and projects, an About teaser — with a
 primary nav that collapses behind a labelled toggle below 768px. `/about/` is a first-person page — story, skills, contact links and a portrait — indexable and in the
 sitemap, with the owner's phone number and location deliberately excluded from the page, its
@@ -36,7 +36,7 @@ npm run dev          # dev server on localhost:4321
 npm run build        # production build to ./dist/
 npm run preview      # serve the built output
 npx astro check      # type and template diagnostics
-npm test             # vitest run — 16 suites; see docs/testing.md for the map
+npm test             # vitest run — 16 suites, 460 tests; see docs/testing.md for the map
 ```
 
 Node `>=22.23.4` is required (`.npmrc` sets `engine-strict`, so older Node fails `npm install`); `.nvmrc` pins the major line.
@@ -61,6 +61,9 @@ description: string, 1–155 characters
 pubDate: 2026-01-01
 updatedDate: 2026-01-15 # optional, must not be earlier than pubDate
 tags: [design-systems, astro] # 1–3 tags, lowercase-hyphenated, ≤24 characters each
+ogImage: # optional, hand-made card for link previews
+  src: ../../assets/og/<file>.webp # ≥1200×630, ratio 1.6–2.1, EXIF-free
+  alt: string, 1–420 characters
 draft: false # optional, defaults to false
 ---
 ```
@@ -76,6 +79,7 @@ status: in-progress | shipped | archived # defaults to in-progress
 startDate: 2026-01-01
 demoUrl: https://example.com # optional
 repoUrl: https://example.com # optional
+ogImage: # optional, same shape as a post's
 draft: false # optional, defaults to false
 ---
 ```

@@ -172,3 +172,17 @@ The theme is written inline rather than built with shiki's `createCssVariablesTh
 brings raw hex, and turning highlighting off drops the tabindex. `palette-tokens.test.ts`
 pins each `--code-*` at 4.5:1 on `--surface-sunken`; `build-output.test.ts` pins the
 class-only markup.
+
+## Per-entry OG images
+
+A post or project may set `ogImage: { src, alt }`. The source sits in `src/assets/og/`, so
+`astro:assets` processes it; it is never in `public/`, and must be EXIF/GPS-free (the
+`nav-contract` EXIF scan walks `src/assets` recursively). The page emits a generated
+1200×630 JPEG, and `discovery-output` asserts the source itself is never emitted into `dist/`.
+
+The size rule (at least 1200×630, ratio 1.6–2.1) is checked as each page renders, by
+`assertOgImageSize` in `src/lib/seo.ts` called from `entryOgImage` in `src/lib/og-image.ts`,
+not in the schema. Under the `glob()` loader Astro 7's `image()` hands the schema no
+dimensions, so a schema `refine` cannot see them. The build still fails and names the entry.
+`getPublishedPosts`/`getPublishedProjects` feed every published entry through that path; a
+draft is checked once it is published. `seo.ts` imports nothing from `astro:assets`.
