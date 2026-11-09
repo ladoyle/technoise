@@ -100,6 +100,20 @@ export function collectTags(posts: Post[]): TagCount[] {
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 }
 
+export const TAG_CLUSTER_SIZE = 7;
+
+/**
+ * The listing's tag filter: the most-used tags in collectTags order, plus the tag whose
+ * archive is open when it falls outside them — a reader on that page must still see
+ * which filter is applied.
+ */
+export function clusterTags(tags: TagCount[], activeTag?: string): TagCount[] {
+  const top = tags.slice(0, TAG_CLUSTER_SIZE);
+  if (activeTag === undefined || top.some((t) => t.tag === activeTag)) return top;
+  const active = tags.find((t) => t.tag === activeTag);
+  return active ? [...top, active] : top;
+}
+
 // timeZone is required. YAML dates parse to UTC midnight, and a build machine behind
 // UTC would otherwise render every post as the day before it was published.
 const dateFormat = new Intl.DateTimeFormat("en-GB", {

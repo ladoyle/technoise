@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   PAGE_SIZE,
+  TAG_CLUSTER_SIZE,
+  clusterTags,
   collectTags,
   formatDate,
   isoDate,
@@ -82,6 +84,53 @@ describe("collectTags", () => {
 
   it("returns an empty list for no posts, so the tag nav can be omitted", () => {
     expect(collectTags([])).toEqual([]);
+  });
+});
+
+describe("clusterTags", () => {
+  // Nine tags with descending counts t1 (9 posts) … t9 (1 post), in collectTags order.
+  const nine = collectTags(
+    Array.from({ length: 9 }, (_, i) => i + 1).flatMap((n) =>
+      Array.from({ length: 10 - n }, (_, j) => post(`P${n}-${j}`, [`t${n}`])),
+    ),
+  );
+  const names = (tags: { tag: string }[]) => tags.map((t) => t.tag);
+
+  it("caps the cluster at seven", () => {
+    expect(TAG_CLUSTER_SIZE).toBe(7);
+  });
+
+  it("returns every tag when there are seven or fewer", () => {
+    const few = nine.slice(0, 5);
+    expect(clusterTags(few)).toEqual(few);
+    expect(clusterTags(nine.slice(0, 7))).toEqual(nine.slice(0, 7));
+  });
+
+  it("returns the top seven of nine", () => {
+    expect(names(clusterTags(nine))).toEqual(["t1", "t2", "t3", "t4", "t5", "t6", "t7"]);
+  });
+
+  it("keeps collectTags' tie order, so an alphabetical tie decides the seventh slot", () => {
+    const tied = collectTags(
+      ["h", "g", "f", "e", "d", "c", "b", "a"].map((tag) => post(tag.toUpperCase(), [tag])),
+    );
+    expect(names(clusterTags(tied))).toEqual(["a", "b", "c", "d", "e", "f", "g"]);
+  });
+
+  it("leaves the cluster alone when the active tag is already in it", () => {
+    expect(names(clusterTags(nine, "t3"))).toEqual(names(clusterTags(nine)));
+  });
+
+  it("appends the active tag as an eighth entry when it is outside the top seven", () => {
+    const cluster = clusterTags(nine, "t9");
+    expect(names(cluster)).toEqual(["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t9"]);
+    expect(cluster.at(-1)).toEqual({ tag: "t9", count: 1 });
+  });
+
+  it("ignores an active tag it does not know, and never mutates its input", () => {
+    const before = structuredClone(nine);
+    expect(names(clusterTags(nine, "nope"))).toEqual(names(clusterTags(nine)));
+    expect(nine).toEqual(before);
   });
 });
 
