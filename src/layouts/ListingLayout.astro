@@ -45,7 +45,7 @@ const schema = breadcrumb ? [breadcrumbList(breadcrumb, Astro.site)] : undefined
 // "All" is this page on /blog/ itself; on /blog/2/ and later it is the set the reader is
 // in, not the URL they are on.
 const onBlogIndex = Astro.url.pathname.replace(/\/?$/, "/") === "/blog/";
-const allCurrent = activeTag !== undefined ? false : onBlogIndex ? true : "true";
+const allCurrent = activeTag ? undefined : onBlogIndex ? "page" : "true";
 const cluster = clusterTags(tags, activeTag);
 ---
 
@@ -78,7 +78,7 @@ const cluster = clusterTags(tags, activeTag);
                   label={tag}
                   href={`/blog/tags/${tag}/`}
                   count={count}
-                  current={tag === activeTag}
+                  current={tag === activeTag ? "page" : undefined}
                 />
               </li>
             ))}

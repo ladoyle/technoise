@@ -1,24 +1,20 @@
 ---
 // Two forms, one box. With an href it is a link to a tag archive; without one it is a
 // static chip used for project stack badges, which have no archive to point at.
-//
-// `current` is `true` when the link points at this very page (aria-current="page"), and
-// `"true"` when it names the set the reader is inside but not its URL — "All" on
-// /blog/2/, which is still the unfiltered listing.
 
 interface Props {
   label: string;
   href?: string;
   count?: number;
-  current?: boolean | "true";
+  current?: "page" | "true";
 }
 
-const { label, href, count, current = false } = Astro.props;
+const { label, href, count, current } = Astro.props;
 ---
 
 {
   href ? (
-    <a class="tag-pill" href={href} aria-current={current === "true" ? "true" : current ? "page" : undefined}>
+    <a class="tag-pill" href={href} aria-current={current}>
       {/* The space is a flex-collapsed text node, there so the accessible name reads
           "astro 2 posts" rather than "astro2 posts". */}
       {label}{" "}
