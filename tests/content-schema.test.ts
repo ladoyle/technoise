@@ -163,10 +163,11 @@ describe("ogImage, on both collections", () => {
       expect(result.data?.ogImage).toBeUndefined();
     });
 
-    it(`${name}: requires a non-empty alt of at most 420 characters alongside src`, () => {
+    it(`${name}: alt is optional; when set, non-blank and at most 420 characters`, () => {
       expect(schema.safeParse({ ...valid, ogImage: { src, alt: "Described." } }).success).toBe(true);
-      expect(schema.safeParse({ ...valid, ogImage: { src } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src } }).success).toBe(true);
       expect(schema.safeParse({ ...valid, ogImage: { src, alt: "" } }).success).toBe(false);
+      expect(schema.safeParse({ ...valid, ogImage: { src, alt: "   " } }).success).toBe(false);
       expect(schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(420) } }).success).toBe(true);
       const long = schema.safeParse({ ...valid, ogImage: { src, alt: "x".repeat(421) } });
       expect(long.success).toBe(false);

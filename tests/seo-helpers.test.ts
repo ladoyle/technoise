@@ -2,7 +2,10 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { describe, expect, it, vi } from "vitest";
+
+import SeoHead from "../src/components/SeoHead.astro";
 
 import {
   MissingSiteError,
@@ -206,12 +209,40 @@ describe("assertOgImageSize", () => {
 describe("entryOgImage", () => {
   it("rejects a remote-URL src, naming the entry, before any size check", async () => {
     await expect(
-      entryOgImage({ src: "https://example.com/tiny.png", alt: "a" }, "blog → remote"),
+      entryOgImage({ src: "https://example.com/tiny.png" }, "blog → remote"),
     ).rejects.toThrow(/blog → remote: ogImage\.src must be a local file under src\/assets\/og\//);
   });
 
   it("falls back to the shared card when an entry sets no ogImage", async () => {
     expect(await entryOgImage(undefined, "blog → none")).toBe(OG_IMAGE);
+  });
+});
+
+// No built page has an alt-less entry card, and publishing one would be fake content,
+// so the absent-alt branch is rendered here in isolation.
+describe("SeoHead image alt", () => {
+  const render = async (ogImage?: Parameters<typeof SeoHead>[0]["ogImage"]) => {
+    const container = await AstroContainer.create({ astroConfig: { site: SITE_URL.href } });
+    const props = { title: "T", description: "D", canonicalPath: "/x/", ogImage };
+    return container.renderToString(SeoHead, { props });
+  };
+  const card = { src: "/card.jpg", type: "image/jpeg", width: 1200, height: 630 };
+
+  it("emits neither alt tag when the card has no alt", async () => {
+    const html = await render(card);
+    expect(html).toContain('property="og:image"');
+    expect(html).not.toMatch(/og:image:alt|twitter:image:alt/);
+  });
+
+  it("emits both alt tags with the card's own alt when set", async () => {
+    const html = await render({ ...card, alt: "Described." });
+    expect(html).toContain('<meta property="og:image:alt" content="Described.">');
+    expect(html).toContain('<meta name="twitter:image:alt" content="Described.">');
+  });
+
+  it("emits the shared card's alt when no card is passed", async () => {
+    const html = await render();
+    expect(html).toContain(`<meta property="og:image:alt" content="${OG_IMAGE.alt}">`);
   });
 });
 

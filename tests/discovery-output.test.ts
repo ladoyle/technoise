@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { OG_IMAGE } from "../src/lib/seo";
+
 // The three non-HTML routes and the OG card are the surfaces no page renders, so
 // nothing else fails when they drift. The sitemap's parity obligation is the one
 // the hand-rolled endpoint took on in place of @astrojs/sitemap: every indexable
@@ -291,11 +293,22 @@ describe("per-entry Open Graph images", () => {
     }
   });
 
-  it("pairs twitter:image:alt with og:image:alt, non-empty, on every page", () => {
+  // An alt-less entry card emits neither tag; both absent is valid, one alone is not.
+  it("pairs twitter:image:alt with og:image:alt, never empty, on every page", () => {
     for (const page of pages) {
       const alt = metas(page.html, "property", "og:image:alt");
-      expect(alt?.length, page.route).toBeGreaterThan(0);
       expect(metas(page.html, "name", "twitter:image:alt"), page.route).toBe(alt);
+      expect(page.html, page.route).not.toMatch(/image:alt" content=""/);
+    }
+  });
+
+  it("gives every page on the shared card exactly the shared card's alt", () => {
+    const onShared = pages.filter(
+      (p) => new URL(metas(p.html, "property", "og:image")!).pathname === OG_IMAGE.src,
+    );
+    expect(onShared.length).toBeGreaterThan(0);
+    for (const page of onShared) {
+      expect(metas(page.html, "property", "og:image:alt"), page.route).toBe(OG_IMAGE.alt);
     }
   });
 
