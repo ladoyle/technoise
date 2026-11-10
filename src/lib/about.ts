@@ -61,6 +61,7 @@ const PROFILE_LABELS: Record<string, string> = {
   "www.linkedin.com": "LinkedIn",
   "linkedin.com": "LinkedIn",
   "github.com": "GitHub",
+  "www.facebook.com": "Facebook",
 };
 
 // Derived, never written literally: one profile URL lives in SITE.author.sameAs and
