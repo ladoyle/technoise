@@ -286,7 +286,7 @@ describe("the about page keeps the contract its content is published under", () 
     const list = html.match(/<ul class="about__contact"[^>]*>([\s\S]*?)<\/ul>/)?.[1];
     expect(list, "no about contact list built").toBeTruthy();
     const items = [...list!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => m[1]);
-    expect(items.length).toBe(3);
+    expect(items.length).toBe(4);
     for (const item of items) {
       const label = item.match(/<span class="about__contact-label"[^>]*>([^<]*)<\/span>/)?.[1]?.trim();
       expect(label, `contact item has no visible label: ${item}`).toBeTruthy();

@@ -22,7 +22,11 @@ export const SITE = {
   // repoUrl.
   author: {
     name: "Luke Doyle",
-    sameAs: ["https://www.linkedin.com/in/luke-doyle-116b58160", "https://github.com/ladoyle"],
+    sameAs: [
+      "https://www.linkedin.com/in/luke-doyle-116b58160",
+      "https://github.com/ladoyle",
+      "https://www.facebook.com/share/1JLg783Gcx/?mibextid=wwXIfr",
+    ],
   },
 } as const;
 
