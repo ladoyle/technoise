@@ -34,7 +34,7 @@ export interface About {
 export const ABOUT: About = {
   name: "Luke Doyle",
   jobTitle: "Lead Software Engineer",
-  email: "doyleluke76@gmail.com",
+  email: "technoise.dev@gmail.com",
   lede: "I'm Luke, a lead software engineer building systems that people rely on with skills people can trust.",
   paragraphs: [
     "Starting in security, I broke things on purpose to learn how they fail. That knowledge taught me how to build systems that hold up under pressure, and how to choose technology that lasts instead of technology that merely trends.",

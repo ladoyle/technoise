@@ -370,7 +370,7 @@ describe("the no-hostname-literal rule", () => {
     // Every canonical, og:url, <loc> and guid derives from `site`, so changing the
     // domain is a one-line edit. A literal anywhere else silently outlives it.
     const offenders = sourceFiles(src)
-      .filter((file) => /technoise\.(dev|com|io)|github\.io/.test(readFileSync(file, "utf8")))
+      .filter((file) => /technoise\.(dev|com|io)(?!@)|github\.io/.test(readFileSync(file, "utf8")))
       .map((file) => file.slice(src.length + 1));
     expect(offenders).toEqual([]);
   });
